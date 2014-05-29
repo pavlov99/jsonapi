@@ -50,3 +50,6 @@ Proper API frameworks also need:
     * Decent performance
     * Documentation
     * An active community to advance and support the framework
+
+
+Define logger. It could write to database of file. Data is accessable in admin interface. Format is similar to /var/log/nginx/access.log
