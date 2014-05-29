@@ -51,3 +51,8 @@ $(ENV):
 # target: run - run test server
 run:
 	$(PYTHON) jsonapi/tests/myapp/manage.py runserver 0.0.0.0:8000
+
+.PHONY: install
+# target: install - install package to current environment
+install:
+	$(PYTHON) setup.py install
