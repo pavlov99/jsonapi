@@ -1,6 +1,9 @@
 jsonapi
 ========
 
+.. image:: http://jsonapi.org/images/jsonapi@0.7x.png
+    :alt: json:api
+
 .. image:: https://travis-ci.org/pavlov99/jsonapi.png
     :target: https://travis-ci.org/pavlov99/jsonapi
     :alt: Build Status
@@ -28,6 +31,7 @@ jsonapi
 
 
 Root docs (api docs)
+Specification: http://jsonapi.org/
 REST anti patterns http://www.infoq.com/articles/rest-anti-patterns
 
 What makes a decent API Framework?These features:
