@@ -1,6 +1,7 @@
 ﻿.env/
 .env
 *.pyc
+*.sqlite3
 .ropeproject/
 build/
 dist/

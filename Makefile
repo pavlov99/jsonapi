@@ -50,7 +50,12 @@ $(ENV):
 .PHONY: run
 # target: run - run test server
 run:
-	$(PYTHON) jsonapi/tests/myapp/manage.py runserver 0.0.0.0:8000
+	$(PYTHON) examples/manage.py runserver 0.0.0.0:8000
+
+.PHONY: shell
+# target: shell - run shell console
+shell:
+	$(PYTHON) examples/manage.py shell_plus
 
 .PHONY: install
 # target: install - install package to current environment
