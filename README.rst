@@ -1,8 +1,7 @@
-jsonapi
-========
-
 .. image:: http://jsonapi.org/images/jsonapi@0.7x.png
     :alt: json:api
+
+========
 
 .. image:: https://travis-ci.org/pavlov99/jsonapi.png
     :target: https://travis-ci.org/pavlov99/jsonapi
