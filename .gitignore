@@ -1,5 +1,7 @@
 ﻿.env/
 .env
+*.pyc
+.ropeproject/
+build/
 dist/
 jsonapi.egg-info/
-*.pyc
