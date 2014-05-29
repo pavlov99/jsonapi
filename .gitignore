@@ -1,0 +1,5 @@
+﻿.env/
+.env
+dist/
+jsonapi.egg-info/
+*.pyc
