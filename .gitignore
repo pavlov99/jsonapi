@@ -1,5 +1,6 @@
 ﻿.env/
 .env
+.tox
 *.pyc
 *.sqlite3
 .ropeproject/
