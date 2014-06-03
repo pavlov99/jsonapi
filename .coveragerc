@@ -1,0 +1,15 @@
+[report]
+omit=
+    jsonapi/six.py
+    jsonapi/tests/*
+source=jsonapi
+exclude_lines=
+    raise NotImplemented
+
+[run]
+omit=
+    jsonapi/six.py
+    jsonapi/tests/*
+source=jsonapi
+exclude_lines=
+    raise NotImplemented
