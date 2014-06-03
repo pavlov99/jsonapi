@@ -4,6 +4,7 @@
 *.pyc
 *.sqlite3
 .ropeproject/
+.coverage
 build/
 dist/
 jsonapi.egg-info/
