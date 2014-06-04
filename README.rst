@@ -3,12 +3,12 @@
 
 ========
 
-.. image:: https://travis-ci.org/python-jsonapi/jsonapi.png
-    :target: https://travis-ci.org/python-jsonapi/jsonapi
+.. image:: https://travis-ci.org/pavlov99/jsonapi.png
+    :target: https://travis-ci.org/pavlov99/jsonapi
     :alt: Build Status
 
-.. image:: https://coveralls.io/repos/python-jsonapi/jsonapi/badge.png
-    :target: https://coveralls.io/r/python-jsonapi/jsonapi
+.. image:: https://coveralls.io/repos/pavlov99/jsonapi/badge.png
+    :target: https://coveralls.io/r/pavlov99/jsonapi
     :alt: Coverage Status
 
 .. image:: https://pypip.in/v/jsonapi/badge.png
