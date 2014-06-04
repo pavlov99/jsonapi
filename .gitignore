@@ -1,6 +1,7 @@
 ﻿.env/
 .env
 .tox
+*.egg
 *.pyc
 *.sqlite3
 .ropeproject/
