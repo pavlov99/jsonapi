@@ -39,4 +39,6 @@ class API(object):
 
         """
         urls = []
+        for resource_name, resource in self.resource_map.items():
+            urls.append((resource_name, resource))
         return urls

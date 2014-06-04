@@ -5,17 +5,13 @@ from .myapp.models import Author
 
 class TestResource(unittest.TestCase):
     def setUp(self):
-        self.objects = [
-            {"id": 1, "name": "name"}
-        ]
-
         class StaticResource(Resource):
-            def get(self_):
-                return self.objects
+            def get(self):
+                objects = [
+                    {"id": 1, "name": "name"}
+                ]
+                return objects
         self.static_resource = StaticResource()
-
-    def test_static_resource(self):
-        self.assertEqual(self.static_resource.get(), self.objects)
 
     def test_django_resource_name(self):
         class AuthorResource(Resource):

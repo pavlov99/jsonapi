@@ -1,4 +1,6 @@
-from .settings import settings
+from .settings import configure_settings
+configure_settings()
+
 from django.db import models
 
 
