@@ -1,5 +1,6 @@
 ENV=$(CURDIR)/.env
-PYTHON=$(ENV)/bin/python
+BIN=$(ENV)/bin
+PYTHON=$(BIN)/python
 PYVERSION=$(shell pyversions --default)
 SITE_PACKAGES=numpy scipy
 
@@ -41,7 +42,7 @@ upload:
 .PHONY: test
 # target: test - Runs tests
 test: clean
-	$(PYTHON) setup.py test
+	NOSE_REDNOSE=1 $(BIN)/nosetests
 
 $(ENV):
 	virtualenv --no-site-packages .env
