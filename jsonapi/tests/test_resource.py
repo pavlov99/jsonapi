@@ -1,5 +1,6 @@
 import unittest
-from ..resource import Resource
+from ..resource import Resource, ResourceManager
+from .myapp.models import Author
 
 
 class TestResource(unittest.TestCase):
@@ -15,3 +16,10 @@ class TestResource(unittest.TestCase):
 
     def test_static_resource(self):
         self.assertEqual(self.static_resource.get(), self.objects)
+
+    def test_django_resource_name(self):
+        class AuthorResource(Resource):
+            class Meta:
+                model = Author
+
+        self.assertEqual(AuthorResource.Meta.name, 'author')
