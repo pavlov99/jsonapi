@@ -13,10 +13,12 @@ Responsible for routing and resource registration.
         ...
 
 """
-from django.conf.urls import url
+#from django.conf.urls import url
 
 
 class API(object):
+
+    """ API handler."""
 
     def __init__(self, version=None, prefix=None):
         self.version = str(version)
@@ -25,10 +27,16 @@ class API(object):
 
     def register(self, resource):
         """ Register resource for currnet API."""
-        self.resource_map[len(self.resource_map)] = resource
+        self.resource_map[resource.Meta.name] = resource
 
     @property
     def urls(self):
-        # NOTE: urlpatterns are deprecated since Django1.8
+        """ Get all of the api endpoints.
+
+        NOTE: urlpatterns are deprecated since Django1.8
+
+        :return list: urls
+
+        """
         urls = []
         return urls

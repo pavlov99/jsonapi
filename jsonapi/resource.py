@@ -14,37 +14,31 @@ class ResourceManager(object):
         """ Define resource name based on Meta information.
 
         :param Resource.Meta meta: resource metainformation
+        :return: name of resource
+        :rtype: str
 
         """
         name = getattr(meta, 'name', None)
         if name is not None:
             return name
         else:
-            # TODO: if model is not defined?
             return meta.model._meta.model_name
 
 
 class ResourceMeta(type):
 
-    def __new__(cls, name, bases, attrs):
-        class_ = super(ResourceMeta, cls).__new__(cls, name, bases, attrs)
-        class_.Meta.name = ResourceManager.get_resource_name(class_.Meta)
-        return class_
+    """ Metaclass for JSON:API resources."""
+
+    def __new__(mcs, name, bases, attrs):
+        cls = super(ResourceMeta, mcs).__new__(mcs, name, bases, attrs)
+        cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
+        return cls
 
 
 @six.add_metaclass(ResourceMeta)
 class Resource(object):
+
+    """ Base JSON:API resource class."""
+
     class Meta:
         name = "_"
-
-    def get(self):
-        pass
-
-    def create(self):
-        pass
-
-    def update(self):
-        pass
-
-    def delete(self):
-        pass

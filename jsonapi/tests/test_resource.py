@@ -1,5 +1,5 @@
 import unittest
-from ..resource import Resource, ResourceManager
+from ..resource import Resource
 from .myapp.models import Author
 
 
