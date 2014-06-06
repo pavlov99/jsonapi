@@ -29,6 +29,8 @@
     :alt: License
 
 
+STATUS: ALPHA, it is rather investigation as of now. Check major release number.
+
 Root docs (api docs)
 Specification: http://jsonapi.org/
 REST anti patterns http://www.infoq.com/articles/rest-anti-patterns
