@@ -32,6 +32,7 @@ class ResourceMeta(type):
     def __new__(mcs, name, bases, attrs):
         cls = super(ResourceMeta, mcs).__new__(mcs, name, bases, attrs)
         cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
+        cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         return cls
 
 
@@ -42,3 +43,10 @@ class Resource(object):
 
     class Meta:
         name = "_"
+
+    @classmethod
+    def get(cls, **kwargs):
+        from django.core import serializers
+        model = cls.Meta.model
+        data = serializers.serialize("json", model.objects.all())
+        return data
