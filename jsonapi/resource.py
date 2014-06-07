@@ -75,7 +75,6 @@ class Resource(object):
         from django.core import serializers
         import json
         model = cls.Meta.model
-        print(model)
         data = serializers.serialize("json", model.objects.all())
         response = json.dumps({cls.Meta.name_plural: json.loads(data)})
         return response

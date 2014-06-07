@@ -17,6 +17,8 @@ Responsible for routing and resource registration.
 
 
 """
+import logging
+logger = logging.getLogger(__name__)
 
 
 class API(object):
@@ -42,22 +44,17 @@ class API(object):
         """
         from django.conf.urls import url
 
-        urls = []
-        for resource_name, resource in self.resource_map.items():
-            urls.extend([
-                url(
-                    r'^{0}/$'.format(resource_name),
-                    lambda request, **kw: default_view(request, resource, **kw)
-                ),
-                url(
-                    r'^{0}/(?P<id>[0-9]+)/$'.format(resource_name),
-                    lambda request, **kw: default_view(request, resource, **kw)
-                ),
-            ])
+        urls = [
+            url(r'^(?P<resource_name>\w+)/$', self.default_view),
+            url(r'^(?P<resource_name>)\w+/(?P<id>[0-9]+)/$', self.default_view),
+        ]
         return urls
 
-
-def default_view(request, resource, **kwargs):
-    from django.http import HttpResponse
-    items = resource.get(**kwargs)
-    return HttpResponse(items)
+    def default_view(self, request, resource_name, **kwargs):
+        #location = request.META['HTTP_HOST'] + request.path
+        #logger.info("Request {} from IP: {}".format(
+            #location, request.META['REMOTE_ADDR']))
+        resource = self.resource_map[resource_name]
+        from django.http import HttpResponse
+        items = resource.get(**kwargs)
+        return HttpResponse(items)
