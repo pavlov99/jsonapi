@@ -3,6 +3,8 @@ from . import six
 import inspect
 from django.db import models
 
+from .serializers import Serializer
+
 
 __all__ = 'Resource',
 
@@ -72,9 +74,8 @@ class Resource(object):
 
     @classmethod
     def get(cls, **kwargs):
-        from django.core import serializers
         import json
         model = cls.Meta.model
-        data = serializers.serialize("json", model.objects.all())
-        response = json.dumps({cls.Meta.name_plural: json.loads(data)})
+        data = [Serializer.dump_document(m) for m in model.objects.all()]
+        response = json.dumps({cls.Meta.name_plural: data})
         return response

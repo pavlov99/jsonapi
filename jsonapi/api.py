@@ -69,9 +69,6 @@ class API(object):
         return HttpResponse(response, content_type="application/vnd.api+json")
 
     def default_view(self, request, resource_name, **kwargs):
-        #location = request.META['HTTP_HOST'] + request.path
-        #logger.info("Request {} from IP: {}".format(
-            #location, request.META['REMOTE_ADDR']))
         resource = self.resource_map[resource_name]
         from django.http import HttpResponse
         items = resource.get(**kwargs)
