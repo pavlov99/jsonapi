@@ -15,5 +15,9 @@ class Post(models.Model):
     blog = models.ForeignKey(Blog)
 
 
+class PostWithPicture(Post):
+    picture_url = models.URLField()
+
+
 class Comment(models.Model):
     post = models.ForeignKey(Post)

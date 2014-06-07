@@ -60,5 +60,4 @@ class API(object):
 def default_view(request, resource, **kwargs):
     from django.http import HttpResponse
     items = resource.get(**kwargs)
-    result = resource.Meta.name
     return HttpResponse(items)
