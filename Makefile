@@ -3,6 +3,7 @@ BIN=$(ENV)/bin
 PYTHON=$(BIN)/python
 PYVERSION=$(shell pyversions --default)
 SITE_PACKAGES=numpy scipy
+MANAGER=$(PYTHON) $(CURDIR)/jsonapi/tests/django/manage.py
 
 RED=\033[0;31m
 GREEN=\033[0;32m
@@ -42,7 +43,8 @@ upload:
 .PHONY: test
 # target: test - Runs tests
 test: clean
-	NOSE_REDNOSE=1 $(BIN)/nosetests
+	#NOSE_REDNOSE=1 $(BIN)/nosetests
+	$(MANAGER) test myapp.tests --settings=myapp.settings.dev
 
 $(ENV):
 	virtualenv --no-site-packages .env
@@ -50,13 +52,14 @@ $(ENV):
 
 .PHONY: run
 # target: run - run test server
-run:
-	$(PYTHON) jsonapi/tests/django/manage.py runserver 0.0.0.0:8000
+run: $(ENV)
+	$(MANAGER) syncdb --noinput --settings=myapp.settings.dev
+	$(MANAGER) runserver 0.0.0.0:8000 --settings=myapp.settings.dev
 
 .PHONY: shell
 # target: shell - run shell console
 shell:
-	$(PYTHON) jsonapi/tests/django/manage.py shell_plus
+	$(MANAGER) shell_plus --settings=myapp.settings.dev
 
 .PHONY: install
 # target: install - install package to current environment

@@ -10,4 +10,3 @@ class AuthorResource(Resource):
 
 api = API()
 api.register(AuthorResource)
-print(api.urls)
