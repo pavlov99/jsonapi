@@ -47,6 +47,8 @@ class Resource(object):
     @classmethod
     def get(cls, **kwargs):
         from django.core import serializers
+        import json
         model = cls.Meta.model
         data = serializers.serialize("json", model.objects.all())
-        return data
+        response = json.dumps({cls.Meta.name_plural: json.loads(data)})
+        return response
