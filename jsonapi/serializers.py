@@ -47,11 +47,21 @@ class Serializer(object):
         pass
 
     @classmethod
-    def get_id(cls, model):
-        """ Get id for given model.
+    def get_id(cls, model_instance):
+        """ Get id for given model_instance.
 
-        :param django.db.models.Model model: model instance
+        :param django.db.models.Model model_instance: model instance
         :return id: model id (primary key)
 
         """
-        return model.pk
+        return model_instance.pk
+
+    @classmethod
+    def get_fields(cls, model):
+        """ Get fields for given model.
+
+        :param django.db.models.Model model: model instance
+        :return list fields: model fields
+
+        """
+        return model._meta.fields + model._meta.many_to_many
