@@ -27,9 +27,20 @@ class API(object):
     def __init__(self):
         self.resource_map = dict()
 
-    def register(self, resource):
-        """ Register resource for currnet API."""
+    def register(self, resource=None):
+        """ Register resource for currnet API.
+
+        :return jsonapi.resource.Resource: resource
+
+        """
+        if resource is None:
+            def wrapper(resource):
+                self.register(resource)
+                return resource
+            return wrapper
+
         self.resource_map[resource.Meta.name] = resource
+        return resource
 
     @property
     def urls(self):
