@@ -74,6 +74,11 @@ class Resource(object):
 
     @classmethod
     def get(cls, **kwargs):
+        """ Get resource http response.
+
+        :return str: resource
+
+        """
         import json
         model = cls.Meta.model
         data = [Serializer.dump_document(m) for m in model.objects.all()]

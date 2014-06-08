@@ -5,6 +5,7 @@ admin.autodiscover()
 from .resources import api
 
 
-urlpatterns = patterns('',
+urlpatterns = patterns(
+    '',
     url(r'^api/', include(api.urls)),
 )

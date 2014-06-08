@@ -15,7 +15,6 @@ Responsible for routing and resource registration.
     then usage:
         url(r'^api/', include(api.urls)),
 
-
 """
 import logging
 logger = logging.getLogger(__name__)
@@ -47,11 +46,17 @@ class API(object):
         urls = [
             url(r'^$', self.map_view),
             url(r'^(?P<resource_name>\w+)/$', self.default_view),
-            url(r'^(?P<resource_name>)\w+/(?P<id>[0-9]+)/$', self.default_view),
+            url(r'^(?P<resource_name>)\w+/(?P<id>[0-9]+)/$',
+                self.default_view),
         ]
         return urls
 
     def map_view(self, request):
+        """ Show information about available resources.
+
+        :return django.http.HttpResponse
+
+        """
         from django.http import HttpResponse
         import json
 
@@ -69,6 +74,11 @@ class API(object):
         return HttpResponse(response, content_type="application/vnd.api+json")
 
     def default_view(self, request, resource_name, **kwargs):
+        """ Handler for resources.
+
+        :return django.http.HttpResponse
+
+        """
         resource = self.resource_map[resource_name]
         from django.http import HttpResponse
         items = resource.get(**kwargs)

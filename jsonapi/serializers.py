@@ -36,9 +36,22 @@ class Serializer(object):
         return document
 
     @classmethod
-    def load_document(cls, model):
+    def load_document(cls, document):
+        """ Given document get model.
+
+        :param dict document: Document
+        :return django.db.models.Model model: model instance
+
+        """
+
         pass
 
     @classmethod
     def get_id(cls, model):
+        """ Get id for given model.
+
+        :param django.db.models.Model model: model instance
+        :return id: model id (primary key)
+
+        """
         return model.pk
