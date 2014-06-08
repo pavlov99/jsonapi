@@ -27,9 +27,18 @@ class API(object):
     def __init__(self):
         self.resource_map = dict()
 
-    def register(self, resource):
+    def register(self, resource=None):
         """ Register resource for currnet API."""
+        print("Resource is: ", resource)
+        if resource is None:
+            def wrapper(resource):
+                self.register(resource)
+                logger.debug("Register resource ", resource)
+                return resource
+            return wrapper
+
         self.resource_map[resource.Meta.name] = resource
+        return resource
 
     @property
     def urls(self):
