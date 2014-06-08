@@ -4,8 +4,8 @@ import json
 from django.test import Client
 from mixer.backend.django import mixer
 
-from ..models import Author
-from ..resources import AuthorResource
+from jsonapi.tests.testapp.models import Author
+from jsonapi.tests.testapp.resources import AuthorResource
 
 
 class TestResource(TestCase):

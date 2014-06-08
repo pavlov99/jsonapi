@@ -10,8 +10,8 @@ def main():
             'django.contrib.contenttypes',
             'django.contrib.admin',
             'django.contrib.sessions',
-            #'jsonapi.tests.testapp',
-            #'jsonapi',
+            'jsonapi.tests.testapp',
+            'jsonapi',
         ],
         # Django replaces this, but it still wants it. *shrugs*
         DATABASE_ENGINE='django.db.backends.sqlite3',
@@ -21,7 +21,7 @@ def main():
                 'NAME': ':memory:',
             }
         },
-        ROOT_URLCONF='jsonapi.tests.urls',
+        ROOT_URLCONF='jsonapi.tests.testapp.urls',
         DEBUG=True,
         TEMPLATE_DEBUG=True,
     )

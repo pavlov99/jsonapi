@@ -1,13 +1,11 @@
 ENV=$(CURDIR)/.env
 BIN=$(ENV)/bin
-PYTHON=$(BIN)/python
-PYVERSION=$(shell pyversions --default)
-SITE_PACKAGES=numpy scipy
+
+PYTHON=$(shell which python)
+DJANGO_ADMIN=$(shell which django-admin.py)
+
 MANAGER=$(PYTHON) $(CURDIR)/jsonapi/tests/django/manage.py
 
-RED=\033[0;31m
-GREEN=\033[0;32m
-NC=\033[0m
 
 all: $(ENV)
 	@echo "Virtualenv is installed"
@@ -21,6 +19,7 @@ help:
 # target: clean - Display callable targets
 clean:
 	@rm -rf build dist docs/_build
+	@find . -name jsonapi\__pycache__ -delete
 	@rm -f *.py[co]
 	@rm -f *.orig
 	@rm -f *.prof
@@ -43,8 +42,7 @@ upload:
 .PHONY: test
 # target: test - Runs tests
 test: clean
-	#NOSE_REDNOSE=1 $(BIN)/nosetests
-	$(MANAGER) test myapp.tests --settings=myapp.settings.dev
+	$(PYTHON) run_tests.py
 
 $(ENV):
 	virtualenv --no-site-packages .env

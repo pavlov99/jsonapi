@@ -4,12 +4,12 @@ from jsonapi.api import API
 
 class AuthorResource(Resource):
     class Meta:
-        model = 'myapp.Author'
+        model = 'testapp.Author'
 
 
 class PostWithPictureResource(Resource):
     class Meta:
-        model = 'myapp.PostWithPicture'
+        model = 'testapp.PostWithPicture'
 
 
 api = API()
