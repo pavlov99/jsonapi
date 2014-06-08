@@ -28,12 +28,14 @@ class API(object):
         self.resource_map = dict()
 
     def register(self, resource=None):
-        """ Register resource for currnet API."""
-        print("Resource is: ", resource)
+        """ Register resource for currnet API.
+
+        :return jsonapi.resource.Resource: resource
+
+        """
         if resource is None:
             def wrapper(resource):
                 self.register(resource)
-                logger.debug("Register resource ", resource)
                 return resource
             return wrapper
 
