@@ -1,12 +1,11 @@
 ENV=$(CURDIR)/.env
 BIN=$(ENV)/bin
-PYTHON=$(BIN)/python
-PYVERSION=$(shell pyversions --default)
-SITE_PACKAGES=numpy scipy
 
-RED=\033[0;31m
-GREEN=\033[0;32m
-NC=\033[0m
+PYTHON=$(shell which python)
+DJANGO_ADMIN=$(shell which django-admin.py)
+
+MANAGER=$(PYTHON) $(CURDIR)/jsonapi/tests/django/manage.py
+
 
 all: $(ENV)
 	@echo "Virtualenv is installed"
@@ -20,6 +19,7 @@ help:
 # target: clean - Display callable targets
 clean:
 	@rm -rf build dist docs/_build
+	@find . -name jsonapi\__pycache__ -delete
 	@rm -f *.py[co]
 	@rm -f *.orig
 	@rm -f *.prof
@@ -42,7 +42,7 @@ upload:
 .PHONY: test
 # target: test - Runs tests
 test: clean
-	NOSE_REDNOSE=1 $(BIN)/nosetests
+	$(PYTHON) run_tests.py
 
 $(ENV):
 	virtualenv --no-site-packages .env
@@ -50,13 +50,14 @@ $(ENV):
 
 .PHONY: run
 # target: run - run test server
-run:
-	$(PYTHON) examples/manage.py runserver 0.0.0.0:8000
+run: $(ENV)
+	$(MANAGER) syncdb --noinput --settings=myapp.settings.dev
+	$(MANAGER) runserver 0.0.0.0:8000 --settings=myapp.settings.dev
 
 .PHONY: shell
 # target: shell - run shell console
 shell:
-	$(PYTHON) examples/manage.py shell_plus
+	$(MANAGER) shell_plus --settings=myapp.settings.dev
 
 .PHONY: install
 # target: install - install package to current environment
