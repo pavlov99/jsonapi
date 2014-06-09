@@ -22,17 +22,24 @@ class Serializer(object):
     """
 
     @classmethod
-    def dump_document(cls, model, fields=None):
-        """ Get document for model.
+    def dump_document(cls, model_instance, fields=None):
+        """ Get document for model_instance.
 
-        :param django.db.models.Model model: model instance
-        :param list of None fields: model field to dump
+        :param django.db.models.Model model_instance: model instance
+        :param list of None fields: model_instance field to dump
         :return dict: document
 
         """
+        # apply rules for field serialization
         document = {
-            "id": cls.get_id(model)
+            f.name: getattr(model_instance, f.name)
+            for f in cls.get_fields(model_instance.__class__)
+            if f.rel is None
         }
+
+        # Own fields: f.rel = None
+        # single table inheritance: f.rel != None and f.serialize = False
+        # related fields: f.rel != None, f.serialize = True
         return document
 
     @classmethod
