@@ -4,11 +4,11 @@ Model relationship:
 
       Author    Blog
        ||        |
-       ||        ˄
-       ||-----< Post ----> PostWithPicture
+       ||        @
+       ||-----@ Post ----> PostWithPicture
        |  ______/
        |  |
-       ˄  ˄
+       @  @
        Comment
 
 """

@@ -53,6 +53,11 @@ class ResourceManager(object):
 
     @staticmethod
     def get_model_fields(model):
+        """ Get fields for model.
+
+        :return dict: fields
+
+        """
         if model is None:
             return None
 
