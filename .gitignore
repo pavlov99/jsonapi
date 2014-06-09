@@ -6,6 +6,7 @@
 *.sqlite3
 .ropeproject/
 .coverage
+docs/_build
 build/
 dist/
 jsonapi.egg-info/
