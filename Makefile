@@ -4,7 +4,7 @@ BIN=$(ENV)/bin
 PYTHON=$(shell which python)
 DJANGO_ADMIN=$(shell which django-admin.py)
 
-MANAGER=$(PYTHON) $(CURDIR)/jsonapi/tests/django/manage.py
+MANAGER=$(PYTHON) $(CURDIR)/example/manage.py
 
 
 all: $(ENV)
@@ -51,15 +51,20 @@ $(ENV):
 .PHONY: run
 # target: run - run test server
 run: $(ENV)
-	$(MANAGER) syncdb --noinput --settings=myapp.settings.dev
-	$(MANAGER) runserver 0.0.0.0:8000 --settings=myapp.settings.dev
+	$(MANAGER) syncdb --noinput
+	$(MANAGER) runserver 0.0.0.0:8000
 
 .PHONY: shell
 # target: shell - run shell console
 shell:
-	$(MANAGER) shell_plus --settings=myapp.settings.dev
+	$(MANAGER) shell_plus
 
 .PHONY: install
 # target: install - install package to current environment
 install:
 	$(PYTHON) setup.py install
+
+.PHONY: docs
+# target: docs - build documentation
+docs:
+	echo "Build docs"
