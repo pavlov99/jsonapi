@@ -1,3 +1,19 @@
+""" Models definition.
+
+Model relationship:
+
+      Author    Blog
+       ||        |
+       ||        ˄
+       ||-----< Post ----> PostWithPicture
+       |  ______/
+       |  |
+       ˄  ˄
+       Comment
+
+"""
+
+
 from django.db import models
 
 
@@ -20,4 +36,4 @@ class PostWithPicture(Post):
 
 
 class Comment(models.Model):
-    post = models.ForeignKey(Post)
+    post = models.ForeignKey(Post, related_name='comments')

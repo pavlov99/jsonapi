@@ -5,16 +5,23 @@ from django.test import Client
 from mixer.backend.django import mixer
 
 from jsonapi.tests.testapp.models import PostWithPicture
-from jsonapi.tests.testapp.resources import AuthorResource
+from jsonapi.tests.testapp.resources import (
+    AuthorResource,
+    PostWithPictureResource,
+)
 
 
 class TestResource(TestCase):
     def setUp(self):
         pass
 
-    def test_django_resource_name(self):
+    def test_resource_name(self):
         self.assertEqual(AuthorResource.Meta.name, 'author')
         self.assertEqual(AuthorResource.Meta.name_plural, 'authors')
+
+    def test_resource_fields(self):
+        fields = PostWithPictureResource.Meta.fields
+        self.assertTrue(isinstance(fields, dict))
 
     def test_resource_get_empty(self):
         c = Client()

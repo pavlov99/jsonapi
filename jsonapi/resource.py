@@ -51,6 +51,13 @@ class ResourceManager(object):
         else:
             raise ValueError("{0} is not a Django model".format(model))
 
+    @staticmethod
+    def get_model_fields(model):
+        if model is None:
+            return None
+
+        return {}
+
 
 class ResourceMeta(type):
 
@@ -61,6 +68,7 @@ class ResourceMeta(type):
         cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
         cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
+        cls.Meta.fields = ResourceManager.get_model_fields(cls.Meta.model)
         return cls
 
 

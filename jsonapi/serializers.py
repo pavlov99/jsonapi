@@ -22,7 +22,8 @@ class Serializer(object):
     """
 
     @classmethod
-    def dump_document(cls, model_instance, fields=None):
+    def dump_document(cls, model_instance, fields=None, fields_to_one=None,
+                      fields_to_many=None):
         """ Get document for model_instance.
 
         :param django.db.models.Model model_instance: model instance
@@ -30,12 +31,19 @@ class Serializer(object):
         :return dict: document
 
         """
+        fields = fields or []
+        fields_to_one = fields_to_one or []
+        fields_to_many = fields_to_many or []
+
         # apply rules for field serialization
         document = {
             f.name: getattr(model_instance, f.name)
             for f in cls.get_fields(model_instance.__class__)
             if f.rel is None
         }
+
+        if fields_to_one or fields_to_many:
+            document["links"] = {}
 
         # Own fields: f.rel = None
         # single table inheritance: f.rel != None and f.serialize = False
