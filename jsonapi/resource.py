@@ -1,12 +1,15 @@
 """ Resource definition."""
 from . import six
 import inspect
+import logging
 from django.db import models
 
+from .utils import Choices
 from .serializers import Serializer
 
-
 __all__ = 'Resource',
+
+logger = logging.getLogger(__name__)
 
 
 class ResourceManager(object):
@@ -61,7 +64,36 @@ class ResourceManager(object):
         if model is None:
             return None
 
-        return {}
+        options = model._meta
+        fields = {}
+
+        for field in options.fields:
+            if field.rel is None:
+                if field.serialize or field.name == 'id':
+                    fields[field.name] = {
+                        "type": Resource.FIELD_TYPES.OWN,
+                        "name": field.name,
+                    }
+            else:
+                if field.rel.multiple:
+                    # ForeignKey
+                    print(field.rel.to)
+                    logger.debug(
+                        Resource.FIELD_TYPES.TO_ONE,
+                        field.name,
+                        field.rel,
+                        field.serialize
+                    )
+                else:
+                    # Multiple Table Inheritance
+                    pass
+
+        for field in options.many_to_many:
+            pass
+            #print(field.name, field.rel, field.serialize)
+
+        # Check storage for relationship with this model.
+        return fields
 
 
 class ResourceMeta(type):
@@ -82,6 +114,12 @@ class Resource(object):
 
     """ Base JSON:API resource class."""
 
+    FIELD_TYPES = Choices(
+        ('own', 'OWN'),
+        ('to_one', 'TO_ONE'),
+        ('to_many', 'TO_MANY'),
+    )
+
     class Meta:
         name = "_"
 
@@ -94,6 +132,9 @@ class Resource(object):
         """
         import json
         model = cls.Meta.model
-        data = [Serializer.dump_document(m) for m in model.objects.all()]
+        data = [
+            Serializer.dump_document(m, fields=cls.Meta.fields)
+            for m in model.objects.all()
+        ]
         response = json.dumps({cls.Meta.name_plural: data})
         return response

@@ -26,6 +26,15 @@ class API(object):
 
     def __init__(self):
         self.resource_map = dict()
+        self._resource_relations = None
+
+    @property
+    def model_resource_map(self):
+        return {
+            resource.Meta.model: resource
+            for resource in self.resource_map.values()
+            if hasattr(resource.Meta, 'model')
+        }
 
     def register(self, resource=None):
         """ Register resource for currnet API.
@@ -40,6 +49,7 @@ class API(object):
             return wrapper
 
         self.resource_map[resource.Meta.name] = resource
+        resource.Meta.api = self
         return resource
 
     @property

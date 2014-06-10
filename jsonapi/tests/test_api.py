@@ -30,3 +30,12 @@ class TestApi(TestCase):
                 name = 'test'
 
         self.assertEqual(self.api.resource_map['test'], TestResource)
+
+    def test_recource_api_reference(self):
+        class TestResource(Resource):
+            class Meta:
+                name = 'test'
+
+        self.assertFalse(hasattr(TestResource.Meta, 'api'))
+        self.api.register(TestResource)
+        self.assertTrue(TestResource.Meta.api is self.api)
