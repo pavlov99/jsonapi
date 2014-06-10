@@ -27,7 +27,7 @@ class Blog(models.Model):
 
 class Post(models.Model):
     title = models.CharField(max_length=100)
-    author = models.ForeignKey(Author)
+    author = models.ForeignKey(Author, related_name="comments")
     blog = models.ForeignKey(Blog)
 
 

@@ -124,6 +124,64 @@ class Resource(object):
         name = "_"
 
     @classmethod
+    def _get_fields(cls):
+        model = getattr(cls.Meta, 'model', None)
+        fields = {}
+        if model is None:
+            return fields
+
+        model_resource_map = cls.Meta.api.model_resource_map
+        options = model._meta
+        for field in options.fields:
+            if field.rel is None:
+                if field.serialize or field.name == 'id':
+                    fields[field.name] = {
+                        "type": Resource.FIELD_TYPES.OWN,
+                        "name": field.name,
+                    }
+            else:
+                if field.rel.multiple:
+                    # ForeignKey
+                    if field.rel.to in model_resource_map:
+                        related_resource = model_resource_map[field.rel.to]
+                        fields[related_resource.Meta.name] = {
+                            "type": Resource.FIELD_TYPES.TO_ONE,
+                            "name": field.name,
+                        }
+
+        for related_model, related_resource in model_resource_map.items():
+            for field in related_model._meta.fields:
+                if field.rel and field.rel.to == model:
+                    fields[related_resource.Meta.name_plural] = {
+                        "type": Resource.FIELD_TYPES.TO_MANY,
+                        "name": field.rel.related_name or
+                        "{}_set".format(related_resource.Meta.name)
+                    }
+
+        return fields
+
+    @classmethod
+    def _get_fields_own(cls):
+        return {
+            k: v for k, v in cls._get_fields().items()
+            if v["type"] == Resource.FIELD_TYPES.OWN
+        }
+
+    @classmethod
+    def _get_fields_to_one(cls):
+        return {
+            k: v for k, v in cls._get_fields().items()
+            if v["type"] == Resource.FIELD_TYPES.TO_ONE
+        }
+
+    @classmethod
+    def _get_fields_to_many(cls):
+        return {
+            k: v for k, v in cls._get_fields().items()
+            if v["type"] == Resource.FIELD_TYPES.TO_MANY
+        }
+
+    @classmethod
     def get(cls, **kwargs):
         """ Get resource http response.
 
@@ -133,7 +191,12 @@ class Resource(object):
         import json
         model = cls.Meta.model
         data = [
-            Serializer.dump_document(m, fields=cls.Meta.fields)
+            Serializer.dump_document(
+                m,
+                fields=cls._get_fields_own(),
+                fields_to_one=cls._get_fields_to_one(),
+                fields_to_many=cls._get_fields_to_many()
+            )
             for m in model.objects.all()
         ]
         response = json.dumps({cls.Meta.name_plural: data})
