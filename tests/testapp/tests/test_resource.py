@@ -132,6 +132,36 @@ class TestResourceRelationship(TestCase):
             self.assertEqual(data["related_resource"], None)
             self.assertEqual(data["name"], fieldname)
 
+    def test_fields_to_one_self(self):
+        """ Check Foreign keys registered within current resource model."""
+        AResource = self.api.register(self.resources['A'])
+
+        # Do not show fields to not registered resources
+        self.assertFalse(AResource.fields_to_one)
+
+        AAbstractOneResource = self.api.register(
+            self.resources['AAbstractOne'])
+        self.assertNotIn("aone", AResource.fields_to_one)
+        self.assertIn("aabstractone", AResource.fields_to_one)
+
+        AOneResource = self.api.register(self.resources['AOne'])
+        self.assertIn("aone", AResource.fields_to_one)
+        self.assertIn("aabstractone", AResource.fields_to_one)
+
+        self.assertEqual(
+            AResource.fields_to_one["aabstractone"]["name"], "a_abstract_one")
+        self.assertEqual(
+            AResource.fields_to_one["aone"]["name"], "a_one")
+
+        self.assertEqual(
+            AResource.fields_to_one["aabstractone"]["related_resource"],
+            AAbstractOneResource
+        )
+        self.assertEqual(
+            AResource.fields_to_one["aone"]["related_resource"],
+            AOneResource
+        )
+
 
 class TestResource(TestCase):
     def test_resource_name(self):
