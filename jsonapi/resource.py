@@ -18,7 +18,7 @@ class ResourceManager(object):
     """ Resource utils functionality."""
 
     @staticmethod
-    def get_resource_name(meta):
+    def get_resource_name(resource):
         """ Define resource name based on Meta information.
 
         :param Resource.Meta meta: resource metainformation
@@ -26,11 +26,12 @@ class ResourceManager(object):
         :rtype: str
 
         """
-        name = getattr(meta, 'name', None)
+        name = getattr(resource.Meta, 'name', None)
         if name is not None:
             return name
         else:
-            return ResourceManager.get_concrete_model(meta)._meta.model_name
+            return ResourceManager.get_concrete_model(
+                resource.Meta)._meta.model_name
 
     @staticmethod
     def get_concrete_model(meta):
@@ -62,7 +63,7 @@ class ResourceMeta(type):
 
     def __new__(mcs, name, bases, attrs):
         cls = super(ResourceMeta, mcs).__new__(mcs, name, bases, attrs)
-        cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
+        cls.Meta.name = ResourceManager.get_resource_name(cls)
         cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
         return cls
@@ -80,14 +81,36 @@ class Resource(object):
     )
 
     class Meta:
-        name = "_"
+        name = ""
 
-    @classmethod
-    def _get_fields(cls):
+    @classproperty
+    def fields(cls):
+        """ Get resource fields.
+
+        Analyze related to resource model and models related to it.
+        Method builds resource relations based on related model relationship.
+        If there is no resource for related model, corresponding field would
+        not appear in resource, because there are no rules to serialize it.
+
+        :return dict: fields with following format:
+            {
+                fieldname: {
+                    "type": ["own"|"to_one"|"to_many"],
+                    "related_resource": [None|<resource>],
+                    "name": model field name: "title, author_id, comment_set"
+                }
+            }
+
+        """
         model = getattr(cls.Meta, 'model', None)
         fields = {}
         if model is None:
             return fields
+
+        #1 Get fields from model (own + foreign keys)
+        #2 Get many-to-many fields from model
+        #3 Get foreign keys from other models to current
+        #4 Get many-to-many from other models to current
 
         model_resource_map = cls.Meta.api.model_resource_map
         options = model._meta
@@ -119,22 +142,22 @@ class Resource(object):
 
         return fields
 
-    @classmethod
-    def _get_fields_own(cls):
+    @classproperty
+    def fields_own(cls):
         return {
             k: v for k, v in cls._get_fields().items()
             if v["type"] == Resource.FIELD_TYPES.OWN
         }
 
-    @classmethod
-    def _get_fields_to_one(cls):
+    @classproperty
+    def fields_to_one(cls):
         return {
             k: v for k, v in cls._get_fields().items()
             if v["type"] == Resource.FIELD_TYPES.TO_ONE
         }
 
-    @classmethod
-    def _get_fields_to_many(cls):
+    @classproperty
+    def fields_to_many(cls):
         return {
             k: v for k, v in cls._get_fields().items()
             if v["type"] == Resource.FIELD_TYPES.TO_MANY
