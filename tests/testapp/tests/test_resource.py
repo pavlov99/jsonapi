@@ -70,7 +70,7 @@ class TestResourceRelationship(TestCase):
 
         class BMany(models.Model):
             field = models.IntegerField()
-            b = models.ForeignKey(B)
+            b = models.ForeignKey(B, related_name="bmanys")
 
         class BManyToMany(models.Model):
             field = models.IntegerField()
@@ -197,7 +197,13 @@ class TestResourceRelationship(TestCase):
                          AResource)
 
     def test_fields_to_one_other_model_foreign_key_related_name(self):
-        pass
+        BResource = self.api.register(self.resources['B'])
+        BManyResource = self.api.register(self.resources['BMany'])
+        self.assertIn("bmanys", BResource.fields_to_many)
+        self.assertEqual(BResource.fields_to_many["bmanys"]["name"], "bmanys")
+        self.assertEqual(
+            BResource.fields_to_many["bmanys"]["related_resource"],
+            BManyResource)
 
     def test_fields_to_one_other_model_foreign_key_inheritance(self):
         pass
