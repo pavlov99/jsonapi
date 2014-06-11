@@ -129,7 +129,9 @@ class Resource(object):
                     fields[related_resource.Meta.name_plural] = {
                         "type": Resource.FIELD_TYPES.TO_MANY,
                         "name": field.rel.related_name or "{}_set".format(
-                            related_resource.Meta.name),
+                            # get actual (parent) model
+                            field.model._meta.model_name
+                        ),
                         "related_resource": related_resource,
                     }
         return fields

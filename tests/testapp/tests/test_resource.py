@@ -28,7 +28,7 @@ class TestResourceRelationship(TestCase):
                  |              |        @
                  |              |        |
                  @              @        @
-             AAbstract =======> A -----> B ------ BProxy
+             AAbstract => AA -> A -----> B ------ BProxy
                  @              @        |
                  |              |        |
                  @              @        @
@@ -54,13 +54,16 @@ class TestResourceRelationship(TestCase):
                 related_name="%(app_label)s_%(class)s_related"
             )
 
+        class AA(AAbstract):
+            pass
+
         class AOne(models.Model):
             field = models.IntegerField()
 
         class AManyToMany(models.Model):
             field = models.IntegerField()
 
-        class A(AAbstract):
+        class A(AA):
             field_a = models.IntegerField()
             a_one = models.ForeignKey(AOne)
             a_many_to_manys = models.ManyToManyField(AManyToMany)
@@ -206,6 +209,19 @@ class TestResourceRelationship(TestCase):
             BManyResource)
 
     def test_fields_to_one_other_model_foreign_key_inheritance(self):
+        """ Check foreign key related model of parent class.
+
+
+        NOTE: relation schema is following:
+                               AOne
+                                 |
+                                 @
+            AAbstract ==> AA --> A --> B
+
+        From B class there is relationship to AOne. Generate related field name
+        using actual A class, not oldest parent AA.
+
+        """
         AResource = self.api.register(self.resources['A'])
         BResource = self.api.register(self.resources['B'])
         AOneResource = self.api.register(self.resources['AOne'])
