@@ -4,8 +4,7 @@ import inspect
 import logging
 from django.db import models
 
-from drugs.enum import Choices
-from drugs.utils import classproperty
+from .utils import classproperty, Choices
 from .serializers import Serializer
 
 __all__ = 'Resource',
