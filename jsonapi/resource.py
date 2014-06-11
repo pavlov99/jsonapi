@@ -100,6 +100,25 @@ class Resource(object):
         }
         return fields
 
+    @classmethod
+    def _get_fields_self_foreign_keys(cls, model):
+        model_resource_map = cls.Meta.api.model_resource_map
+        fields = {}
+        for field in model._meta.fields:
+            if field.rel and field.rel.multiple:
+                # relationship is ForeignKey
+                if field.rel.to in model_resource_map:
+                    # there is resource for related model
+                    related_model = field.rel.to
+                    related_resource = model_resource_map[related_model]
+                    fields[related_resource.Meta.name] = {
+                        "type": Resource.FIELD_TYPES.TO_ONE,
+                        "name": field.name,
+                        "related_resource": related_resource,
+                    }
+
+        return fields
+
     @classproperty
     def fields(cls):
         """ Get resource fields.
@@ -118,10 +137,14 @@ class Resource(object):
                 }
             }
 
-        #1 Get fields from model (own + foreign keys)
-        #2 Get many-to-many fields from model
-        #3 Get foreign keys from other models to current
-        #4 Get many-to-many from other models to current
+        fieldname is given according to resource names, to follow jsonapi
+        name attribute is name of Django model field.
+
+        #1 Get fields from model own
+        #2 Get fields from model foreign keys
+        #3 Get many-to-many fields from model
+        #4 Get foreign keys from other models to current
+        #5 Get many-to-many from other models to current
 
         """
         model = getattr(cls.Meta, 'model', None)
@@ -130,19 +153,9 @@ class Resource(object):
             return fields
 
         fields.update(cls._get_fields_own(model))
+        fields.update(cls._get_fields_self_foreign_keys(model))
 
         model_resource_map = cls.Meta.api.model_resource_map
-        options = model._meta
-        for field in options.fields:
-            if field.rel:
-                if field.rel.multiple:
-                    # ForeignKey
-                    if field.rel.to in model_resource_map:
-                        related_resource = model_resource_map[field.rel.to]
-                        fields[related_resource.Meta.name] = {
-                            "type": Resource.FIELD_TYPES.TO_ONE,
-                            "name": field.name,
-                        }
 
         for related_model, related_resource in model_resource_map.items():
             for field in related_model._meta.fields:
