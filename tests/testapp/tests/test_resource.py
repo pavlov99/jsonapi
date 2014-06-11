@@ -177,8 +177,7 @@ class TestResourceRelationship(TestCase):
 
         self.assertEqual(
             BResource.fields_to_one["aabstractone"]["name"], "a_abstract_one")
-        self.assertEqual(
-            BResource.fields_to_one["aone"]["name"], "a_one")
+        self.assertEqual(BResource.fields_to_one["aone"]["name"], "a_one")
 
         self.assertEqual(
             BResource.fields_to_one["aabstractone"]["related_resource"],
@@ -188,6 +187,20 @@ class TestResourceRelationship(TestCase):
             BResource.fields_to_one["aone"]["related_resource"],
             AOneResource
         )
+
+    def test_fields_to_one_other_model_foreign_key_default(self):
+        AResource = self.api.register(self.resources['A'])
+        AOneResource = self.api.register(self.resources['AOne'])
+        self.assertIn("as", AOneResource.fields_to_many)
+        self.assertEqual(AOneResource.fields_to_many["as"]["name"], "a_set")
+        self.assertEqual(AOneResource.fields_to_many["as"]["related_resource"],
+                         AResource)
+
+    def test_fields_to_one_other_model_foreign_key_related_name(self):
+        pass
+
+    def test_fields_to_one_other_model_foreign_key_inheritance(self):
+        pass
 
 
 class TestResource(TestCase):
