@@ -39,3 +39,45 @@ class TestApi(TestCase):
         self.assertFalse(hasattr(TestResource.Meta, 'api'))
         self.api.register(TestResource)
         self.assertTrue(TestResource.Meta.api is self.api)
+
+    def test_resource_name_collapse_same_name(self):
+        class NewsResource(Resource):
+            class Meta:
+                name = 'news'
+
+        class NewsOtherResource(Resource):
+            class Meta:
+                name = 'news'
+
+        self.api.register(NewsResource)
+        with self.assertRaises(ValueError):
+            # The same resource name
+            self.api.register(NewsOtherResource)
+
+    def test_resource_name_collapse_with_plural(self):
+        class NewsResource(Resource):
+            class Meta:
+                name = 'news'
+
+        class NewResource(Resource):
+            class Meta:
+                name = 'new'
+
+        self.api.register(NewsResource)
+        with self.assertRaises(ValueError):
+            # NewResource.name_plural = NewsResource.name
+            self.api.register(NewResource)
+
+    def test_resource_name_collapse_with_singular(self):
+        class NewsResource(Resource):
+            class Meta:
+                name = 'news'
+
+        class NewssResource(Resource):
+            class Meta:
+                name = 'newss'
+
+        self.api.register(NewsResource)
+        with self.assertRaises(ValueError):
+            # NewsResource.name_plural = NewssResource.name
+            self.api.register(NewssResource)
