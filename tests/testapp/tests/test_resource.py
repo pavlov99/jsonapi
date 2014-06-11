@@ -206,7 +206,15 @@ class TestResourceRelationship(TestCase):
             BManyResource)
 
     def test_fields_to_one_other_model_foreign_key_inheritance(self):
-        pass
+        AResource = self.api.register(self.resources['A'])
+        BResource = self.api.register(self.resources['B'])
+        AOneResource = self.api.register(self.resources['AOne'])
+        self.assertIn("bs", AOneResource.fields_to_many)
+        self.assertEqual(AOneResource.fields_to_many["bs"]["name"], "a_set")
+        self.assertEqual(AOneResource.fields_to_many["as"]["related_resource"],
+                         AResource)
+        self.assertEqual(AOneResource.fields_to_many["bs"]["related_resource"],
+                         BResource)
 
 
 class TestResource(TestCase):
