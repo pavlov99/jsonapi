@@ -207,9 +207,9 @@ class Resource(object):
         data = [
             Serializer.dump_document(
                 m,
-                fields=cls._get_fields_own(),
-                fields_to_one=cls._get_fields_to_one(),
-                fields_to_many=cls._get_fields_to_many()
+                fields=cls.fields_own,
+                fields_to_one=cls.fields_to_one,
+                fields_to_many=cls.fields_to_many
             )
             for m in model.objects.all()
         ]
