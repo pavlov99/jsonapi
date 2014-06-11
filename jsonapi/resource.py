@@ -142,8 +142,8 @@ class Resource(object):
 
         #1 Get fields from model own
         #2 Get fields from model foreign keys
-        #3 Get many-to-many fields from model
-        #4 Get foreign keys from other models to current
+        #3 Get foreign keys from other models to current
+        #4 Get many-to-many fields from model
         #5 Get many-to-many from other models to current
 
         """
@@ -156,7 +156,6 @@ class Resource(object):
         fields.update(cls._get_fields_self_foreign_keys(model))
 
         model_resource_map = cls.Meta.api.model_resource_map
-
         for related_model, related_resource in model_resource_map.items():
             for field in related_model._meta.fields:
                 if field.rel and field.rel.to == model:
