@@ -6,8 +6,8 @@ from django.db import models
 from mixer.backend.django import mixer
 
 from jsonapi.resource import Resource
-from jsonapi.tests.testapp.models import PostWithPicture
-from jsonapi.tests.testapp.resources import (
+from tests.testapp.models import PostWithPicture
+from tests.testapp.resources import (
     AuthorResource,
     PostWithPictureResource,
 )
