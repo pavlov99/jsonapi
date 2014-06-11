@@ -95,7 +95,6 @@ class TestResourceRelationship(TestCase):
         del models.loading.cache.app_models['tests']
 
     def test_abstract_model_resource(self):
-        #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
         with self.assertRaises(ValueError):
             class AAbstractResource(Resource):
                 class Meta:
