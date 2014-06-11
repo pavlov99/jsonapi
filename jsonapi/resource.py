@@ -119,6 +119,7 @@ class Resource(object):
                     fields[field.name] = {
                         "type": Resource.FIELD_TYPES.OWN,
                         "name": field.name,
+                        "related_resource": None,
                     }
             else:
                 if field.rel.multiple:

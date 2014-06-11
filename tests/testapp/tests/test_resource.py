@@ -117,12 +117,20 @@ class TestResourceRelationship(TestCase):
         self.assertIn("field_abstract", AResource.fields_own)
         self.assertIn("field_a", AResource.fields_own)
 
+        for fieldname, data in AResource.fields_own.items():
+            self.assertEqual(data["related_resource"], None)
+            self.assertEqual(data["name"], fieldname)
+
     def test_fields_own_inheritance(self):
         BResource = self.api.register(self.resources['B'])
         self.assertIn("id", BResource.fields_own)
         self.assertIn("field_abstract", BResource.fields_own)
         self.assertIn("field_a", BResource.fields_own)
         self.assertIn("field_b", BResource.fields_own)
+
+        for fieldname, data in BResource.fields_own.items():
+            self.assertEqual(data["related_resource"], None)
+            self.assertEqual(data["name"], fieldname)
 
 
 class TestResource(TestCase):
