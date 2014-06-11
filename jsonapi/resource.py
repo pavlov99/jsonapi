@@ -102,8 +102,8 @@ class Resource(object):
 
     @classmethod
     def _get_fields_self_foreign_keys(cls, model):
-        model_resource_map = cls.Meta.api.model_resource_map
         fields = {}
+        model_resource_map = cls.Meta.api.model_resource_map
         for field in model._meta.fields:
             if field.rel and field.rel.multiple:
                 # relationship is ForeignKey
@@ -117,6 +117,21 @@ class Resource(object):
                         "related_resource": related_resource,
                     }
 
+        return fields
+
+    @classmethod
+    def _get_fields_others_foreign_keys(cls, model):
+        fields = {}
+        model_resource_map = cls.Meta.api.model_resource_map
+        for related_model, related_resource in model_resource_map.items():
+            for field in related_model._meta.fields:
+                if field.rel and field.rel.to == model:
+                    fields[related_resource.Meta.name_plural] = {
+                        "type": Resource.FIELD_TYPES.TO_MANY,
+                        "name": field.rel.related_name or "{}_set".format(
+                            related_resource.Meta.name),
+                        "related_resource": related_resource,
+                    }
         return fields
 
     @classproperty
@@ -154,17 +169,7 @@ class Resource(object):
 
         fields.update(cls._get_fields_own(model))
         fields.update(cls._get_fields_self_foreign_keys(model))
-
-        model_resource_map = cls.Meta.api.model_resource_map
-        for related_model, related_resource in model_resource_map.items():
-            for field in related_model._meta.fields:
-                if field.rel and field.rel.to == model:
-                    fields[related_resource.Meta.name_plural] = {
-                        "type": Resource.FIELD_TYPES.TO_MANY,
-                        "name": field.rel.related_name or
-                        "{}_set".format(related_resource.Meta.name)
-                    }
-
+        fields.update(cls._get_fields_others_foreign_keys(model))
         return fields
 
     @classproperty
