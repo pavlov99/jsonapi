@@ -99,12 +99,12 @@ class TestResourceRelationship(TestCase):
                 (Resource, ),
                 {"Meta": type('Meta', (object,), {"model": cls})}
             ) for classname, cls in self.classes.items()
+            if not cls._meta.abstract
         }
 
     def tearDown(self):
         del models.loading.cache.app_models['tests']
 
-    @unittest.skip("Decide implement or not")
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):
             class AAbstractResource(Resource):

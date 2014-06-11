@@ -49,11 +49,17 @@ class ResourceManager(object):
 
         if isinstance(model, six.string_types) and len(model.split('.')) == 2:
             app_name, model_name = model.split('.')
-            return models.get_model(app_name, model_name)
+            model = models.get_model(app_name, model_name)
         elif inspect.isclass(model) and issubclass(model, models.Model):
-            return model
+            pass
         else:
             raise ValueError("{0} is not a Django model".format(model))
+
+        if model._meta.abstract:
+            raise ValueError(
+                "Abstract model {} could not be resource".format(model))
+
+        return model
 
 
 class ResourceMeta(type):
@@ -82,6 +88,18 @@ class Resource(object):
     class Meta:
         name = ""
 
+    @classmethod
+    def _get_fields_own(cls, model):
+        fields = {
+            field.name: {
+                "type": Resource.FIELD_TYPES.OWN,
+                "name": field.name,
+                "related_resource": None,
+            } for field in model._meta.fields
+            if field.rel is None and (field.serialize or field.name == 'id')
+        }
+        return fields
+
     @classproperty
     def fields(cls):
         """ Get resource fields.
@@ -100,28 +118,23 @@ class Resource(object):
                 }
             }
 
+        #1 Get fields from model (own + foreign keys)
+        #2 Get many-to-many fields from model
+        #3 Get foreign keys from other models to current
+        #4 Get many-to-many from other models to current
+
         """
         model = getattr(cls.Meta, 'model', None)
         fields = {}
         if model is None:
             return fields
 
-        #1 Get fields from model (own + foreign keys)
-        #2 Get many-to-many fields from model
-        #3 Get foreign keys from other models to current
-        #4 Get many-to-many from other models to current
+        fields.update(cls._get_fields_own(model))
 
         model_resource_map = cls.Meta.api.model_resource_map
         options = model._meta
         for field in options.fields:
-            if field.rel is None:
-                if field.serialize or field.name == 'id':
-                    fields[field.name] = {
-                        "type": Resource.FIELD_TYPES.OWN,
-                        "name": field.name,
-                        "related_resource": None,
-                    }
-            else:
+            if field.rel:
                 if field.rel.multiple:
                     # ForeignKey
                     if field.rel.to in model_resource_map:
