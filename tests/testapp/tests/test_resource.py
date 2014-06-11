@@ -132,7 +132,7 @@ class TestResourceRelationship(TestCase):
             self.assertEqual(data["related_resource"], None)
             self.assertEqual(data["name"], fieldname)
 
-    def test_fields_to_one_self(self):
+    def test_fields_to_one(self):
         """ Check Foreign keys registered within current resource model."""
         AResource = self.api.register(self.resources['A'])
 
@@ -159,6 +159,33 @@ class TestResourceRelationship(TestCase):
         )
         self.assertEqual(
             AResource.fields_to_one["aone"]["related_resource"],
+            AOneResource
+        )
+
+    def test_fields_to_one_inheritance(self):
+        """ Check Foreign keys registered within resource inherited model."""
+        self.api.register(self.resources['A'])
+        AAbstractOneResource = self.api.register(
+            self.resources['AAbstractOne'])
+        AOneResource = self.api.register(self.resources['AOne'])
+        BResource = self.api.register(self.resources['B'])
+        self.api.register(self.resources['BManyToMany'])
+
+        self.assertIn("aone", BResource.fields_to_one)
+        self.assertIn("aabstractone", BResource.fields_to_one)
+        self.assertNotIn("bmanytomany", BResource.fields_to_one)
+
+        self.assertEqual(
+            BResource.fields_to_one["aabstractone"]["name"], "a_abstract_one")
+        self.assertEqual(
+            BResource.fields_to_one["aone"]["name"], "a_one")
+
+        self.assertEqual(
+            BResource.fields_to_one["aabstractone"]["related_resource"],
+            AAbstractOneResource
+        )
+        self.assertEqual(
+            BResource.fields_to_one["aone"]["related_resource"],
             AOneResource
         )
 
