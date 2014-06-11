@@ -4,7 +4,8 @@ import inspect
 import logging
 from django.db import models
 
-from .utils import Choices
+from drugs.enum import Choices
+from drugs.utils import classproperty
 from .serializers import Serializer
 
 __all__ = 'Resource',
@@ -54,47 +55,6 @@ class ResourceManager(object):
         else:
             raise ValueError("{0} is not a Django model".format(model))
 
-    @staticmethod
-    def get_model_fields(model):
-        """ Get fields for model.
-
-        :return dict: fields
-
-        """
-        if model is None:
-            return None
-
-        options = model._meta
-        fields = {}
-
-        for field in options.fields:
-            if field.rel is None:
-                if field.serialize or field.name == 'id':
-                    fields[field.name] = {
-                        "type": Resource.FIELD_TYPES.OWN,
-                        "name": field.name,
-                    }
-            else:
-                if field.rel.multiple:
-                    # ForeignKey
-                    print(field.rel.to)
-                    logger.debug(
-                        Resource.FIELD_TYPES.TO_ONE,
-                        field.name,
-                        field.rel,
-                        field.serialize
-                    )
-                else:
-                    # Multiple Table Inheritance
-                    pass
-
-        for field in options.many_to_many:
-            pass
-            #print(field.name, field.rel, field.serialize)
-
-        # Check storage for relationship with this model.
-        return fields
-
 
 class ResourceMeta(type):
 
@@ -105,7 +65,6 @@ class ResourceMeta(type):
         cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
         cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
-        cls.Meta.fields = ResourceManager.get_model_fields(cls.Meta.model)
         return cls
 
 
