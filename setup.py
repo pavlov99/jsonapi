@@ -23,9 +23,6 @@ setup(
     name="jsonapi",
     version=version,
     packages=find_packages(),
-    test_suite='run_tests.main',
-    tests_require=['Django'],
-
     # metadata for upload to PyPI
     author="Kirill Pavlov",
     author_email="kirill.pavlov@phystech.edu",
