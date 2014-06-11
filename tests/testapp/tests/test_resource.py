@@ -6,6 +6,7 @@ from django.db import models
 from mixer.backend.django import mixer
 
 from jsonapi.resource import Resource
+from jsonapi.api import API
 from tests.testapp.resources import (
     AuthorResource,
     PostWithPictureResource,
@@ -34,6 +35,8 @@ class TestResourceRelationship(TestCase):
         AAbstractManyToMany AManyToMany BMany
 
         """
+        self.api = API()
+
         class AAbstractOne(models.Model):
             field = models.IntegerField()
 
@@ -90,6 +93,14 @@ class TestResourceRelationship(TestCase):
             BProxy=BProxy,
         )
 
+        self.resources = {
+            classname: type(
+                '{}Resource'.format(classname),
+                (Resource, ),
+                {"Meta": type('Meta', (object,), {"model": cls})}
+            ) for classname, cls in self.classes.items()
+        }
+
     def tearDown(self):
         del models.loading.cache.app_models['tests']
 
@@ -99,6 +110,19 @@ class TestResourceRelationship(TestCase):
             class AAbstractResource(Resource):
                 class Meta:
                     model = self.classes['AAbstract']
+
+    def test_fields_own(self):
+        AResource = self.api.register(self.resources['A'])
+        self.assertIn("id", AResource.fields_own)
+        self.assertIn("field_abstract", AResource.fields_own)
+        self.assertIn("field_a", AResource.fields_own)
+
+    def test_fields_own_inheritance(self):
+        BResource = self.api.register(self.resources['B'])
+        self.assertIn("id", BResource.fields_own)
+        self.assertIn("field_abstract", BResource.fields_own)
+        self.assertIn("field_a", BResource.fields_own)
+        self.assertIn("field_b", BResource.fields_own)
 
 
 class TestResource(TestCase):
