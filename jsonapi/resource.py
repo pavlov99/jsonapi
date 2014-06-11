@@ -144,21 +144,21 @@ class Resource(object):
     @classproperty
     def fields_own(cls):
         return {
-            k: v for k, v in cls._get_fields().items()
+            k: v for k, v in cls.fields.items()
             if v["type"] == Resource.FIELD_TYPES.OWN
         }
 
     @classproperty
     def fields_to_one(cls):
         return {
-            k: v for k, v in cls._get_fields().items()
+            k: v for k, v in cls.fields.items()
             if v["type"] == Resource.FIELD_TYPES.TO_ONE
         }
 
     @classproperty
     def fields_to_many(cls):
         return {
-            k: v for k, v in cls._get_fields().items()
+            k: v for k, v in cls.fields.items()
             if v["type"] == Resource.FIELD_TYPES.TO_MANY
         }
 

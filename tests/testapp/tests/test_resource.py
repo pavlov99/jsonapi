@@ -106,6 +106,34 @@ class TestResource(TestCase):
         self.assertEqual(AuthorResource.Meta.name, 'author')
         self.assertEqual(AuthorResource.Meta.name_plural, 'authors')
 
+    def test_resource_fields_shortcuts(self):
+        class TestResource(Resource):
+            class Meta:
+                name = 'test'
+
+        TestResource.fields = {
+            "own": {
+                "type": Resource.FIELD_TYPES.OWN
+            },
+            "to_one": {
+                "type": Resource.FIELD_TYPES.TO_ONE
+            },
+            "to_many": {
+                "type": Resource.FIELD_TYPES.TO_MANY
+            },
+        }
+        self.assertEqual(TestResource.fields_own, {
+            "own": TestResource.fields["own"]
+        })
+
+        self.assertEqual(TestResource.fields_to_one, {
+            "to_one": TestResource.fields["to_one"]
+        })
+
+        self.assertEqual(TestResource.fields_to_many, {
+            "to_many": TestResource.fields["to_many"]
+        })
+
     def test_resource_get_empty(self):
         c = Client()
         response = c.get(
