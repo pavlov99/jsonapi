@@ -160,6 +160,22 @@ class Resource(object):
     @classmethod
     def _get_fields_others_many_to_many(cls, model):
         fields = {}
+        model_resource_map = cls.Meta.api.model_resource_map
+        for related_model, related_resource in model_resource_map.items():
+            if related_model == model:
+                # Do not check relationship with self
+                continue
+
+            for field in related_model._meta.many_to_many:
+                if field.rel.to == model:
+                    fields[related_resource.Meta.name_plural] = {
+                        "type": Resource.FIELD_TYPES.TO_MANY,
+                        "name": field.rel.related_name or "{}_set".format(
+                            # get actual (parent) model
+                            field.model._meta.model_name
+                        ),
+                        "related_resource": related_resource,
+                    }
         return fields
 
     @classproperty
