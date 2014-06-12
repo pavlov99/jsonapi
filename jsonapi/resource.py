@@ -107,9 +107,9 @@ class Resource(object):
         for field in model._meta.fields:
             if field.rel and field.rel.multiple:
                 # relationship is ForeignKey
-                if field.rel.to in model_resource_map:
+                related_model = field.rel.to
+                if related_model in model_resource_map:
                     # there is resource for related model
-                    related_model = field.rel.to
                     related_resource = model_resource_map[related_model]
                     fields[related_resource.Meta.name] = {
                         "type": Resource.FIELD_TYPES.TO_ONE,
