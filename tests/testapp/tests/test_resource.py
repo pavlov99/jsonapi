@@ -87,6 +87,7 @@ class TestResourceRelationship(TestCase):
             AAbstractOne=AAbstractOne,
             AAbstractManyToMany=AAbstractManyToMany,
             AAbstract=AAbstract,
+            AA=AA,
             AOne=AOne,
             AManyToMany=AManyToMany,
             A=A,
@@ -223,6 +224,7 @@ class TestResourceRelationship(TestCase):
 
         """
         AResource = self.api.register(self.resources['A'])
+        self.api.register(self.resources['AA'])  # be sure, resource not skiped
         BResource = self.api.register(self.resources['B'])
         AOneResource = self.api.register(self.resources['AOne'])
         self.assertIn("bs", AOneResource.fields_to_many)
@@ -325,7 +327,30 @@ class TestResourceRelationship(TestCase):
             AManyToManyResource.fields_to_many["as"]["name"], "a_set")
 
     def test_fields_to_many_other_model_many_to_many_inheritance(self):
-        pass
+        """ Check foreign key related model of parent class.
+
+
+        NOTE: relation schema is following:
+                            AManyToMany
+                                 @
+                                 @
+            AAbstract ==> AA --> A --> B
+
+        """
+        AResource = self.api.register(self.resources['A'])
+        self.api.register(self.resources['AA'])  # be sure, resource not skiped
+        BResource = self.api.register(self.resources['B'])
+        AManyToManyResource = self.api.register(self.resources['AManyToMany'])
+
+        self.assertIn("bs", AManyToManyResource.fields_to_many)
+        self.assertEqual(
+            AManyToManyResource.fields_to_many["bs"]["name"], "a_set")
+        self.assertEqual(
+            AManyToManyResource.fields_to_many["as"]["related_resource"],
+            AResource)
+        self.assertEqual(
+            AManyToManyResource.fields_to_many["bs"]["related_resource"],
+            BResource)
 
 
 class TestResource(TestCase):
