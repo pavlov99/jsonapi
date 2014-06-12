@@ -77,7 +77,7 @@ class TestResourceRelationship(TestCase):
 
         class BManyToMany(models.Model):
             field = models.IntegerField()
-            bs = models.ManyToManyField(B)
+            bs = models.ManyToManyField(B, related_name="bmanytomanys")
 
         class BProxy(B):
             class Meta:
@@ -191,7 +191,7 @@ class TestResourceRelationship(TestCase):
             AOneResource
         )
 
-    def test_fields_to_one_other_model_foreign_key_default(self):
+    def test_fields_to_many_other_model_foreign_key_default(self):
         AResource = self.api.register(self.resources['A'])
         AOneResource = self.api.register(self.resources['AOne'])
         self.assertIn("as", AOneResource.fields_to_many)
@@ -199,7 +199,7 @@ class TestResourceRelationship(TestCase):
         self.assertEqual(AOneResource.fields_to_many["as"]["related_resource"],
                          AResource)
 
-    def test_fields_to_one_other_model_foreign_key_related_name(self):
+    def test_fields_to_many_other_model_foreign_key_related_name(self):
         BResource = self.api.register(self.resources['B'])
         BManyResource = self.api.register(self.resources['BMany'])
         self.assertIn("bmanys", BResource.fields_to_many)
@@ -208,7 +208,7 @@ class TestResourceRelationship(TestCase):
             BResource.fields_to_many["bmanys"]["related_resource"],
             BManyResource)
 
-    def test_fields_to_one_other_model_foreign_key_inheritance(self):
+    def test_fields_to_many_other_model_foreign_key_inheritance(self):
         """ Check foreign key related model of parent class.
 
 
@@ -231,6 +231,35 @@ class TestResourceRelationship(TestCase):
                          AResource)
         self.assertEqual(AOneResource.fields_to_many["bs"]["related_resource"],
                          BResource)
+
+    def test_fields_to_many_parent_child(self):
+        # A does not have link to B: A.b_set
+        # B does not have link to A: B.a
+        AResource = self.api.register(self.resources['A'])
+        BResource = self.api.register(self.resources['B'])
+
+        for field, data in AResource.fields_to_many.items():
+            self.assertNotEqual(data["name"], "b_set")
+            self.assertNotEqual(data["related_resource"], BResource)
+
+        for field, data in BResource.fields_to_one.items():
+            self.assertNotEqual(data["name"], "a")
+            self.assertNotEqual(data["related_resource"], AResource)
+
+    def test_fields_to_many_many_to_many(self):
+        # A -> AManyToMany, AAbstractManyToMany
+        pass
+
+    def test_fields_to_many_many_to_many_inheritance(self):
+        # B -> AManyToMany, AAbstractManyToMany, BManyToMany (related_name)
+        pass
+
+    def test_fields_to_many_other_model_many_to_many(self):
+        # AManyToMany -> A
+        pass
+
+    def test_fields_to_many_other_model_many_to_many_inheritance(self):
+        pass
 
 
 class TestResource(TestCase):
