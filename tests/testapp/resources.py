@@ -20,3 +20,9 @@ class PostWithPictureResource(Resource):
 class PostResource(Resource):
     class Meta:
         model = 'testapp.Post'
+
+
+@api.register
+class CommentResource(Resource):
+    class Meta:
+        model = 'testapp.Comment'
