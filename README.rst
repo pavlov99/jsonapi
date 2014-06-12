@@ -31,8 +31,6 @@
 
 STATUS: ALPHA, it is rather investigation as of now. Check major release number.
 
-Documentation: http://jsonapi.readthedocs.org/
-
 Root docs (api docs)
 Specification: http://jsonapi.org/
 REST anti patterns http://www.infoq.com/articles/rest-anti-patterns
