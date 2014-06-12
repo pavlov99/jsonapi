@@ -101,7 +101,7 @@ class Resource(object):
         return fields
 
     @classmethod
-    def _get_fields_self_foreign_keys(cls, model):
+    def _get_fields_self_foreign_key(cls, model):
         fields = {}
         model_resource_map = cls.Meta.api.model_resource_map
         for field in model._meta.fields:
@@ -120,7 +120,7 @@ class Resource(object):
         return fields
 
     @classmethod
-    def _get_fields_others_foreign_keys(cls, model):
+    def _get_fields_others_foreign_key(cls, model):
         fields = {}
         model_resource_map = cls.Meta.api.model_resource_map
         for related_model, related_resource in model_resource_map.items():
@@ -134,6 +134,16 @@ class Resource(object):
                         ),
                         "related_resource": related_resource,
                     }
+        return fields
+
+    @classmethod
+    def _get_fields_self_many_to_many(cls, model):
+        fields = {}
+        return fields
+
+    @classmethod
+    def _get_fields_others_many_to_many(cls, model):
+        fields = {}
         return fields
 
     @classproperty
@@ -170,8 +180,10 @@ class Resource(object):
             return fields
 
         fields.update(cls._get_fields_own(model))
-        fields.update(cls._get_fields_self_foreign_keys(model))
-        fields.update(cls._get_fields_others_foreign_keys(model))
+        fields.update(cls._get_fields_self_foreign_key(model))
+        fields.update(cls._get_fields_others_foreign_key(model))
+        fields.update(cls._get_fields_self_many_to_many(model))
+        fields.update(cls._get_fields_others_many_to_many(model))
         return fields
 
     @classproperty
