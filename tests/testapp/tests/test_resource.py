@@ -276,11 +276,53 @@ class TestResourceRelationship(TestCase):
 
     def test_fields_to_many_many_to_many_inheritance(self):
         # B -> AManyToMany, AAbstractManyToMany, BManyToMany (related_name)
-        pass
+        BResource = self.api.register(self.resources['B'])
+        AManyToManyResource = self.api.register(self.resources['AManyToMany'])
+        AAbstractManyToManyResource = self.api.register(
+            self.resources['AAbstractManyToMany'])
+        BManyToManyResource = self.api.register(self.resources['BManyToMany'])
+
+        self.assertEqual(
+            set(BResource.fields_to_many.keys()),
+            {"amanytomanys", "aabstractmanytomanys", "bmanytomanys"}
+        )
+        self.assertEqual(
+            BResource.fields_to_many["amanytomanys"]["related_resource"],
+            AManyToManyResource
+        )
+        self.assertEqual(
+            BResource.fields_to_many["amanytomanys"]["name"],
+            "a_many_to_manys"
+        )
+        self.assertEqual(
+            BResource.fields_to_many["aabstractmanytomanys"][
+                "related_resource"],
+            AAbstractManyToManyResource
+        )
+        self.assertEqual(
+            BResource.fields_to_many["aabstractmanytomanys"]["name"],
+            "a_abstract_many_to_manys"
+        )
+        self.assertEqual(
+            BResource.fields_to_many["bmanytomanys"]["related_resource"],
+            BManyToManyResource
+        )
+        self.assertEqual(
+            BResource.fields_to_many["bmanytomanys"]["name"],
+            "bmanytomanys"  # related name
+        )
 
     def test_fields_to_many_other_model_many_to_many(self):
         # AManyToMany -> A
-        pass
+        AResource = self.api.register(self.resources['A'])
+        AManyToManyResource = self.api.register(self.resources['AManyToMany'])
+        self.assertEqual(
+            set(AManyToManyResource.fields_to_many.keys()), {"as"})
+        self.assertEqual(
+            AManyToManyResource.fields_to_many["as"]["related_resource"],
+            AResource)
+        self.assertEqual(
+            AManyToManyResource.fields_to_many["as"]["name"], "a_set")
 
     def test_fields_to_many_other_model_many_to_many_inheritance(self):
         pass
