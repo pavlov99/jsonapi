@@ -26,15 +26,16 @@ setup(
     # metadata for upload to PyPI
     author="Kirill Pavlov",
     author_email="kirill.pavlov@phystech.edu",
-    url="https://github.com/pavlov99/",
+    url="https://github.com/pavlov99/jsonapi/",
     description="JSON API realisation",
     long_description=read('README.rst'),
 
     # Full list:
     # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
-        "Development Status :: 1 - Planning",
-        "Environment :: Console",
+        "Development Status :: 2 - Pre-Alpha",
+        "Framework :: Django",
+        "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
         "Operating System :: OS Independent",
