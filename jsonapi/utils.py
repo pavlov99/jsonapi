@@ -1,3 +1,6 @@
+""" JSON:API utils."""
+
+
 class _classproperty(property):
 
     """ Implement property behaviour for classes.
@@ -16,7 +19,7 @@ class _classproperty(property):
 
 
 def _cached(f):
-    ''' Decorator that makes a method cached.'''
+    """ Decorator that makes a method cached."""
 
     attr_name = '_cached_' + f.__name__
 
@@ -30,6 +33,7 @@ def _cached(f):
 classproperty = lambda f: _classproperty(classmethod(f))
 cached_property = lambda f: property(_cached(f))
 cached_classproperty = lambda f: classproperty(_cached(f))
+
 
 class Choices(object):
 
