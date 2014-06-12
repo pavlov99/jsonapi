@@ -246,8 +246,11 @@ class Resource(object):
         :return str: resource
 
         """
-        import json
         model = cls.Meta.model
+        filters = {}
+        if kwargs.get('ids'):
+            filters["id__in"] = kwargs.get('ids')
+
         data = [
             Serializer.dump_document(
                 m,
@@ -255,7 +258,7 @@ class Resource(object):
                 fields_to_one=cls.fields_to_one,
                 fields_to_many=cls.fields_to_many
             )
-            for m in model.objects.all()
+            for m in model.objects.filter(**filters)
         ]
-        response = json.dumps({cls.Meta.name_plural: data})
+        response = {cls.Meta.name_plural: data}
         return response

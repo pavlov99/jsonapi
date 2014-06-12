@@ -16,7 +16,10 @@ Responsible for routing and resource registration.
         url(r'^api/', include(api.urls)),
 
 """
+from django.http import HttpResponse
 import logging
+import json
+
 logger = logging.getLogger(__name__)
 
 
@@ -80,31 +83,19 @@ class API(object):
 
         """
         from django.conf.urls import url
-
         urls = [
             url(r'^$', self.map_view),
-            url(r'^(?P<resource_name>\w+)/$', self.default_view),
-            url(r'^(?P<resource_name>\w+)/(?P<id>[0-9]+)/$',
-                self.default_view),
         ]
-        #urls.extend([
-            #url(r'^(?P<resource_name>\w+)/((?P<id>[0-9]+)/)?$', self.test_view)
-        #])
 
-        #urls.extend([
-            ##url(r'^(?P<resource_name>{})/$'.format(resource_name), self.test_view)
-            #url(r'^(?P<resource_name>\w+)/$', self.test_view),
-            #url(r'^(?P<resource_name>\w+)/(?P<resource_id>\w+)/$', self.test_view),
-            ##for resource_name in self.resource_map
-        #])
+        for resource_name in self.resource_map:
+            urls.extend([
+                url(r'/(?P<resource_name>{})$'.format(
+                    resource_name), self.handler_view),
+                url(r'/(?P<resource_name>{})/(?P<ids>[\w\-\,]+)$'.format(
+                    resource_name), self.handler_view),
+            ])
+
         return urls
-
-    def test_view(self, request, *args, **kwargs):
-        from django.http import HttpResponse
-        print("Test View: ", args, kwargs)
-        #import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
-        pass
-        return HttpResponse(str(args) + str(kwargs))
 
     def map_view(self, request):
         """ Show information about available resources.
@@ -112,29 +103,30 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        from django.http import HttpResponse
-        import json
-
         resource_info = {
             "resources": [{
                 "id": index + 1,
-                "href": "{}://{}/api/{}/".format(
+                "href": "{}://{}{}/{}".format(
                     request.META['wsgi.url_scheme'],
                     request.META['HTTP_HOST'],
+                    request.path,
                     resource_name
                 ),
-            } for index, resource_name in enumerate(self.resource_map)]
+            } for index, resource_name in enumerate(sorted(self.resource_map))]
         }
         response = json.dumps(resource_info)
         return HttpResponse(response, content_type="application/vnd.api+json")
 
-    def default_view(self, request, resource_name, **kwargs):
+    def handler_view(self, request, resource_name, ids=None):
         """ Handler for resources.
 
         :return django.http.HttpResponse
 
         """
+        kwargs = {}
+        if ids is not None:
+            kwargs['ids'] = ids.split(",")
+
         resource = self.resource_map[resource_name]
-        from django.http import HttpResponse
-        items = resource.get(**kwargs)
+        items = json.dumps(resource.get(**kwargs))
         return HttpResponse(items, content_type="application/vnd.api+json")
