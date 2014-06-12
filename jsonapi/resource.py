@@ -144,6 +144,17 @@ class Resource(object):
     @classmethod
     def _get_fields_self_many_to_many(cls, model):
         fields = {}
+        model_resource_map = cls.Meta.api.model_resource_map
+        for field in model._meta.many_to_many:
+            related_model = field.rel.to
+            if related_model in model_resource_map:
+                # there is resource for related model
+                related_resource = model_resource_map[related_model]
+                fields[related_resource.Meta.name_plural] = {
+                    "type": Resource.FIELD_TYPES.TO_MANY,
+                    "name": field.name,
+                    "related_resource": related_resource,
+                }
         return fields
 
     @classmethod
