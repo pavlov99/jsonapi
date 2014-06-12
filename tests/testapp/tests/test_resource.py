@@ -248,7 +248,11 @@ class TestResourceRelationship(TestCase):
 
     def test_fields_to_many_many_to_many(self):
         # A -> AManyToMany, AAbstractManyToMany
-        pass
+        AResource = self.api.register(self.resources['A'])
+        AManyToManyResource = self.api.register(self.resources['AManyToMany'])
+        AAbstractManyToManyResource = self.api.register(
+            self.resources['AAbstractManyToMany'])
+        self.assertIn("amanytomanys", AResource.fields_to_many)
 
     def test_fields_to_many_many_to_many_inheritance(self):
         # B -> AManyToMany, AAbstractManyToMany, BManyToMany (related_name)
