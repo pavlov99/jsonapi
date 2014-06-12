@@ -124,8 +124,13 @@ class Resource(object):
         fields = {}
         model_resource_map = cls.Meta.api.model_resource_map
         for related_model, related_resource in model_resource_map.items():
+            if related_model == model:
+                # Do not check relationship with self
+                continue
+
             for field in related_model._meta.fields:
-                if field.rel and field.rel.to == model:
+                if field.rel and field.rel.to == model and \
+                        not issubclass(related_model, model):
                     fields[related_resource.Meta.name_plural] = {
                         "type": Resource.FIELD_TYPES.TO_MANY,
                         "name": field.rel.related_name or "{}_set".format(
