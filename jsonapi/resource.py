@@ -129,8 +129,8 @@ class Resource(object):
                 continue
 
             for field in related_model._meta.fields:
-                if field.rel and field.rel.to == model and \
-                        not issubclass(related_model, model):
+                if field.rel and field.rel.to == model and field.rel.multiple:
+                    # and not issubclass(related_model, model)? <- OneToOne rel
                     fields[related_resource.Meta.name_plural] = {
                         "type": Resource.FIELD_TYPES.TO_MANY,
                         "name": field.rel.related_name or "{}_set".format(
