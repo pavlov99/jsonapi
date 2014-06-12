@@ -389,7 +389,7 @@ class TestResource(TestCase):
     def test_resource_get_empty(self):
         c = Client()
         response = c.get(
-            '/api/author/',
+            '/api/author',
             content_type='application/vnd.api+json'
         )
         self.assertEqual(response.status_code, 200)
@@ -404,7 +404,7 @@ class TestResource(TestCase):
         post = mixer.blend(PostWithPicture)
         c = Client()
         response = c.get(
-            '/api/postwithpicture/',
+            '/api/postwithpicture',
             content_type='application/vnd.api+json'
         )
         self.assertEqual(response.status_code, 200)
