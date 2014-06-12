@@ -7,5 +7,5 @@ from .resources import api
 
 urlpatterns = patterns(
     '',
-    url(r'^api/', include(api.urls)),
+    url(r'^api', include(api.urls)),
 )

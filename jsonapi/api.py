@@ -16,7 +16,10 @@ Responsible for routing and resource registration.
         url(r'^api/', include(api.urls)),
 
 """
+from django.http import HttpResponse
 import logging
+import json
+
 logger = logging.getLogger(__name__)
 
 
@@ -26,6 +29,15 @@ class API(object):
 
     def __init__(self):
         self.resource_map = dict()
+        self._resource_relations = None
+
+    @property
+    def model_resource_map(self):
+        return {
+            resource.Meta.model: resource
+            for resource in self.resource_map.values()
+            if hasattr(resource.Meta, 'model')
+        }
 
     def register(self, resource=None):
         """ Register resource for currnet API.
@@ -35,11 +47,29 @@ class API(object):
         """
         if resource is None:
             def wrapper(resource):
-                self.register(resource)
-                return resource
+                return self.register(resource)
             return wrapper
 
+        if resource.Meta.name in self.resource_map:
+            raise ValueError('Resource {} already registered'.format(
+                resource.Meta.name))
+
+        if resource.Meta.name_plural in self.resource_map:
+            raise ValueError(
+                'Resource plural name {} conflicts with registered resource'.
+                format(resource.Meta.name))
+
+        resource_plural_names = {
+            r.Meta.name_plural for r in self.resource_map.values()
+        }
+        if resource.Meta.name in resource_plural_names:
+            raise ValueError(
+                'Resource name {} conflicts with other resource plural name'.
+                format(resource.Meta.name)
+            )
+
         self.resource_map[resource.Meta.name] = resource
+        resource.Meta.api = self
         return resource
 
     @property
@@ -53,13 +83,18 @@ class API(object):
 
         """
         from django.conf.urls import url
-
         urls = [
             url(r'^$', self.map_view),
-            url(r'^(?P<resource_name>\w+)/$', self.default_view),
-            url(r'^(?P<resource_name>)\w+/(?P<id>[0-9]+)/$',
-                self.default_view),
         ]
+
+        for resource_name in self.resource_map:
+            urls.extend([
+                url(r'/(?P<resource_name>{})$'.format(
+                    resource_name), self.handler_view),
+                url(r'/(?P<resource_name>{})/(?P<ids>[\w\-\,]+)$'.format(
+                    resource_name), self.handler_view),
+            ])
+
         return urls
 
     def map_view(self, request):
@@ -68,29 +103,30 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        from django.http import HttpResponse
-        import json
-
         resource_info = {
             "resources": [{
                 "id": index + 1,
-                "href": "{}://{}/api/{}/".format(
+                "href": "{}://{}{}/{}".format(
                     request.META['wsgi.url_scheme'],
                     request.META['HTTP_HOST'],
+                    request.path,
                     resource_name
                 ),
-            } for index, resource_name in enumerate(self.resource_map)]
+            } for index, resource_name in enumerate(sorted(self.resource_map))]
         }
         response = json.dumps(resource_info)
         return HttpResponse(response, content_type="application/vnd.api+json")
 
-    def default_view(self, request, resource_name, **kwargs):
+    def handler_view(self, request, resource_name, ids=None):
         """ Handler for resources.
 
         :return django.http.HttpResponse
 
         """
+        kwargs = {}
+        if ids is not None:
+            kwargs['ids'] = ids.split(",")
+
         resource = self.resource_map[resource_name]
-        from django.http import HttpResponse
-        items = resource.get(**kwargs)
+        items = json.dumps(resource.get(**kwargs))
         return HttpResponse(items, content_type="application/vnd.api+json")

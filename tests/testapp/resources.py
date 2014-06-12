@@ -14,3 +14,15 @@ class AuthorResource(Resource):
 class PostWithPictureResource(Resource):
     class Meta:
         model = 'testapp.PostWithPicture'
+
+
+@api.register
+class PostResource(Resource):
+    class Meta:
+        model = 'testapp.Post'
+
+
+@api.register
+class CommentResource(Resource):
+    class Meta:
+        model = 'testapp.Comment'

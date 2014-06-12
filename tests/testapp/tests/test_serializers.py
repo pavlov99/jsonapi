@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.db import models
+#from django.db.models.loading import cache
 from mixer.backend.django import mixer
 
 from jsonapi.serializers import Serializer
@@ -24,6 +25,10 @@ class TestSerializers(TestCase):
         self.B = B
         self.C = C
         self.D = D
+
+    def tearDown(self):
+        # Delete models from django cache
+        del models.loading.cache.app_models['tests']
 
     def test_get_id(self):
         author = mixer.blend('testapp.author')

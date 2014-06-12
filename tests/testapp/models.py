@@ -2,9 +2,9 @@
 
 Model relationship:
 
-      Author    Blog
-       ||        |
-       ||        @
+      Author
+       ||
+       ||
        ||-----@ Post ----> PostWithPicture
        |  ______/
        |  |
@@ -21,14 +21,9 @@ class Author(models.Model):
     pass
 
 
-class Blog(models.Model):
-    pass
-
-
 class Post(models.Model):
     title = models.CharField(max_length=100)
     author = models.ForeignKey(Author)
-    blog = models.ForeignKey(Blog)
 
 
 class PostWithPicture(Post):
@@ -37,3 +32,4 @@ class PostWithPicture(Post):
 
 class Comment(models.Model):
     post = models.ForeignKey(Post, related_name='comments')
+    author = models.ForeignKey(Author)

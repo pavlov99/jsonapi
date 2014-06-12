@@ -31,23 +31,28 @@ class Serializer(object):
         :return dict: document
 
         """
-        fields = fields or []
-        fields_to_one = fields_to_one or []
-        fields_to_many = fields_to_many or []
+        fields = fields or {}
+        fields_to_one = fields_to_one or {}
+        fields_to_many = fields_to_many or {}
 
         # apply rules for field serialization
         document = {
-            f.name: getattr(model_instance, f.name)
-            for f in cls.get_fields(model_instance.__class__)
-            if f.rel is None
+            name: getattr(model_instance, data["name"])
+            for name, data in fields.items()
         }
-
         if fields_to_one or fields_to_many:
             document["links"] = {}
 
-        # Own fields: f.rel = None
-        # single table inheritance: f.rel != None and f.serialize = False
-        # related fields: f.rel != None, f.serialize = True
+        for name, data in fields_to_one.items():
+            document["links"][name] = getattr(
+                model_instance, "{}_id".format(data["name"]))
+
+        for name, data in fields_to_many.items():
+            document["links"][name] = list(
+                getattr(model_instance, data["name"]).
+                values_list("id", flat=True)
+            )
+
         return document
 
     @classmethod

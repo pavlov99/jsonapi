@@ -6,7 +6,6 @@ env:
     - TOXENV=py27
     - TOXENV=py33
     - TOXENV=cov
-    - TOXENV=pylama
 
 branches:
     only:

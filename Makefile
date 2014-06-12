@@ -1,11 +1,10 @@
 ENV=$(CURDIR)/.env
 BIN=$(ENV)/bin
-
-PYTHON=$(shell which python)
+PYTHON=$(BIN)/python
 DJANGO_ADMIN=$(shell which django-admin.py)
-
-MANAGER=$(PYTHON) $(CURDIR)/example/manage.py
-
+SETTINGS_TEST=tests.testapp.settings.test
+SETTINGS_DEV=tests.testapp.settings.dev
+PARAMS_DEV=--settings=$(SETTINGS_DEV) --pythonpath=$(CURDIR)
 
 all: $(ENV)
 	@echo "Virtualenv is installed"
@@ -42,22 +41,22 @@ upload:
 .PHONY: test
 # target: test - Runs tests
 test: clean
-	$(PYTHON) run_tests.py
+	$(DJANGO_ADMIN) test --settings=$(SETTINGS_TEST) --pythonpath=$(CURDIR) --top-level-directory=$(CURDIR)/tests tests
 
 $(ENV):
 	virtualenv --no-site-packages .env
-	$(ENV)/bin/pip install -r requirements.txt
+	$(BIN)/pip install -r requirements.txt
 
 .PHONY: run
 # target: run - run test server
 run: $(ENV)
-	$(MANAGER) syncdb --noinput
-	$(MANAGER) runserver 0.0.0.0:8000
+	$(DJANGO_ADMIN) syncdb --noinput $(PARAMS_DEV)
+	$(DJANGO_ADMIN) runserver $(PARAMS_DEV) 0.0.0.0:8000
 
 .PHONY: shell
 # target: shell - run shell console
 shell:
-	$(MANAGER) shell_plus
+	$(DJANGO_ADMIN) shell_plus $(PARAMS_DEV)
 
 .PHONY: install
 # target: install - install package to current environment
