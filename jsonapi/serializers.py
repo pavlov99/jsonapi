@@ -1,4 +1,7 @@
 """ Serializer definition."""
+import json
+import datetime
+from django.db import models
 
 
 class Serializer(object):
@@ -40,11 +43,17 @@ class Serializer(object):
         fields_to_one = fields_to_one or {}
         fields_to_many = fields_to_many or {}
 
+        document = {}
         # apply rules for field serialization
-        document = {
-            name: getattr(model_instance, data["name"])
-            for name, data in fields.items()
-        }
+        for name, data in fields.items():
+            value = getattr(model_instance, data["name"])
+
+            field = model_instance._meta.get_field(data["name"])
+            if isinstance(field, models.CommaSeparatedIntegerField):
+                value = [int(x) for x in value[1:-1].split(",")]
+
+            document[name] = value
+
         if fields_to_one or fields_to_many:
             document["links"] = {}
 
@@ -90,3 +99,27 @@ class Serializer(object):
 
         """
         return model._meta.fields + model._meta.many_to_many
+
+
+class DjangoEncoder(json.JSONEncoder):
+
+    """ Encoder for datetime and decimal serialization.
+
+    Usage: json.dumps(object, cls=DatetimeDecimalEncoder)
+    NOTE: _iterencode does not work
+
+    """
+
+    def default(self, o):
+        """ Encode JSON.
+
+        :return str: A JSON encoded string
+
+        """
+        if isinstance(o, (datetime.datetime, datetime.date, datetime.time)):
+            return o.isoformat()
+
+        if isinstance(o, models.fields.files.FieldFile):
+            return o.path  # o.url ?
+
+        return json.JSONEncoder.default(self, o)

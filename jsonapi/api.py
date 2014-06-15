@@ -20,6 +20,8 @@ from django.http import HttpResponse
 import logging
 import json
 
+from .serializers import DjangoEncoder
+
 logger = logging.getLogger(__name__)
 
 
@@ -128,5 +130,5 @@ class API(object):
             kwargs['ids'] = ids.split(",")
 
         resource = self.resource_map[resource_name]
-        items = json.dumps(resource.get(**kwargs))
+        items = json.dumps(resource.get(**kwargs), cls=DjangoEncoder)
         return HttpResponse(items, content_type="application/vnd.api+json")

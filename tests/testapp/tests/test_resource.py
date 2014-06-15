@@ -415,7 +415,7 @@ class TestResource(TestCase):
             x for x in author.comma_separated_integer
         ])
         self.assertEqual(obj['date'], author.date.isoformat())
-        self.assertEqual(obj['datetime'], author.date.isoformat())
+        self.assertEqual(obj['datetime'], author.datetime.isoformat())
         self.assertEqual(obj['email'], author.email)
         self.assertEqual(obj['authorfile'], author.authorfile.path)
         self.assertEqual(obj['filepath'], author.filepath)
