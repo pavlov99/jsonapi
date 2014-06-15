@@ -20,7 +20,7 @@ from django.http import HttpResponse
 import logging
 import json
 
-from .serializers import DjangoEncoder
+from .serializers import DatetimeDecimalEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -130,5 +130,5 @@ class API(object):
             kwargs['ids'] = ids.split(",")
 
         resource = self.resource_map[resource_name]
-        items = json.dumps(resource.get(**kwargs), cls=DjangoEncoder)
+        items = json.dumps(resource.get(**kwargs), cls=DatetimeDecimalEncoder)
         return HttpResponse(items, content_type="application/vnd.api+json")

@@ -15,7 +15,6 @@ Model relationship:
 
 
 from django.db import models
-from django.conf import settings
 
 
 class Author(models.Model):
@@ -27,10 +26,10 @@ class Author(models.Model):
     date = models.DateField()
     datetime = models.DateTimeField()
     email = models.EmailField()
-    authorfile = models.FileField(upload_to=settings.STATIC_PATH)
+    authorfile = models.FileField(upload_to='.')
     filepath = models.FilePathField()
     floatnum = models.FloatField()
-    # image = models.ImageField(upload_to=settings.STATIC_PATH)  # Avoid Pillow
+    # image = models.ImageField()  # Avoid Pillow
     integer = models.IntegerField()
     ip = models.IPAddressField()
     generic_ip = models.GenericIPAddressField(protocol='ipv6')

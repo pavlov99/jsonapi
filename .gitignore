@@ -10,3 +10,5 @@ docs/_build
 build/
 dist/
 jsonapi.egg-info/
+tests/testapp/media/*
+!tests/testapp/media/placeholder.md

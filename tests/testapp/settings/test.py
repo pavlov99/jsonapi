@@ -1,7 +1,13 @@
 import os.path
 
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-STATIC_PATH = os.path.join(BASE_PATH, 'static')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, 'staticfiles'),
+)
 
 SECRET_KEY = "^rbf8k&st!yclg!))2+n_fxp4@oou&$nnjz8*tfx!mrjzj*q%d"
 INSTALLED_APPS = (
