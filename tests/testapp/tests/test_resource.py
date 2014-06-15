@@ -420,7 +420,6 @@ class TestResource(TestCase):
         self.assertEqual(obj['authorfile'], author.authorfile.path)
         self.assertEqual(obj['filepath'], author.filepath)
         self.assertEqual(obj['floatnum'], author.floatnum)
-        self.assertEqual(obj['image'], author.image.path)
         self.assertEqual(obj['integer'], author.integer)
         self.assertEqual(obj['ip'], author.ip)
         self.assertEqual(obj['generic_ip'], author.generic_ip)

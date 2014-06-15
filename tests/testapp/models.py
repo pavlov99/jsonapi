@@ -30,7 +30,7 @@ class Author(models.Model):
     authorfile = models.FileField(upload_to=settings.STATIC_PATH)
     filepath = models.FilePathField()
     floatnum = models.FloatField()
-    image = models.ImageField(upload_to=settings.STATIC_PATH)
+    # image = models.ImageField(upload_to=settings.STATIC_PATH)  # Avoid Pillow
     integer = models.IntegerField()
     ip = models.IPAddressField()
     generic_ip = models.GenericIPAddressField(protocol='ipv6')
