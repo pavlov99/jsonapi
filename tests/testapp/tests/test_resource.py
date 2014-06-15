@@ -412,8 +412,7 @@ class TestResource(TestCase):
         self.assertEqual(obj['boolean'], author.boolean)
         self.assertEqual(obj['char'], author.char)
         self.assertEqual(obj['comma_separated_integer'], [
-            int(x.strip()) for x in
-            author.comma_separated_integer[1:-1].split(',')
+            x for x in author.comma_separated_integer
         ])
         self.assertEqual(obj['date'], author.date.isoformat())
         self.assertEqual(obj['datetime'], author.date.isoformat())
