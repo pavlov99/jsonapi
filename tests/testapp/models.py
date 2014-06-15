@@ -15,6 +15,7 @@ Model relationship:
 
 
 from django.db import models
+from django.conf import settings
 
 
 class Author(models.Model):
@@ -24,15 +25,15 @@ class Author(models.Model):
     char = models.CharField(max_length=100)
     comma_separated_integer = models.CommaSeparatedIntegerField(max_length=5)
     date = models.DateField()
-    date = models.DateTimeField()
+    datetime = models.DateTimeField()
     email = models.EmailField()
-    authorfile = models.FileField(upload_to="static")
+    authorfile = models.FileField(upload_to=settings.STATIC_PATH)
     filepath = models.FilePathField()
     floatnum = models.FloatField()
-    image = models.ImageField(upload_to="static")
+    image = models.ImageField(upload_to=settings.STATIC_PATH)
     integer = models.IntegerField()
     ip = models.IPAddressField()
-    generic_ip = models.GenericIPAddressField()
+    generic_ip = models.GenericIPAddressField(protocol='ipv6')
     nullboolean = models.NullBooleanField()
     positive_integer = models.PositiveIntegerField()
     positive_small_integer = models.PositiveSmallIntegerField()
@@ -41,6 +42,10 @@ class Author(models.Model):
     text = models.TextField()
     time = models.TimeField()
     url = models.URLField()
+
+    @property
+    def integer_next(self):
+        return self.integer + 1
 
 
 class Post(models.Model):

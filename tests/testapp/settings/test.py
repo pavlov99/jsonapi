@@ -1,3 +1,8 @@
+import os.path
+
+BASE_PATH = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+STATIC_PATH = os.path.join(BASE_PATH, 'static')
+
 SECRET_KEY = "^rbf8k&st!yclg!))2+n_fxp4@oou&$nnjz8*tfx!mrjzj*q%d"
 INSTALLED_APPS = (
     'django.contrib.auth',
