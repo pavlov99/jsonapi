@@ -19,6 +19,11 @@ class Serializer(object):
     server is unnecessary (e.g., read-only, transient entities), JSON API
     allows for omitting the "id" key.
 
+    Serializer:
+        1) Check custom serializer for field in Resource
+        2) Try to use predefined serializers for fields
+        3) Try convert to string
+
     """
 
     @classmethod

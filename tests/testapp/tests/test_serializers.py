@@ -6,6 +6,34 @@ from mixer.backend.django import mixer
 from jsonapi.serializers import Serializer
 
 
+FIELDS = (
+    models.BigIntegerField,
+    models.BinaryField,
+    models.BooleanField,
+    models.CharField,
+    models.CommaSeparatedIntegerField,
+    models.DateField,
+    models.DateTimeField,
+    models.DecimalField,
+    models.EmailField,
+    models.FileField,
+    models.FilePathField,
+    models.FloatField,
+    models.ImageField,
+    models.IntegerField,
+    models.IPAddressField,
+    models.GenericIPAddressField,
+    models.NullBooleanField,
+    models.PositiveIntegerField,
+    models.PositiveSmallIntegerField,
+    models.SlugField,
+    models.SmallIntegerField,
+    models.TextField,
+    models.TimeField,
+    models.URLField,
+)
+
+
 class TestSerializers(TestCase):
     def setUp(self):
         class A(models.Model):

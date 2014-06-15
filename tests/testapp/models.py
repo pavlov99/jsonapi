@@ -18,7 +18,29 @@ from django.db import models
 
 
 class Author(models.Model):
-    pass
+    big_integer = models.BigIntegerField()
+    # binary = models.BinaryField()
+    boolean = models.BooleanField()
+    char = models.CharField(max_length=100)
+    comma_separated_integer = models.CommaSeparatedIntegerField(max_length=5)
+    date = models.DateField()
+    date = models.DateTimeField()
+    email = models.EmailField()
+    authorfile = models.FileField(upload_to="static")
+    filepath = models.FilePathField()
+    floatnum = models.FloatField()
+    image = models.ImageField(upload_to="static")
+    integer = models.IntegerField()
+    ip = models.IPAddressField()
+    generic_ip = models.GenericIPAddressField()
+    nullboolean = models.NullBooleanField()
+    positive_integer = models.PositiveIntegerField()
+    positive_small_integer = models.PositiveSmallIntegerField()
+    slug = models.SlugField()
+    small_integer = models.SmallIntegerField()
+    text = models.TextField()
+    time = models.TimeField()
+    url = models.URLField()
 
 
 class Post(models.Model):
