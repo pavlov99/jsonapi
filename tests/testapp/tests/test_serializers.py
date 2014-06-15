@@ -1,6 +1,5 @@
 from django.test import TestCase
 from django.db import models
-#from django.db.models.loading import cache
 from mixer.backend.django import mixer
 
 from jsonapi.serializers import Serializer
