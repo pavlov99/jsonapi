@@ -41,7 +41,7 @@ What makes a decent API Framework?These features:
     * Pagination
     * Posting of data with validation
     * Publishing of metadata along with querysets
-    * API discovery
+    * + API discovery
     * Proper HTTP response handling
     * Caching
     * Serialization
