@@ -416,7 +416,9 @@ class TestResource(TestCase):
         self.assertEqual(obj['date'], author.date.isoformat())
         self.assertEqual(obj['datetime'], author.datetime.isoformat())
         self.assertEqual(obj['email'], author.email)
-        self.assertEqual(obj['authorfile'], author.authorfile.url)
+        self.assertEqual(
+            obj['authorfile'],
+            "http://testserver{}".format(author.authorfile.url))
         self.assertEqual(obj['filepath'], author.filepath)
         self.assertEqual(obj['floatnum'], author.floatnum)
         self.assertEqual(obj['integer'], author.integer)
