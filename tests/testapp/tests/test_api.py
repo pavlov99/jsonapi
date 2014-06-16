@@ -1,10 +1,13 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from jsonapi.api import API
 from jsonapi.resource import Resource
+
+from ..resources import api
 
 
 class TestApi(TestCase):
     def setUp(self):
+        #self.api = api
         self.api = API()
 
     def test_resource_registration(self):
@@ -81,3 +84,21 @@ class TestApi(TestCase):
         with self.assertRaises(ValueError):
             # NewsResource.name_plural = NewssResource.name
             self.api.register(NewssResource)
+
+    def test_base_url(self):
+        self.assertTrue(self.api.base_url is None)
+        c = Client()
+        c.get(
+            '/api/author',
+            content_type='application/vnd.api+json'
+        )
+        self.assertEqual(self.api.base_url, "http://testserver")
+
+    def test_api_url(self):
+        self.assertTrue(self.api.api_url is None)
+        c = Client()
+        c.get(
+            '/api/author',
+            content_type='application/vnd.api+json'
+        )
+        self.assertEqual(self.api.api_url, "http://testserver/api")
