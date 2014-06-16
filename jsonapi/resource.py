@@ -3,6 +3,7 @@ from . import six
 import inspect
 import logging
 from django.db import models
+from django.core.paginator import Paginator
 
 from .utils import classproperty, Choices
 from .serializers import Serializer
@@ -71,11 +72,11 @@ class ResourceMeta(type):
         cls.Meta.name = ResourceManager.get_resource_name(cls)
         cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
-
         cls.Meta.fieldnames_include = getattr(
             cls.Meta, 'fieldnames_include', None)
         cls.Meta.fieldnames_exclude = getattr(
             cls.Meta, 'fieldnames_exclude', None)
+        cls.Meta.page_size = getattr(cls.Meta, 'page_size', None)
         return cls
 
 
@@ -271,6 +272,23 @@ class Resource(Serializer):
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
+        queryset = model.objects.filter(**filters)
+        objects = queryset
+        meta = {}
+        if cls.Meta.page_size is not None:
+            paginator = Paginator(queryset, cls.Meta.page_size)
+            page = int(kwargs.get('page', 1))
+            meta["count"] = paginator.count
+            meta["num_pages"] = paginator.num_pages
+            meta["page_size"] = cls.Meta.page_size
+            meta["page"] = page
+            objects = paginator.page(page)
+
+            meta["page_next"] = objects.next_page_number() \
+                if objects.has_next() else None
+            meta["page_prev"] = objects.previous_page_number() \
+                if objects.has_previous() else None
+
         data = [
             cls.dump_document(
                 m,
@@ -278,7 +296,11 @@ class Resource(Serializer):
                 fields_to_one=cls.fields_to_one,
                 #fields_to_many=cls.fields_to_many
             )
-            for m in model.objects.filter(**filters)
+            for m in objects
         ]
-        response = {cls.Meta.name_plural: data}
+        response = {
+            cls.Meta.name_plural: data
+        }
+        if meta:
+            response["meta"] = meta
         return response
