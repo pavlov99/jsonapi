@@ -21,6 +21,10 @@ class PostResource(Resource):
     class Meta:
         model = 'testapp.Post'
 
+    @staticmethod
+    def dump_document_title(value):
+        return value.capitalize()
+
 
 @api.register
 class CommentResource(Resource):
