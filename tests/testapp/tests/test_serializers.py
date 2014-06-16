@@ -1,16 +1,41 @@
 from django.test import TestCase
 from django.db import models
-#from django.db.models.loading import cache
-from mixer.backend.django import mixer
 
 from jsonapi.serializers import Serializer
+
+
+FIELDS = (
+    models.BigIntegerField,
+    models.BinaryField,
+    models.BooleanField,
+    models.CharField,
+    models.CommaSeparatedIntegerField,
+    models.DateField,
+    models.DateTimeField,
+    models.DecimalField,
+    models.EmailField,
+    models.FileField,
+    models.FilePathField,
+    models.FloatField,
+    models.ImageField,
+    models.IntegerField,
+    models.IPAddressField,
+    models.GenericIPAddressField,
+    models.NullBooleanField,
+    models.PositiveIntegerField,
+    models.PositiveSmallIntegerField,
+    models.SlugField,
+    models.SmallIntegerField,
+    models.TextField,
+    models.TimeField,
+    models.URLField,
+)
 
 
 class TestSerializers(TestCase):
     def setUp(self):
         class A(models.Model):
-            a1 = models.CharField(max_length=100)
-            a2 = models.IntegerField()
+            a = models.CharField(max_length=100)
 
         class B(A):
             b = models.IntegerField()
@@ -30,33 +55,20 @@ class TestSerializers(TestCase):
         # Delete models from django cache
         del models.loading.cache.app_models['tests']
 
-    def test_get_id(self):
-        author = mixer.blend('testapp.author')
-        self.assertEqual(author.pk, Serializer.get_id(author))
+    def test_dump_document_field_redefinition(self):
+        obj = self.A(a="a")
+        fields = {
+            "id": {"name": "id"},
+            "a": {"name": "a"},
+        }
+        obj_dump = Serializer.dump_document(obj, fields)
+        expected_dump = {
+            "id": obj.id,
+            "a": "a",
+        }
+        self.assertEqual(obj_dump, expected_dump)
 
-    def test_get_id_inheritance(self):
-        post = mixer.blend('testapp.postwithpicture')
-        self.assertEqual(post.pk, Serializer.get_id(post))
-
-    def test_fields(self):
-        fields = Serializer.get_fields(self.A)
-        field_names = {f.name for f in fields}
-        self.assertIn('a1', field_names)
-        self.assertIn('a2', field_names)
-
-    def test_fields_inheritance(self):
-        fields = Serializer.get_fields(self.B)
-        field_names = {f.name for f in fields}
-        self.assertIn('a1', field_names)
-        self.assertIn('a2', field_names)
-        self.assertIn('b', field_names)
-
-    def test_fields_many_to_many(self):
-        fields = Serializer.get_fields(self.C)
-        field_names = {f.name for f in fields}
-        self.assertIn('bs', field_names)
-
-    def test_fields_foreign_key(self):
-        fields = Serializer.get_fields(self.D)
-        field_names = {f.name for f in fields}
-        self.assertIn('c', field_names)
+        Serializer.dump_document_a = staticmethod(lambda value: None)
+        obj_dump = Serializer.dump_document(obj, fields)
+        expected_dump["a"] = None
+        self.assertEqual(obj_dump, expected_dump)

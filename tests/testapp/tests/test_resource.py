@@ -1,5 +1,4 @@
 from django.test import TestCase, Client
-import unittest
 import json
 
 from django.db import models
@@ -7,10 +6,7 @@ from mixer.backend.django import mixer
 
 from jsonapi.resource import Resource
 from jsonapi.api import API
-from tests.testapp.resources import (
-    AuthorResource,
-    PostWithPictureResource,
-)
+from tests.testapp.resources import AuthorResource
 
 
 class TestResourceRelationship(TestCase):
@@ -399,21 +395,61 @@ class TestResource(TestCase):
         }
         self.assertEqual(data, data_expected)
 
-    @unittest.skip("Temporary skip")
+    def test_resource_own_fields_serialization(self):
+        c = Client()
+        author = mixer.blend('testapp.author')
+        response = c.get(
+            '/api/author',
+            content_type='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode('utf8'))
+        self.assertEqual(len(data["authors"]), 1)
+        obj = data["authors"][0]
+
+        self.assertEqual(obj['big_integer'], author.big_integer)
+        self.assertEqual(obj['boolean'], author.boolean)
+        self.assertEqual(obj['char'], author.char)
+        self.assertEqual(obj['comma_separated_integer'], [
+            x for x in author.comma_separated_integer
+        ])
+        self.assertEqual(obj['date'], author.date.isoformat())
+        self.assertEqual(obj['datetime'], author.datetime.isoformat())
+        self.assertEqual(obj['email'], author.email)
+        self.assertEqual(
+            obj['authorfile'],
+            "http://testserver{}".format(author.authorfile.url))
+        self.assertEqual(obj['filepath'], author.filepath)
+        self.assertEqual(obj['floatnum'], author.floatnum)
+        self.assertEqual(obj['integer'], author.integer)
+        self.assertEqual(obj['ip'], author.ip)
+        self.assertEqual(obj['generic_ip'], author.generic_ip)
+        self.assertEqual(obj['nullboolean'], author.nullboolean)
+        self.assertEqual(obj['positive_integer'], author.positive_integer)
+        self.assertEqual(
+            obj['positive_small_integer'], author.positive_small_integer)
+        self.assertEqual(obj['slug'], author.slug)
+        self.assertEqual(obj['small_integer'], author.small_integer)
+        self.assertEqual(obj['text'], author.text)
+        self.assertEqual(obj['time'], author.time.isoformat())
+        self.assertEqual(obj['url'], author.url)
+
     def test_resource_get(self):
-        post = mixer.blend(PostWithPicture)
+        post = mixer.blend('testapp.post')
         c = Client()
         response = c.get(
-            '/api/postwithpicture',
+            '/api/post',
             content_type='application/vnd.api+json'
         )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf8'))
         data_expected = {
-            "postwithpictures": [{
+            "posts": [{
                 "id": post.id,
                 "title": post.title,
-                "picture_url": post.picture_url
+                "links": {
+                    "author": post.author_id,
+                }
             }]
         }
         self.assertEqual(data, data_expected)

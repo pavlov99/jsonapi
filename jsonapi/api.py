@@ -20,6 +20,8 @@ from django.http import HttpResponse
 import logging
 import json
 
+from .serializers import DatetimeDecimalEncoder
+
 logger = logging.getLogger(__name__)
 
 
@@ -30,6 +32,9 @@ class API(object):
     def __init__(self):
         self.resource_map = dict()
         self._resource_relations = None
+
+        self.base_url = None  # base server url
+        self.api_url = None  # api root url
 
     @property
     def model_resource_map(self):
@@ -97,21 +102,39 @@ class API(object):
 
         return urls
 
+    def update_urls(self, request, resource_name=None, ids=None):
+        http_host = request.META.get('HTTP_HOST', None)
+
+        if http_host is None:
+            http_host = request.META['SERVER_NAME']
+            if request.META['SERVER_PORT'] not in ('80', '443'):
+                http_host = "{}:{}".format(
+                    http_host, request.META['SERVER_PORT'])
+
+        self.base_url = "{}://{}".format(
+            request.META['wsgi.url_scheme'],
+            http_host
+        )
+        self.api_url = "{}{}".format(self.base_url, request.path)
+        self.api_url = self.api_url.rstrip("/")
+
+        if ids is not None:
+            self.api_url = self.api_url.rsplit("/", 1)[0]
+
+        if resource_name is not None:
+            self.api_url = self.api_url.rsplit("/", 1)[0]
+
     def map_view(self, request):
         """ Show information about available resources.
 
         :return django.http.HttpResponse
 
         """
+        self.update_urls(request)
         resource_info = {
             "resources": [{
                 "id": index + 1,
-                "href": "{}://{}{}/{}".format(
-                    request.META['wsgi.url_scheme'],
-                    request.META['HTTP_HOST'],
-                    request.path,
-                    resource_name
-                ),
+                "href": "{}/{}".format(self.api_url, resource_name),
             } for index, resource_name in enumerate(sorted(self.resource_map))]
         }
         response = json.dumps(resource_info)
@@ -123,10 +146,12 @@ class API(object):
         :return django.http.HttpResponse
 
         """
+        self.update_urls(request, resource_name=resource_name, ids=ids)
+
         kwargs = {}
         if ids is not None:
             kwargs['ids'] = ids.split(",")
 
         resource = self.resource_map[resource_name]
-        items = json.dumps(resource.get(**kwargs))
+        items = json.dumps(resource.get(**kwargs), cls=DatetimeDecimalEncoder)
         return HttpResponse(items, content_type="application/vnd.api+json")
