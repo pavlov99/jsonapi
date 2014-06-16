@@ -1,9 +1,13 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from jsonapi.api import API
 from jsonapi.resource import Resource
 
+from ..urls import api
+
 
 class TestApi(TestCase):
+    urls = 'testapp.urls'  # does not work without it. Dont know why?
+
     def setUp(self):
         self.api = API()
 
@@ -81,3 +85,13 @@ class TestApi(TestCase):
         with self.assertRaises(ValueError):
             # NewsResource.name_plural = NewssResource.name
             self.api.register(NewssResource)
+
+    def test_base_url(self):
+        c = Client()
+        c.get('/api', content_type='application/vnd.api+json')
+        self.assertEqual(api.base_url, "http://testserver")
+
+    def test_api_url(self):
+        c = Client()
+        c.get('/api', content_type='application/vnd.api+json')
+        self.assertEqual(api.api_url, "http://testserver/api")

@@ -251,6 +251,7 @@ class Resource(object):
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
+        Serializer.Meta = cls.Meta
         data = [
             Serializer.dump_document(
                 m,
