@@ -75,7 +75,7 @@ class ResourceMeta(type):
 
 
 @six.add_metaclass(ResourceMeta)
-class Resource(object):
+class Resource(Serializer):
 
     """ Base JSON:API resource class."""
 
@@ -251,9 +251,8 @@ class Resource(object):
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
-        Serializer.Meta = cls.Meta
         data = [
-            Serializer.dump_document(
+            cls.dump_document(
                 m,
                 fields=cls.fields_own,
                 fields_to_one=cls.fields_to_one,
