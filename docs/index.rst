@@ -11,6 +11,22 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+JSON:API
+********
+
+Quickstart
+==========
+
+::
+    from jsonapi.api import API
+    from jsonapi.resource import Resource
+
+    api = API()
+
+    @api.register
+    class AuthorResource(Resource):
+        class Meta:
+            model = 'testapp.author'
 
 
 Indices and tables
