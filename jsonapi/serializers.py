@@ -57,11 +57,16 @@ class Serializer(object):
             if field_serializer is not None:
                 value = field_serializer(value)
             else:
-                field = model_instance._meta.get_field(data["name"])
-                if isinstance(field, models.fields.files.FileField):
-                    value = cls.Meta.api.base_url + value.url
-                elif isinstance(field, models.CommaSeparatedIntegerField):
-                    value = [int(x) for x in value[1:-1].split(",")]
+                try:
+                    field = model_instance._meta.get_field(data["name"])
+                except models.fields.FieldDoesNotExist:
+                    # Field is property
+                    pass
+                else:
+                    if isinstance(field, models.fields.files.FileField):
+                        value = cls.Meta.api.base_url + value.url
+                    elif isinstance(field, models.CommaSeparatedIntegerField):
+                        value = [int(x) for x in value[1:-1].split(",")]
 
             document[name] = value
 
