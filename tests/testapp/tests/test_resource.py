@@ -1,5 +1,4 @@
 from django.test import TestCase, Client
-import unittest
 import json
 
 from django.db import models
@@ -433,21 +432,22 @@ class TestResource(TestCase):
         self.assertEqual(obj['time'], author.time.isoformat())
         self.assertEqual(obj['url'], author.url)
 
-    @unittest.skip("Temporary skip")
     def test_resource_get(self):
-        post = mixer.blend('testapp.postwithpicture')
+        post = mixer.blend('testapp.post')
         c = Client()
         response = c.get(
-            '/api/postwithpicture',
+            '/api/post',
             content_type='application/vnd.api+json'
         )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf8'))
         data_expected = {
-            "postwithpictures": [{
+            "posts": [{
                 "id": post.id,
                 "title": post.title,
-                "picture_url": post.picture_url
+                "links": {
+                    "author": post.author_id,
+                }
             }]
         }
         self.assertEqual(data, data_expected)

@@ -256,7 +256,7 @@ class Resource(object):
                 m,
                 fields=cls.fields_own,
                 fields_to_one=cls.fields_to_one,
-                fields_to_many=cls.fields_to_many
+                #fields_to_many=cls.fields_to_many
             )
             for m in model.objects.filter(**filters)
         ]
