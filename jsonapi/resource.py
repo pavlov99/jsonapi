@@ -71,6 +71,11 @@ class ResourceMeta(type):
         cls.Meta.name = ResourceManager.get_resource_name(cls)
         cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
+
+        cls.Meta.fieldnames_include = getattr(
+            cls.Meta, 'fieldnames_include', None)
+        cls.Meta.fieldnames_exclude = getattr(
+            cls.Meta, 'fieldnames_exclude', None)
         return cls
 
 
@@ -216,6 +221,21 @@ class Resource(Serializer):
         fields.update(cls._get_fields_others_foreign_key(model))
         fields.update(cls._get_fields_self_many_to_many(model))
         fields.update(cls._get_fields_others_many_to_many(model))
+
+        if cls.Meta.fieldnames_include is not None:
+            for fieldname in cls.Meta.fieldnames_include:
+                fields[fieldname] = {
+                    "type": Resource.FIELD_TYPES.OWN,
+                    "name": fieldname,
+                    "related_resource": None,
+                }
+
+        fields = {
+            k: v for k, v in fields.items()
+            if cls.Meta.fieldnames_exclude is None or
+            v["name"] not in cls.Meta.fieldnames_exclude
+        }
+
         return fields
 
     @classproperty

@@ -51,6 +51,10 @@ class Post(models.Model):
     title = models.CharField(max_length=100)
     author = models.ForeignKey(Author)
 
+    @property
+    def title_uppercased(self):
+        return self.title.upper()
+
 
 class PostWithPicture(Post):
     picture_url = models.URLField()

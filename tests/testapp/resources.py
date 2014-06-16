@@ -14,6 +14,7 @@ class AuthorResource(Resource):
 class PostWithPictureResource(Resource):
     class Meta:
         model = 'testapp.PostWithPicture'
+        fieldnames_include = 'title_uppercased',
 
 
 @api.register
@@ -23,7 +24,7 @@ class PostResource(Resource):
 
     @staticmethod
     def dump_document_title(value):
-        return value.capitalize()
+        return value
 
 
 @api.register
