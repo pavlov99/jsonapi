@@ -153,5 +153,9 @@ class API(object):
             kwargs['ids'] = ids.split(",")
 
         resource = self.resource_map[resource_name]
+
+        if request.method == "GET":
+            kwargs.update(request.GET.dict())
+
         items = json.dumps(resource.get(**kwargs), cls=DatetimeDecimalEncoder)
         return HttpResponse(items, content_type="application/vnd.api+json")
