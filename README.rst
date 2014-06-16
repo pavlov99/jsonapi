@@ -38,13 +38,13 @@ Specification: http://jsonapi.org/
 REST anti patterns http://www.infoq.com/articles/rest-anti-patterns
 
 What makes a decent API Framework?These features:
-    * Pagination
+    * + Pagination
     * Posting of data with validation
-    * Publishing of metadata along with querysets
+    * + Publishing of metadata along with querysets
     * + API discovery
     * Proper HTTP response handling
     * Caching
-    * Serialization
+    * + Serialization
     * Throttling
     * Authentication
     * Permissions
