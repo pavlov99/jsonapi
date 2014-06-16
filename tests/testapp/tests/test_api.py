@@ -2,12 +2,13 @@ from django.test import TestCase, Client
 from jsonapi.api import API
 from jsonapi.resource import Resource
 
-from ..resources import api
+from ..urls import api
 
 
 class TestApi(TestCase):
+    urls = 'testapp.urls'  # does not work without it. Dont know why?
+
     def setUp(self):
-        #self.api = api
         self.api = API()
 
     def test_resource_registration(self):
@@ -86,19 +87,11 @@ class TestApi(TestCase):
             self.api.register(NewssResource)
 
     def test_base_url(self):
-        self.assertTrue(self.api.base_url is None)
         c = Client()
-        c.get(
-            '/api/author',
-            content_type='application/vnd.api+json'
-        )
-        self.assertEqual(self.api.base_url, "http://testserver")
+        c.get('/api', content_type='application/vnd.api+json')
+        self.assertEqual(api.base_url, "http://testserver")
 
     def test_api_url(self):
-        self.assertTrue(self.api.api_url is None)
         c = Client()
-        c.get(
-            '/api/author',
-            content_type='application/vnd.api+json'
-        )
-        self.assertEqual(self.api.api_url, "http://testserver/api")
+        c.get('/api', content_type='application/vnd.api+json')
+        self.assertEqual(api.api_url, "http://testserver/api")
