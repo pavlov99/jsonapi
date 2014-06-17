@@ -64,24 +64,44 @@ class ResourceManager(object):
         return model
 
 
-class ResourceMeta(type):
+def merge_metas(*metas):
+    """ Merge meta parameters.
+
+    next meta has priority over current, it will overwrite attributes.
+
+    :param class or None meta: class with properties.
+    :return class: merged meta.
+
+    """
+    metadict = {}
+    for meta in metas:
+        metadict.update(meta.__dict__)
+
+    metadict = {k: v for k, v in metadict.items() if not k.startswith('__')}
+    return type('Meta', (object, ), metadict)
+
+
+class ResourceMetaClass(type):
 
     """ Metaclass for JSON:API resources."""
 
     def __new__(mcs, name, bases, attrs):
-        cls = super(ResourceMeta, mcs).__new__(mcs, name, bases, attrs)
+        cls = super(ResourceMetaClass, mcs).__new__(mcs, name, bases, attrs)
+
+        metas = [getattr(base, 'Meta', None) for base in bases]
+        metas.append(cls.Meta)
+        cls.Meta = merge_metas(*metas)
+
+        if name == "Resource":
+            return cls
+
         cls.Meta.name = ResourceManager.get_resource_name(cls)
         cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
-        cls.Meta.fieldnames_include = getattr(
-            cls.Meta, 'fieldnames_include', None)
-        cls.Meta.fieldnames_exclude = getattr(
-            cls.Meta, 'fieldnames_exclude', None)
-        cls.Meta.page_size = getattr(cls.Meta, 'page_size', None)
         return cls
 
 
-@six.add_metaclass(ResourceMeta)
+@six.add_metaclass(ResourceMetaClass)
 class Resource(Serializer):
 
     """ Base JSON:API resource class."""
@@ -93,7 +113,9 @@ class Resource(Serializer):
     )
 
     class Meta:
-        name = ""
+        fieldnames_include = None
+        fieldnames_exclude = None
+        page_size = None
 
     @classmethod
     def _get_fields_own(cls, model):
