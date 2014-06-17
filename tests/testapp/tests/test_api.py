@@ -6,7 +6,11 @@ from ..urls import api
 
 
 class TestApi(TestCase):
-    urls = 'testapp.urls'  # does not work without it. Dont know why?
+    # NOTE: if use django-admin command --top-level-directory, need to specify
+    # urls = 'testapp.url', otherwise api is created two times (different
+    # obbjects), tests are failed. After specification TEST_DISCOVER_TOP_LEVEL
+    # in settings, this line is not required.
+    # urls = 'testapp.urls'
 
     def setUp(self):
         self.api = API()
