@@ -10,6 +10,7 @@ class TestApi(TestCase):
     # urls = 'testapp.url', otherwise api is created two times (different
     # obbjects), tests are failed. After specification TEST_DISCOVER_TOP_LEVEL
     # in settings, this line is not required.
+    # urls = 'testapp.urls'
 
     def setUp(self):
         self.api = API()

@@ -6,7 +6,7 @@ from jsonapi.serializers import Serializer
 
 FIELDS = (
     models.BigIntegerField,
-    models.BinaryField,
+    #models.BinaryField,  not supported in Django 1.4
     models.BooleanField,
     models.CharField,
     models.CommaSeparatedIntegerField,

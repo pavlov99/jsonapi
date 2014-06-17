@@ -30,8 +30,9 @@ class ResourceManager(object):
         if name is not None:
             return name
         else:
+            # NOTE: _meta.model_name is not supported py Djanog 1.5
             return ResourceManager.get_concrete_model(
-                resource.Meta)._meta.model_name
+                resource.Meta)._meta.module_name
 
     @staticmethod
     def get_concrete_model(meta):
