@@ -1,4 +1,5 @@
 import os.path
+import django
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 STATIC_URL = '/static/'
@@ -28,3 +29,9 @@ DATABASES = {
 ROOT_URLCONF = 'tests.testapp.urls'
 DEBUG = True
 TEMPLATE_DEBUG = True
+
+if django.VERSION[:2] < (1, 6):
+    TEST_RUNNER = 'discover_runner.DiscoverRunner'
+
+TEST_DISCOVER_TOP_LEVEL = os.path.dirname(
+    os.path.dirname(os.path.dirname(__file__)))
