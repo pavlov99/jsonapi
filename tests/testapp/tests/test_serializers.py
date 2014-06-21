@@ -1,79 +1,70 @@
-from django.db import models
 from django.test import TestCase
 import datetime
 import decimal
 import json
+from mixer.backend.django import mixer
 
 from jsonapi.serializers import Serializer, DatetimeDecimalEncoder
 
-
-FIELDS = (
-    models.BigIntegerField,
-    models.BinaryField,
-    models.BooleanField,
-    models.CharField,
-    models.CommaSeparatedIntegerField,
-    models.DateField,
-    models.DateTimeField,
-    models.DecimalField,
-    models.EmailField,
-    models.FileField,
-    models.FilePathField,
-    models.FloatField,
-    models.ImageField,
-    models.IntegerField,
-    models.IPAddressField,
-    models.GenericIPAddressField,
-    models.NullBooleanField,
-    models.PositiveIntegerField,
-    models.PositiveSmallIntegerField,
-    models.SlugField,
-    models.SmallIntegerField,
-    models.TextField,
-    models.TimeField,
-    models.URLField,
-)
+from ..models import TestSerializerAllFields
 
 
 class TestSerializers(TestCase):
     def setUp(self):
-        class A(models.Model):
-            a = models.CharField(max_length=100)
+        Serializer.Meta.api = type(
+            'Api', (object,), {"base_url": "http://testserver"})
+        self.obj = mixer.blend(TestSerializerAllFields)
 
-        class B(A):
-            b = models.IntegerField()
+    def test_django_fields_serialization(self):
+        fields = {
+            f.name: {"name": f.name}
+            for f in self.obj._meta.fields if f.serialize
+        }
+        obj = Serializer.dump_document(self.obj, fields=fields)
 
-        class C(models.Model):
-            bs = models.ManyToManyField(B)
-
-        class D(models.Model):
-            c = models.ForeignKey(C)
-
-        self.A = A
-        self.B = B
-        self.C = C
-        self.D = D
-
-    def tearDown(self):
-        # Delete models from django cache
-        del models.loading.cache.app_models['tests']
+        self.assertEqual(obj['big_integer'], self.obj.big_integer)
+        self.assertEqual(obj['boolean'], self.obj.boolean)
+        self.assertEqual(obj['char'], self.obj.char)
+        self.assertEqual(obj['comma_separated_integer'], [
+            x for x in self.obj.comma_separated_integer
+        ])
+        self.assertEqual(obj['date'], self.obj.date)
+        self.assertEqual(obj['datetime'], self.obj.datetime)
+        self.assertEqual(obj['decimal'], self.obj.decimal)
+        self.assertEqual(obj['email'], self.obj.email)
+        self.assertEqual(
+            obj['authorfile'],
+            "http://testserver{}".format(self.obj.authorfile.url))
+        self.assertEqual(obj['filepath'], self.obj.filepath)
+        self.assertEqual(obj['floatnum'], self.obj.floatnum)
+        self.assertEqual(obj['integer'], self.obj.integer)
+        self.assertEqual(obj['ip'], self.obj.ip)
+        self.assertEqual(obj['generic_ip'], self.obj.generic_ip)
+        self.assertEqual(obj['nullboolean'], self.obj.nullboolean)
+        self.assertEqual(obj['positive_integer'], self.obj.positive_integer)
+        self.assertEqual(
+            obj['positive_small_integer'], self.obj.positive_small_integer)
+        self.assertEqual(obj['slug'], self.obj.slug)
+        self.assertEqual(obj['small_integer'], self.obj.small_integer)
+        self.assertEqual(obj['text'], self.obj.text)
+        self.assertEqual(obj['time'], self.obj.time)
+        self.assertEqual(obj['url'], self.obj.url)
 
     def test_dump_document_field_redefinition(self):
-        obj = self.A(a="a")
         fields = {
             "id": {"name": "id"},
-            "a": {"name": "a"},
+            "char": {"name": "char"},
         }
-        obj_dump = Serializer.dump_document(obj, fields)
+        obj_dump = Serializer.dump_document(self.obj, fields)
         expected_dump = {
-            "id": obj.id,
-            "a": "a",
+            "id": self.obj.id,
+            "char": self.obj.char,
         }
         self.assertEqual(obj_dump, expected_dump)
 
-        Serializer.dump_document_a = staticmethod(lambda value: None)
-        obj_dump = Serializer.dump_document(obj, fields)
-        expected_dump["a"] = None
+        Serializer.dump_document_char = staticmethod(lambda value: None)
+        obj_dump = Serializer.dump_document(self.obj, fields)
+        expected_dump["char"] = None
         self.assertEqual(obj_dump, expected_dump)
 
 
