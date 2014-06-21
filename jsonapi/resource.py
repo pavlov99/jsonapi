@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 
 from .utils import classproperty, Choices
 from .serializers import Serializer
+from .deserializer import Deserializer
 
 __all__ = 'Resource',
 
@@ -92,17 +93,17 @@ class ResourceMetaClass(type):
         metas.append(cls.Meta)
         cls.Meta = merge_metas(*metas)
 
+        # TODO: check exact Resource class, not name
         if name == "Resource":
             return cls
 
         cls.Meta.name = ResourceManager.get_resource_name(cls)
-        cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
         return cls
 
 
 @six.add_metaclass(ResourceMetaClass)
-class Resource(Serializer):
+class Resource(Serializer, Deserializer):
 
     """ Base JSON:API resource class."""
 
@@ -116,6 +117,10 @@ class Resource(Serializer):
         fieldnames_include = None
         fieldnames_exclude = None
         page_size = None
+
+        @classproperty
+        def name_plural(cls):
+            return "{0}s".format(cls.name)
 
     @classmethod
     def _get_fields_own(cls, model):
