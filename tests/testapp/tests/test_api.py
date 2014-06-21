@@ -39,6 +39,16 @@ class TestApi(TestCase):
 
         self.assertEqual(self.api.resource_map['test'], TestResource)
 
+    def test_meta_params_add_during_registration(self):
+        @self.api.register(name='test', param='param')
+        class TestResource(Resource):
+            class Meta:
+                name = '_test'
+
+        self.assertEqual(self.api.resource_map['test'], TestResource)
+        self.assertEqual(TestResource.Meta.name, 'test')
+        self.assertEqual(TestResource.Meta.param, 'param')
+
     def test_recource_api_reference(self):
         class TestResource(Resource):
             class Meta:
@@ -62,6 +72,11 @@ class TestApi(TestCase):
             # The same resource name
             self.api.register(NewsOtherResource)
 
+        NewsOtherResource.Meta.name = "allowed"
+        with self.assertRaises(ValueError):
+            # The same resource name
+            self.api.register(NewsOtherResource, name='news')
+
     def test_resource_name_collapse_with_plural(self):
         class NewsResource(Resource):
             class Meta:
@@ -76,6 +91,11 @@ class TestApi(TestCase):
             # NewResource.name_plural = NewsResource.name
             self.api.register(NewResource)
 
+        NewResource.Meta.name = "allowed"
+        with self.assertRaises(ValueError):
+            # NewResource.name_plural = NewsResource.name
+            self.api.register(NewResource, name='new')
+
     def test_resource_name_collapse_with_singular(self):
         class NewsResource(Resource):
             class Meta:
@@ -89,6 +109,22 @@ class TestApi(TestCase):
         with self.assertRaises(ValueError):
             # NewsResource.name_plural = NewssResource.name
             self.api.register(NewssResource)
+
+        NewssResource.Meta.name = "allowed"
+        with self.assertRaises(ValueError):
+            # NewsResource.name_plural = NewssResource.name
+            self.api.register(NewssResource, name="newss")
+
+    def test_resource_name(self):
+        class AResource(Resource):
+            class Meta:
+                name = 'a'
+
+        self.api.register(AResource)
+        AResource.Meta.name = 'b'
+        self.assertEqual(AResource.Meta.name_plural, 'bs')
+        self.assertEqual(self.api.resource_map['b'], AResource)
+        self.assertNotIn('a', self.api.resource_map)
 
     def test_base_url(self):
         c = Client()

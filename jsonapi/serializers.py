@@ -96,7 +96,7 @@ class Serializer(object):
                     if isinstance(field, models.fields.files.FileField):
                         value = cls.Meta.api.base_url + value.url
                     elif isinstance(field, models.CommaSeparatedIntegerField):
-                        value = [int(x) for x in value[1:-1].split(",")]
+                        value = [v for v in value]
 
             document[name] = value
 
