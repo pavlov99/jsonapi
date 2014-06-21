@@ -332,3 +332,9 @@ class Resource(Serializer, Deserializer):
         if meta:
             response["meta"] = meta
         return response
+
+    @classmethod
+    def create(cls, data, **kwargs):
+        model = cls.Meta.model
+        obj = model(**data)
+        obj.save()

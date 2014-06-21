@@ -3,6 +3,7 @@ from jsonapi.api import API
 from jsonapi.resource import Resource
 
 from ..urls import api
+from ..models import Author
 
 
 class TestApi(TestCase):
@@ -135,3 +136,18 @@ class TestApi(TestCase):
         c = Client()
         c.get('/api', content_type='application/vnd.api+json')
         self.assertEqual(api.api_url, "http://testserver/api")
+
+
+class TestApiClient(TestCase):
+    def test_create_model(self):
+        self.assertEqual(Author.objects.count(), 0)
+        c = Client()
+        response = c.post(
+            '/api/author',
+            {"name": "author"},
+            content_type='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Author.objects.count(), 1)
+        author = Author.objects.get()
+        self.assertEqual(author.name, "author")

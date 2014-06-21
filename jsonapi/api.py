@@ -189,5 +189,11 @@ class API(object):
         if request.method == "GET":
             kwargs.update(request.GET.dict())
 
-        items = json.dumps(resource.get(**kwargs), cls=resource.Meta.encoder)
-        return HttpResponse(items, content_type="application/vnd.api+json")
+            items = json.dumps(
+                resource.get(**kwargs), cls=resource.Meta.encoder)
+            return HttpResponse(items, content_type="application/vnd.api+json")
+        elif request.method == "POST":
+            import ast
+            data = ast.literal_eval(request.body.decode('utf8'))
+            resource.create(data, **kwargs)
+            return HttpResponse()
