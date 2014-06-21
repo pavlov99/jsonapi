@@ -1,12 +1,15 @@
-from django.test import TestCase
 from django.db import models
+from django.test import TestCase
+import datetime
+import decimal
+import json
 
-from jsonapi.serializers import Serializer
+from jsonapi.serializers import Serializer, DatetimeDecimalEncoder
 
 
 FIELDS = (
     models.BigIntegerField,
-    #models.BinaryField,  not supported in Django 1.4
+    models.BinaryField,
     models.BooleanField,
     models.CharField,
     models.CommaSeparatedIntegerField,
@@ -72,3 +75,25 @@ class TestSerializers(TestCase):
         obj_dump = Serializer.dump_document(obj, fields)
         expected_dump["a"] = None
         self.assertEqual(obj_dump, expected_dump)
+
+
+class DatetimeDecimalEncoderTest(TestCase):
+    def test_datetime_serialization(self):
+        obj = datetime.datetime(1900, 12, 31, 23, 59, 0)
+        s = json.dumps(obj, cls=DatetimeDecimalEncoder)
+        self.assertEqual(s, '"1900-12-31T23:59:00"')
+
+    def test_date_serialization(self):
+        obj = datetime.date(1900, 12, 31)
+        s = json.dumps(obj, cls=DatetimeDecimalEncoder)
+        self.assertEqual(s, '"1900-12-31"')
+
+    def test_time_serialization(self):
+        obj = datetime.time(23, 59, 0, 1)
+        s = json.dumps(obj, cls=DatetimeDecimalEncoder)
+        self.assertEqual(s, '"23:59:00.000001"')
+
+    def test_decimal_serialization(self):
+        obj = decimal.Decimal('0.1')
+        s = json.dumps(obj, cls=DatetimeDecimalEncoder)
+        self.assertEqual(float(s), float(0.1))
