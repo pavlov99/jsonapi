@@ -4,18 +4,22 @@ Responsible for routing and resource registration.
 
 .. code-block:: python
 
+    # resources.py
     from jsonapi.api import API
-    from myapp.resources import PostResource, CommentResource
+    from jsonapi.resource import Resource
 
     api = API()
-    api.register(PostResource)
 
     @api.register
-    class ClientResource():
-        pass
+    class AuthorResource(Resource):
+        class Meta:
+            model = 'testapp.author'
 
-    then usage:
-        url(r'^api/', include(api.urls))
+    # urls.py
+    urlpatterns = patterns(
+        '',
+        url(r'^api', include(api.urls))
+    )
 
 """
 from django.http import HttpResponse
@@ -37,6 +41,8 @@ class API(object):
     @property
     def resource_map(self):
         """ Resource map of api.
+
+        .. versionadded:: 0.4.1
 
         :return: resource name to resource mapping.
         :rtype: dict
