@@ -1,5 +1,7 @@
 """ Deserializer definition."""
 from django.forms import ModelForm
+import ast
+
 from .utils import classproperty
 
 
@@ -21,11 +23,11 @@ class Deserializer(object):
     Meta = DeserializerMeta
 
     @classmethod
-    def load_document(cls, document):
+    def load_documents(cls, input):
         """ Given document get model.
 
-        :param dict document: Document
-        :return django.db.models.Model model: model instance
+        :param str input: documents
 
         """
-        pass
+        data = ast.literal_eval(input)
+        return data

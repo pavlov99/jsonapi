@@ -144,8 +144,13 @@ class TestApiClient(TestCase):
         c = Client()
         response = c.post(
             '/api/author',
-            {"name": "author"},
-            content_type='application/vnd.api+json'
+            {
+                "authors": [
+                    {"name": "author"},
+                ]
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Author.objects.count(), 1)

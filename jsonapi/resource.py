@@ -334,7 +334,11 @@ class Resource(Serializer, Deserializer):
         return response
 
     @classmethod
-    def create(cls, data, **kwargs):
+    def create(cls, documents, **kwargs):
+        data = cls.load_documents(documents)
         model = cls.Meta.model
-        obj = model(**data)
-        obj.save()
+        items = data[cls.Meta.name_plural]
+        # TODO: use bulk create
+        for item in items:
+            obj = model(**item)
+            obj.save()
