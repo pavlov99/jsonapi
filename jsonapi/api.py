@@ -2,6 +2,8 @@
 
 Responsible for routing and resource registration.
 
+.. code-block:: python
+
     from jsonapi.api import API
     from myapp.resources import PostResource, CommentResource
 
@@ -10,7 +12,7 @@ Responsible for routing and resource registration.
 
     @api.register
     class ClientResource():
-        ...
+        pass
 
     then usage:
         url(r'^api/', include(api.urls)),
@@ -45,7 +47,10 @@ class API(object):
     def register(self, resource=None):
         """ Register resource for currnet API.
 
-        :return jsonapi.resource.Resource: resource
+        .. versionadded:: 0.3.0
+
+        :return: resource
+        :rtype: jsonapi.resource.Resource
 
         """
         if resource is None:
@@ -101,6 +106,15 @@ class API(object):
         return urls
 
     def update_urls(self, request, resource_name=None, ids=None):
+        """ Update url configuration.
+
+        :param request:
+        :param resource_name:
+        :type resource_name: str or None
+        :param ids:
+        :rtype: None
+
+        """
         http_host = request.META.get('HTTP_HOST', None)
 
         if http_host is None:
