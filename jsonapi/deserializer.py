@@ -1,8 +1,19 @@
 """ Deserializer definition."""
+from django.forms import ModelForm
+from .utils import classproperty
 
 
 class DeserializerMeta(object):
-    pass
+
+    @classproperty
+    def form(cls):
+        if cls.model is not None:
+            class Form(ModelForm):
+                class Meta:
+                    model = cls.model
+            return Form()
+        else:
+            return None
 
 
 class Deserializer(object):

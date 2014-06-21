@@ -32,3 +32,9 @@ class CommentResource(Resource):
     class Meta:
         model = 'testapp.Comment'
         page_size = 3
+
+
+@api.register
+class AResource(Resource):
+    class Meta:
+        model = 'testapp.A'

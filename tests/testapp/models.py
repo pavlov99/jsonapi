@@ -63,3 +63,7 @@ class PostWithPicture(Post):
 class Comment(models.Model):
     post = models.ForeignKey(Post, related_name='comments')
     author = models.ForeignKey(Author)
+
+
+class A(models.Model):
+    title = models.CharField(max_length=100)
