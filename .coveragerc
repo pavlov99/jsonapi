@@ -1,6 +1,7 @@
 [report]
 omit=
     jsonapi/six.py
+    jsonapi/statuses.py
     jsonapi/tests/*
 source=jsonapi
 exclude_lines=
@@ -9,6 +10,7 @@ exclude_lines=
 [run]
 omit=
     jsonapi/six.py
+    jsonapi/statuses.py
     jsonapi/tests/*
 source=jsonapi
 exclude_lines=
