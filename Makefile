@@ -42,7 +42,6 @@ upload:
 # target: test - Runs tests
 test: clean
 	$(DJANGO_ADMIN) test --settings=$(SETTINGS_TEST) --pythonpath=$(CURDIR) tests
-	#$(DJANGO_ADMIN) test --settings=$(SETTINGS_TEST) --pythonpath=$(CURDIR) --top-level-directory=$(CURDIR)/tests tests
 
 $(ENV):
 	virtualenv --no-site-packages .env
