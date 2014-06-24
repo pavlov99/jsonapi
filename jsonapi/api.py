@@ -176,7 +176,11 @@ class API(object):
             "resources": [{
                 "id": index + 1,
                 "href": "{}/{}".format(self.api_url, resource_name),
-            } for index, resource_name in enumerate(sorted(self.resource_map))]
+            } for index, (resource_name, resource) in enumerate(
+                sorted(self.resource_map.items()))
+                if not resource.Meta.authenticators or
+                resource.authenticate(request) is not None
+            ]
         }
         response = json.dumps(resource_info)
         return HttpResponse(response, content_type="application/vnd.api+json")
@@ -197,6 +201,10 @@ class API(object):
         if request.method not in allowed_http_methods:
             return HttpResponseNotAllowed(
                 permitted_methods=allowed_http_methods)
+
+        user = resource.authenticate(request)
+        if resource.Meta.authenticators and user is None:
+            return HttpResponse("Not Authenticated", status=404)
 
         kwargs = {}
         if ids is not None:
