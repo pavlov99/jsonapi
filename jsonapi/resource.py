@@ -117,6 +117,7 @@ class Resource(Serializer, Deserializer):
         fieldnames_include = None
         fieldnames_exclude = None
         page_size = None
+        allowed_methods = 'get',
 
         @classproperty
         def name_plural(cls):
@@ -338,7 +339,7 @@ class Resource(Serializer, Deserializer):
         data = cls.load_documents(documents)
         model = cls.Meta.model
         items = data[cls.Meta.name_plural]
-        # TODO: use bulk create
-        for item in items:
-            obj = model(**item)
-            obj.save()
+
+        model.objects.bulk_create([
+            model(**item) for item in items
+        ])

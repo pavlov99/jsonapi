@@ -156,3 +156,23 @@ class TestApiClient(TestCase):
         self.assertEqual(Author.objects.count(), 1)
         author = Author.objects.get()
         self.assertEqual(author.name, "author")
+
+    def test_create_models(self):
+        self.assertEqual(Author.objects.count(), 0)
+        c = Client()
+        with self.assertNumQueries(1):
+            response = c.post(
+                '/api/author',
+                {
+                    "authors": [
+                        {"name": "author1"},
+                        {"name": "author2"},
+                    ]
+                },
+                content_type='application/vnd.api+json',
+                HTTP_ACCEPT='application/vnd.api+json'
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Author.objects.count(), 2)
+        authors_names = Author.objects.values_list('name', flat=True)
+        self.assertEqual(set(authors_names), {"author1", "author2"})
