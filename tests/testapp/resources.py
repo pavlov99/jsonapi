@@ -9,9 +9,6 @@ class AuthorResource(Resource):
     class Meta:
         model = 'testapp.Author'
         allowed_methods = 'get', 'create'
-        authenticators = [
-            Resource.AUTHENTICATORS.HTTP_BASIC,
-        ]
 
 
 @api.register
