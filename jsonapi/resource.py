@@ -8,6 +8,7 @@ from django.core.paginator import Paginator
 from .utils import classproperty, Choices
 from .serializers import Serializer
 from .deserializer import Deserializer
+from .auth import Authenticator
 
 __all__ = 'Resource',
 
@@ -103,7 +104,7 @@ class ResourceMetaClass(type):
 
 
 @six.add_metaclass(ResourceMetaClass)
-class Resource(Serializer, Deserializer):
+class Resource(Serializer, Deserializer, Authenticator):
 
     """ Base JSON:API resource class."""
 
