@@ -42,7 +42,7 @@ class Comment(models.Model):
 class TestSerializerAllFields(models.Model):
     big_integer = models.BigIntegerField()
     # binary = models.BinaryField()
-    boolean = models.BooleanField()
+    boolean = models.BooleanField(default=False)
     char = models.CharField(max_length=100)
     comma_separated_integer = models.CommaSeparatedIntegerField(max_length=5)
     date = models.DateField()

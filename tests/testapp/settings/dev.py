@@ -1,23 +1,17 @@
 from .test import *
 
 INSTALLED_APPS += (
-    # If you're using Django 1.7.x or later
-    # 'debug_toolbar.apps.DebugToolbarConfig',
-    # If you're using Django 1.6.x or earlier
-    'debug_toolbar',
     'django_extensions',
-
 )
+
+if django.VERSION[:2] < (1, 7):
+    INSTALLED_APPS += 'debug_toolbar',
+else:
+    INSTALLED_APPS += 'debug_toolbar.apps.DebugToolbarConfig'
+
 DATABASES['default']['NAME'] = 'db.sqlite3'
 STATIC_URL = '/static/'
-MIDDLEWARE_CLASSES = (
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
+MIDDLEWARE_CLASSES += (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     # Allow to use debug toolbar with json response
     'tests.testapp.middleware.NonHtmlDebugToolbarMiddleware',
