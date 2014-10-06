@@ -1,5 +1,4 @@
 Django==1.6.5
-drugs==0.2.0  # helpers. Before production, copy and paste code.
 
 # tests
 mixer==4.5.4
