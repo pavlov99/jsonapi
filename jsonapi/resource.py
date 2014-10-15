@@ -38,6 +38,27 @@ class ResourceManager(object):
                 ResourceManager.get_concrete_model(resource.Meta))
 
     @staticmethod
+    def get_concrete_model_by_name(model_name):
+        """ Get model by its name.
+
+        :param str model_name: name of model.
+        :return django.db.models.Model:
+
+        Example:
+            get_concrete_model_by_name('auth.User')
+            django.contrib.auth.models.User
+
+        """
+        if isinstance(model_name, six.string_types) and \
+                len(model_name.split('.')) == 2:
+            app_name, model_name = model_name.split('.')
+            model = models.get_model(app_name, model_name)
+        else:
+            raise ValueError("{0} is not a Django model".format(model_name))
+
+        return model
+
+    @staticmethod
     def get_concrete_model(meta):
         """ Get model defined in Meta.
 
@@ -52,13 +73,8 @@ class ResourceManager(object):
         if model is None:
             return None
 
-        if isinstance(model, six.string_types) and len(model.split('.')) == 2:
-            app_name, model_name = model.split('.')
-            model = models.get_model(app_name, model_name)
-        elif inspect.isclass(model) and issubclass(model, models.Model):
-            pass
-        else:
-            raise ValueError("{0} is not a Django model".format(model))
+        if not (inspect.isclass(model) and issubclass(model, models.Model)):
+            model = ResourceManager.get_concrete_model_by_name(model)
 
         if model._meta.abstract:
             raise ValueError(
