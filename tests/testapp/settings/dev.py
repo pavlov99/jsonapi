@@ -14,7 +14,7 @@ STATIC_URL = '/static/'
 MIDDLEWARE_CLASSES += (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     # Allow to use debug toolbar with json response
-    'tests.testapp.middleware.NonHtmlDebugToolbarMiddleware',
+    # 'tests.testapp.middleware.NonHtmlDebugToolbarMiddleware',
 )
 INTERNAL_IPS = [
     '127.0.0.1',
