@@ -10,6 +10,7 @@ class UserResource(Resource):
     class Meta:
         model = settings.AUTH_USER_MODEL
         authenticators = [Resource.AUTHENTICATORS.SESSION]
+        fieldnames_exclude = 'password',
 
 
 @api.register
