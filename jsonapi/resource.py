@@ -2,8 +2,9 @@
 from . import six
 import inspect
 import logging
-from django.db import models
+from django.conf import settings
 from django.core.paginator import Paginator
+from django.db import models
 
 from .utils import classproperty, Choices
 from .django_utils import get_model_name
@@ -102,7 +103,17 @@ def merge_metas(*metas):
 
 class ResourceMetaClass(type):
 
-    """ Metaclass for JSON:API resources."""
+    """ Metaclass for JSON:API resources.
+
+    .. versionadded:: 0.5.0
+
+    Meta.is_auth_user whether model is AUTH_USER or not
+    Meta.is_inherited whether model has parent or not.
+
+    NOTE: is_inherited is used for related fields queries. For fields it is only
+    parent model used (django.db.models.Model).
+
+    """
 
     def __new__(mcs, name, bases, attrs):
         cls = super(ResourceMetaClass, mcs).__new__(mcs, name, bases, attrs)
@@ -117,6 +128,11 @@ class ResourceMetaClass(type):
 
         cls.Meta.name = ResourceManager.get_resource_name(cls)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
+        cls.Meta.is_auth_user = cls.Meta.model is \
+            ResourceManager.get_concrete_model_by_name(settings.AUTH_USER_MODEL)
+        # TODO: Define inheritance correctly.
+        cls.Meta.is_inherited = cls.Meta.model.mro()[1] is not models.Model \
+            and not cls.Meta.is_auth_user
         return cls
 
 
@@ -306,7 +322,46 @@ class Resource(Serializer, Deserializer, Authenticator):
         }
 
     @classmethod
-    def get(cls, **kwargs):
+    def __generate_user_resource_paths(cls, paths):
+        if all(p[-1].Meta.is_auth_user for p in paths):
+            return paths
+
+        next_paths = []
+        for path in paths:
+            if path[-1].Meta.is_auth_user:
+                next_paths.append(path)
+            else:
+                for field_info in path[-1].fields.values():
+                    next_resource = field_info["related_resource"]
+                    if next_resource is not None and next_resource not in path \
+                            and not next_resource.Meta.is_inherited:
+                        next_paths.append(path + [next_resource])
+        return cls.__generate_user_resource_paths(next_paths)
+
+
+    @classproperty
+    def _auth_user_resource_paths(cls):
+        """ Return information about AUTH_USER relation.
+
+        :return list paths: List of paths to user resource.
+            Each path is a list of visited resources.
+
+        """
+        if cls.Meta.is_auth_user:
+            return []
+
+        paths = cls.__generate_user_resource_paths([[cls]])
+        # NOTE: current model is not included into query, so first element of
+        # path is not included.
+        result = [
+            "__".join([
+                get_model_name(resource.Meta.model) for resource in path[1:]
+            ]) for path in paths
+        ]
+        return result
+
+    @classmethod
+    def get(cls, request, **kwargs):
         """ Get resource http response.
 
         :return str: resource
@@ -316,6 +371,11 @@ class Resource(Serializer, Deserializer, Authenticator):
         filters = {}
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
+
+        if cls.Meta.authenticators:
+            user = resource.authenticate(request)
+            for path in cls._auth_user_resource_paths:
+                filters[path] = user
 
         queryset = model.objects.filter(**filters)
         objects = queryset
@@ -351,7 +411,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         return response
 
     @classmethod
-    def create(cls, documents, **kwargs):
+    def create(cls, request, documents, **kwargs):
         data = cls.load_documents(documents)
         model = cls.Meta.model
         items = data[cls.Meta.name_plural]
