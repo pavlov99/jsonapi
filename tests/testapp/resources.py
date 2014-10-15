@@ -8,6 +8,7 @@ api = API()
 class AuthorResource(Resource):
     class Meta:
         model = 'testapp.Author'
+        allowed_methods = 'get', 'create'
 
 
 @api.register

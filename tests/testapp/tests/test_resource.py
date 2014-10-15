@@ -6,6 +6,7 @@ from mixer.backend.django import mixer
 
 from jsonapi.resource import Resource
 from jsonapi.api import API
+from jsonapi.django_utils import clear_app_cache
 from tests.testapp.resources import AuthorResource
 
 
@@ -103,7 +104,7 @@ class TestResourceRelationship(TestCase):
         }
 
     def tearDown(self):
-        del models.loading.cache.app_models['tests']
+        clear_app_cache('testapp')
 
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):
@@ -397,7 +398,7 @@ class TestResource(TestCase):
 
     def test_resource_own_fields_serialization(self):
         c = Client()
-        author = mixer.blend('testapp.author')
+        mixer.blend('testapp.author')
         response = c.get(
             '/api/author',
             content_type='application/vnd.api+json'
@@ -405,34 +406,6 @@ class TestResource(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(len(data["authors"]), 1)
-        obj = data["authors"][0]
-
-        self.assertEqual(obj['big_integer'], author.big_integer)
-        self.assertEqual(obj['boolean'], author.boolean)
-        self.assertEqual(obj['char'], author.char)
-        self.assertEqual(obj['comma_separated_integer'], [
-            x for x in author.comma_separated_integer
-        ])
-        self.assertEqual(obj['date'], author.date.isoformat())
-        self.assertEqual(obj['datetime'], author.datetime.isoformat())
-        self.assertEqual(obj['email'], author.email)
-        self.assertEqual(
-            obj['authorfile'],
-            "http://testserver{}".format(author.authorfile.url))
-        self.assertEqual(obj['filepath'], author.filepath)
-        self.assertEqual(obj['floatnum'], author.floatnum)
-        self.assertEqual(obj['integer'], author.integer)
-        self.assertEqual(obj['ip'], author.ip)
-        self.assertEqual(obj['generic_ip'], author.generic_ip)
-        self.assertEqual(obj['nullboolean'], author.nullboolean)
-        self.assertEqual(obj['positive_integer'], author.positive_integer)
-        self.assertEqual(
-            obj['positive_small_integer'], author.positive_small_integer)
-        self.assertEqual(obj['slug'], author.slug)
-        self.assertEqual(obj['small_integer'], author.small_integer)
-        self.assertEqual(obj['text'], author.text)
-        self.assertEqual(obj['time'], author.time.isoformat())
-        self.assertEqual(obj['url'], author.url)
 
     def test_resource_get(self):
         post = mixer.blend('testapp.post')

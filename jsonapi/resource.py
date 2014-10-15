@@ -6,7 +6,10 @@ from django.db import models
 from django.core.paginator import Paginator
 
 from .utils import classproperty, Choices
+from .django_utils import get_model_name
 from .serializers import Serializer
+from .deserializer import Deserializer
+from .auth import Authenticator
 
 __all__ = 'Resource',
 
@@ -31,8 +34,8 @@ class ResourceManager(object):
             return name
         else:
             # NOTE: _meta.model_name is not supported py Djanog 1.5
-            return ResourceManager.get_concrete_model(
-                resource.Meta)._meta.module_name
+            return get_model_name(
+                ResourceManager.get_concrete_model(resource.Meta))
 
     @staticmethod
     def get_concrete_model(meta):
@@ -64,25 +67,45 @@ class ResourceManager(object):
         return model
 
 
-class ResourceMeta(type):
+def merge_metas(*metas):
+    """ Merge meta parameters.
+
+    next meta has priority over current, it will overwrite attributes.
+
+    :param class or None meta: class with properties.
+    :return class: merged meta.
+
+    """
+    metadict = {}
+    for meta in metas:
+        metadict.update(meta.__dict__)
+
+    metadict = {k: v for k, v in metadict.items() if not k.startswith('__')}
+    return type('Meta', (object, ), metadict)
+
+
+class ResourceMetaClass(type):
 
     """ Metaclass for JSON:API resources."""
 
     def __new__(mcs, name, bases, attrs):
-        cls = super(ResourceMeta, mcs).__new__(mcs, name, bases, attrs)
+        cls = super(ResourceMetaClass, mcs).__new__(mcs, name, bases, attrs)
+
+        metas = [getattr(base, 'Meta', None) for base in bases]
+        metas.append(cls.Meta)
+        cls.Meta = merge_metas(*metas)
+
+        # TODO: check exact Resource class, not name
+        if name == "Resource":
+            return cls
+
         cls.Meta.name = ResourceManager.get_resource_name(cls)
-        cls.Meta.name_plural = "{0}s".format(cls.Meta.name)
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
-        cls.Meta.fieldnames_include = getattr(
-            cls.Meta, 'fieldnames_include', None)
-        cls.Meta.fieldnames_exclude = getattr(
-            cls.Meta, 'fieldnames_exclude', None)
-        cls.Meta.page_size = getattr(cls.Meta, 'page_size', None)
         return cls
 
 
-@six.add_metaclass(ResourceMeta)
-class Resource(Serializer):
+@six.add_metaclass(ResourceMetaClass)
+class Resource(Serializer, Deserializer, Authenticator):
 
     """ Base JSON:API resource class."""
 
@@ -93,7 +116,14 @@ class Resource(Serializer):
     )
 
     class Meta:
-        name = ""
+        fieldnames_include = None
+        fieldnames_exclude = None
+        page_size = None
+        allowed_methods = 'get',
+
+        @classproperty
+        def name_plural(cls):
+            return "{0}s".format(cls.name)
 
     @classmethod
     def _get_fields_own(cls, model):
@@ -141,8 +171,7 @@ class Resource(Serializer):
                     fields[related_resource.Meta.name_plural] = {
                         "type": Resource.FIELD_TYPES.TO_MANY,
                         "name": field.rel.related_name or "{}_set".format(
-                            # get actual (parent) model
-                            field.model._meta.model_name
+                            get_model_name(field.model)
                         ),
                         "related_resource": related_resource,
                     }
@@ -178,8 +207,7 @@ class Resource(Serializer):
                     fields[related_resource.Meta.name_plural] = {
                         "type": Resource.FIELD_TYPES.TO_MANY,
                         "name": field.rel.related_name or "{}_set".format(
-                            # get actual (parent) model
-                            field.model._meta.model_name
+                            get_model_name(field.model)
                         ),
                         "related_resource": related_resource,
                     }
@@ -295,7 +323,7 @@ class Resource(Serializer):
                 m,
                 fields=cls.fields_own,
                 fields_to_one=cls.fields_to_one,
-                #fields_to_many=cls.fields_to_many
+                # fields_to_many=cls.fields_to_many
             )
             for m in objects
         ]
@@ -305,3 +333,13 @@ class Resource(Serializer):
         if meta:
             response["meta"] = meta
         return response
+
+    @classmethod
+    def create(cls, documents, **kwargs):
+        data = cls.load_documents(documents)
+        model = cls.Meta.model
+        items = data[cls.Meta.name_plural]
+
+        model.objects.bulk_create([
+            model(**item) for item in items
+        ])

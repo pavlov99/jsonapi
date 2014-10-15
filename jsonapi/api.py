@@ -2,25 +2,31 @@
 
 Responsible for routing and resource registration.
 
+.. code-block:: python
+
+    # resources.py
     from jsonapi.api import API
-    from myapp.resources import PostResource, CommentResource
+    from jsonapi.resource import Resource
 
     api = API()
-    api.register(PostResource)
 
     @api.register
-    class ClientResource():
-        ...
+    class AuthorResource(Resource):
+        class Meta:
+            model = 'testapp.author'
 
-    then usage:
-        url(r'^api/', include(api.urls)),
+    # urls.py
+    urlpatterns = patterns(
+        '',
+        url(r'^api', include(api.urls))
+    )
 
 """
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
 
-from .serializers import DatetimeDecimalEncoder
+from .utils import Choices
 
 logger = logging.getLogger(__name__)
 
@@ -29,12 +35,29 @@ class API(object):
 
     """ API handler."""
 
-    def __init__(self):
-        self.resource_map = dict()
-        self._resource_relations = None
+    HTTP_METHODS = Choices(
+        ('GET', 'get'),
+        ('POST', 'create'),
+        ('PATCH', 'update'),
+        ('DELETE', 'delete'),
+    )
 
+    def __init__(self):
+        self._resources = []
         self.base_url = None  # base server url
         self.api_url = None  # api root url
+
+    @property
+    def resource_map(self):
+        """ Resource map of api.
+
+        .. versionadded:: 0.4.1
+
+        :return: resource name to resource mapping.
+        :rtype: dict
+
+        """
+        return {r.Meta.name: r for r in self._resources}
 
     @property
     def model_resource_map(self):
@@ -44,16 +67,25 @@ class API(object):
             if hasattr(resource.Meta, 'model')
         }
 
-    def register(self, resource=None):
+    def register(self, resource=None, **kwargs):
         """ Register resource for currnet API.
 
-        :return jsonapi.resource.Resource: resource
+        :param resource: Resource to be registered
+        :type resource: jsonapi.resource.Resource or None
+        :return: resource
+        :rtype: jsonapi.resource.Resource
+
+        .. versionadded:: 0.4.1
+        :param kwargs: Extra meta parameters
 
         """
         if resource is None:
             def wrapper(resource):
-                return self.register(resource)
+                return self.register(resource, **kwargs)
             return wrapper
+
+        for key, value in kwargs.items():
+            setattr(resource.Meta, key, value)
 
         if resource.Meta.name in self.resource_map:
             raise ValueError('Resource {} already registered'.format(
@@ -73,8 +105,8 @@ class API(object):
                 format(resource.Meta.name)
             )
 
-        self.resource_map[resource.Meta.name] = resource
         resource.Meta.api = self
+        self._resources.append(resource)
         return resource
 
     @property
@@ -103,6 +135,15 @@ class API(object):
         return urls
 
     def update_urls(self, request, resource_name=None, ids=None):
+        """ Update url configuration.
+
+        :param request:
+        :param resource_name:
+        :type resource_name: str or None
+        :param ids:
+        :rtype: None
+
+        """
         http_host = request.META.get('HTTP_HOST', None)
 
         if http_host is None:
@@ -135,7 +176,11 @@ class API(object):
             "resources": [{
                 "id": index + 1,
                 "href": "{}/{}".format(self.api_url, resource_name),
-            } for index, resource_name in enumerate(sorted(self.resource_map))]
+            } for index, (resource_name, resource) in enumerate(
+                sorted(self.resource_map.items()))
+                if not resource.Meta.authenticators or
+                resource.authenticate(request) is not None
+            ]
         }
         response = json.dumps(resource_info)
         return HttpResponse(response, content_type="application/vnd.api+json")
@@ -147,15 +192,31 @@ class API(object):
 
         """
         self.update_urls(request, resource_name=resource_name, ids=ids)
+        resource = self.resource_map[resource_name]
+
+        allowed_http_methods = {
+            getattr(API.HTTP_METHODS, x) for x
+            in resource.Meta.allowed_methods
+        }
+        if request.method not in allowed_http_methods:
+            return HttpResponseNotAllowed(
+                permitted_methods=allowed_http_methods)
+
+        user = resource.authenticate(request)
+        if resource.Meta.authenticators and user is None:
+            return HttpResponse("Not Authenticated", status=404)
 
         kwargs = {}
         if ids is not None:
             kwargs['ids'] = ids.split(",")
 
-        resource = self.resource_map[resource_name]
-
         if request.method == "GET":
             kwargs.update(request.GET.dict())
 
-        items = json.dumps(resource.get(**kwargs), cls=DatetimeDecimalEncoder)
-        return HttpResponse(items, content_type="application/vnd.api+json")
+            items = json.dumps(
+                resource.get(**kwargs), cls=resource.Meta.encoder)
+            return HttpResponse(items, content_type="application/vnd.api+json")
+        elif request.method == "POST":
+            data = request.body.decode('utf8')
+            resource.create(data, **kwargs)
+            return HttpResponse()

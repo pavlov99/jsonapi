@@ -5,6 +5,34 @@ import decimal
 from django.db import models
 
 
+class DatetimeDecimalEncoder(json.JSONEncoder):
+
+    """ Encoder for datetime and decimal serialization.
+
+    Usage: json.dumps(object, cls=DatetimeDecimalEncoder)
+    NOTE: _iterencode does not work
+
+    """
+
+    def default(self, o):
+        """ Encode JSON.
+
+        :return str: A JSON encoded string
+
+        """
+        if isinstance(o, (datetime.datetime, datetime.date, datetime.time)):
+            return o.isoformat()
+
+        if isinstance(o, decimal.Decimal):
+            return float(o)
+
+        return json.JSONEncoder.default(self, o)
+
+
+class SerializerMeta:
+    encoder = DatetimeDecimalEncoder
+
+
 class Serializer(object):
 
     """ Serializer class.
@@ -29,6 +57,8 @@ class Serializer(object):
         3) Try convert to string
 
     """
+
+    Meta = SerializerMeta
 
     @classmethod
     def dump_document(cls, model_instance, fields=None, fields_to_one=None,
@@ -66,7 +96,7 @@ class Serializer(object):
                     if isinstance(field, models.fields.files.FileField):
                         value = cls.Meta.api.base_url + value.url
                     elif isinstance(field, models.CommaSeparatedIntegerField):
-                        value = [int(x) for x in value[1:-1].split(",")]
+                        value = [v for v in value]
 
             document[name] = value
 
@@ -95,27 +125,3 @@ class Serializer(object):
         """
 
         pass
-
-
-class DatetimeDecimalEncoder(json.JSONEncoder):
-
-    """ Encoder for datetime and decimal serialization.
-
-    Usage: json.dumps(object, cls=DatetimeDecimalEncoder)
-    NOTE: _iterencode does not work
-
-    """
-
-    def default(self, o):
-        """ Encode JSON.
-
-        :return str: A JSON encoded string
-
-        """
-        if isinstance(o, (datetime.datetime, datetime.date, datetime.time)):
-            return o.isoformat()
-
-        if isinstance(o, decimal.Decimal):
-            return float(o)
-
-        return json.JSONEncoder.default(self, o)
