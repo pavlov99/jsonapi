@@ -6,6 +6,7 @@ from django.db import models
 from django.core.paginator import Paginator
 
 from .utils import classproperty, Choices
+from .django_utils import get_model_name
 from .serializers import Serializer
 from .deserializer import Deserializer
 from .auth import Authenticator
@@ -33,8 +34,8 @@ class ResourceManager(object):
             return name
         else:
             # NOTE: _meta.model_name is not supported py Djanog 1.5
-            return ResourceManager.get_concrete_model(
-                resource.Meta)._meta.module_name
+            return get_model_name(
+                ResourceManager.get_concrete_model(resource.Meta))
 
     @staticmethod
     def get_concrete_model(meta):
@@ -170,8 +171,7 @@ class Resource(Serializer, Deserializer, Authenticator):
                     fields[related_resource.Meta.name_plural] = {
                         "type": Resource.FIELD_TYPES.TO_MANY,
                         "name": field.rel.related_name or "{}_set".format(
-                            # get actual (parent) model
-                            field.model._meta.model_name
+                            get_model_name(field.model)
                         ),
                         "related_resource": related_resource,
                     }
@@ -207,8 +207,7 @@ class Resource(Serializer, Deserializer, Authenticator):
                     fields[related_resource.Meta.name_plural] = {
                         "type": Resource.FIELD_TYPES.TO_MANY,
                         "name": field.rel.related_name or "{}_set".format(
-                            # get actual (parent) model
-                            field.model._meta.model_name
+                            get_model_name(field.model)
                         ),
                         "related_resource": related_resource,
                     }
@@ -324,7 +323,7 @@ class Resource(Serializer, Deserializer, Authenticator):
                 m,
                 fields=cls.fields_own,
                 fields_to_one=cls.fields_to_one,
-                #fields_to_many=cls.fields_to_many
+                # fields_to_many=cls.fields_to_many
             )
             for m in objects
         ]
