@@ -2,9 +2,9 @@
 
 Model relationship:
 
-      Author
-       ||
-       ||
+      Author  auth.User
+       ||        |
+       ||        @
        ||-----@ Post ----> PostWithPicture
        |  ______/
        |  |

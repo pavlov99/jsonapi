@@ -1,7 +1,14 @@
+from django.conf import settings
 from jsonapi.resource import Resource
 from jsonapi.api import API
 
 api = API()
+
+
+@api.register
+class UserResource(Resource):
+    class Meta:
+        model = settings.AUTH_USER_MODEL
 
 
 @api.register
