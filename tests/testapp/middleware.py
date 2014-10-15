@@ -19,7 +19,6 @@ class NonHtmlDebugToolbarMiddleware(object):
         if settings.DEBUG:
             if response['Content-Type'] != 'text/html':
                 content = response.content.decode('utf8')
-                print(response['Content-Type'], content)
                 try:
                     json_ = json.loads(content)
                     content = json.dumps(json_, sort_keys=True, indent=2)
