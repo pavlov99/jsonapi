@@ -6,6 +6,7 @@ from mixer.backend.django import mixer
 
 from jsonapi.resource import Resource
 from jsonapi.api import API
+from jsonapi.django_utils import clear_app_cache
 from tests.testapp.resources import AuthorResource
 
 
@@ -103,7 +104,7 @@ class TestResourceRelationship(TestCase):
         }
 
     def tearDown(self):
-        del models.loading.cache.app_models['tests']
+        clear_app_cache('testapp')
 
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):

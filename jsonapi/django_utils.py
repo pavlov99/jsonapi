@@ -16,3 +16,16 @@ def get_model_name(model):
     """
     opts = model._meta
     return opts.module_name
+
+def clear_app_cache(app_name):
+    """ Clear django cache for models.
+
+    :param str ap_name: name of application to clear model cache
+
+    """
+    loading_cache = django.db.models.loading.cache
+
+    if django.VERSION[:2] < (1, 7):
+        loading_cache.app_models[app_name].clear()
+    else:
+        loading_cache.all_models[app_name].clear()
