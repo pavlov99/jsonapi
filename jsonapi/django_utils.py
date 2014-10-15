@@ -11,11 +11,16 @@ def get_model_name(model):
 
     Django 1.5 uses module_name, does not support model_name
     Django 1.6 uses module_name and model_name
-    DJango 1.7 uses model_name
+    DJango 1.7 uses model_name, module_name raises RemovedInDjango18Warning
 
     """
     opts = model._meta
-    return opts.module_name
+    if django.VERSION[:2] < (1, 7):
+        model_name = opts.module_name
+    else:
+        model_name = opts.model_name
+
+    return model_name
 
 def clear_app_cache(app_name):
     """ Clear django cache for models.
