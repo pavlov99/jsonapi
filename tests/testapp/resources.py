@@ -9,6 +9,7 @@ api = API()
 class UserResource(Resource):
     class Meta:
         model = settings.AUTH_USER_MODEL
+        authenticators = [Resource.AUTHENTICATORS.SESSION]
 
 
 @api.register
