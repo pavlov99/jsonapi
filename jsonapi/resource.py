@@ -343,12 +343,13 @@ class Resource(Serializer, Deserializer, Authenticator):
     def _auth_user_resource_paths(cls):
         """ Return information about AUTH_USER relation.
 
+        :return Nont: for AUTH_USER resource
         :return list paths: List of paths to user resource.
             Each path is a list of visited resources.
 
         """
         if cls.Meta.is_auth_user:
-            return []
+            return None
 
         paths = cls.__generate_user_resource_paths([[cls]])
         # NOTE: current model is not included into query, so first element of
@@ -373,9 +374,13 @@ class Resource(Serializer, Deserializer, Authenticator):
             filters["id__in"] = kwargs.get('ids')
 
         if cls.Meta.authenticators:
-            user = resource.authenticate(request)
-            for path in cls._auth_user_resource_paths:
-                filters[path] = user
+            user = cls.authenticate(request)
+            auth_user_resource_paths = cls._auth_user_resource_paths
+            if auth_user_resource_paths is None:
+                filters["id"] = user.id
+            else:
+                for path in auth_user_resource_paths:
+                    filters[path] = user
 
         queryset = model.objects.filter(**filters)
         objects = queryset
