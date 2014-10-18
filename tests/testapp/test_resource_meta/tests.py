@@ -1,25 +1,21 @@
-""" Test resource creation and metaclass functionality.
-
-In case of tests failure, these tests should be fixed first.
-
-"""
-from django.db import models
+from django.contrib.auth.models import User
 from django.test import TestCase
-from jsonapi.django_utils import clear_app_cache
 from jsonapi.resource import Resource
-from django.contrib.auth.models import User, AbstractBaseUser
 from mock import patch
+
+from .models import CustomUser, A, AChild
 
 
 class TestResourceMeta(TestCase):
     def setUp(self):
-        class A(models.Model):
-            field = models.IntegerField()
-
         class AResource(Resource):
             class Meta:
                 model = A
                 name = "a_name"
+
+        class AChildResource(Resource):
+            class Meta:
+                model = AChild
 
         class BResource(Resource):
             class Meta:
@@ -29,14 +25,10 @@ class TestResourceMeta(TestCase):
             class Meta:
                 model = User
 
-        self.A = A
         self.AResource = AResource
+        self.AChildResource = AChildResource
         self.BResource = BResource
         self.UserResource = UserResource
-
-
-    def tearDown(self):
-        clear_app_cache('testapp')
 
     def test_resource_name(self):
         self.assertEqual(Resource.Meta.name, None)
@@ -50,7 +42,7 @@ class TestResourceMeta(TestCase):
         self.assertFalse(self.BResource.Meta.is_model)
 
     def test_resource_model(self):
-        self.assertEqual(self.AResource.Meta.model, self.A)
+        self.assertEqual(self.AResource.Meta.model, A)
         self.assertFalse(hasattr(self.BResource.Meta, "model"))
 
     def test_is_auth_user(self):
@@ -58,9 +50,6 @@ class TestResourceMeta(TestCase):
         self.assertTrue(self.UserResource.Meta.is_auth_user)
 
     def test_is_auth_user_inheritance(self):
-        class CustomUser(AbstractBaseUser):
-            pass
-
         class CustomUserResource(Resource):
             class Meta:
                 model = CustomUser
@@ -74,13 +63,6 @@ class TestResourceMeta(TestCase):
             self.assertTrue(CustomUserResource.Meta.is_auth_user)
 
     def test_is_inherited(self):
-        class AChild(self.A):
-            pass
-
-        class AChildResource(Resource):
-            class Meta:
-                model = AChild
-
         self.assertFalse(self.AResource.Meta.is_inherited)
         self.assertFalse(self.UserResource.Meta.is_inherited)
-        self.assertTrue(AChildResource.Meta.is_inherited)
+        self.assertTrue(self.AChildResource.Meta.is_inherited)
