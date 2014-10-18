@@ -401,7 +401,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         return result
 
     @classmethod
-    def get(cls, request, **kwargs):
+    def get(cls, request=None, **kwargs):
         """ Get resource http response.
 
         :return str: resource
@@ -455,7 +455,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         return response
 
     @classmethod
-    def create(cls, request, documents, **kwargs):
+    def create(cls, documents, request=None, **kwargs):
         data = cls.load_documents(documents)
         model = cls.Meta.model
         items = data[cls.Meta.name_plural]
