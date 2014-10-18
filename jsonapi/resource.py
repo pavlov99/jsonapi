@@ -141,13 +141,15 @@ class ResourceMetaClass(type):
 
     def __new__(mcs, name, bases, attrs):
         cls = super(ResourceMetaClass, mcs).__new__(mcs, name, bases, attrs)
-
-        if name == "Resource":
-            return cls
-
         metas = [getattr(base, 'Meta', None) for base in bases]
         metas.append(cls.Meta)
         cls.Meta = merge_metas(*metas)
+
+        # NOTE: Resource.Meta should be defined before metaclass returns
+        # Resource.
+        if name == "Resource":
+            return cls
+
         cls.Meta.is_model = bool(getattr(cls.Meta, 'model', False))
         cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
 
