@@ -157,10 +157,6 @@ class ResourceMetaClass(type):
                 raise ValueError(
                     "Abstract model {} could not be resource".format(model))
 
-            # TODO: Define inheritance correctly.
-            cls.Meta.is_inherited = model.mro()[1] is not models.Model \
-                and not cls.Meta.is_auth_user
-
         return cls
 
 
@@ -191,6 +187,11 @@ class Resource(Serializer, Deserializer, Authenticator):
             auth_user_model = ResourceManager.get_concrete_model_by_name(
                 settings.AUTH_USER_MODEL)
             return cls.model is auth_user_model
+
+        @classproperty
+        def is_inherited(cls):
+            is_base = (cls.model.mro()[1] is models.Model) or cls.is_auth_user
+            return not is_base
 
     @classmethod
     def _get_fields_own(cls, model):

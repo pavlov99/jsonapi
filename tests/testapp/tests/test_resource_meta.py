@@ -25,9 +25,14 @@ class TestResourceMeta(TestCase):
             class Meta:
                 name = "b"
 
+        class UserResource(Resource):
+            class Meta:
+                model = User
+
         self.A = A
         self.AResource = AResource
         self.BResource = BResource
+        self.UserResource = UserResource
 
 
     def tearDown(self):
@@ -49,29 +54,33 @@ class TestResourceMeta(TestCase):
         self.assertFalse(hasattr(self.BResource.Meta, "model"))
 
     def test_is_auth_user(self):
-        class UserResource(Resource):
-            class Meta:
-                model = User
-
         self.assertFalse(self.AResource.Meta.is_auth_user)
-        self.assertTrue(UserResource.Meta.is_auth_user)
+        self.assertTrue(self.UserResource.Meta.is_auth_user)
 
     def test_is_auth_user_inheritance(self):
         class CustomUser(AbstractBaseUser):
             pass
 
-        class UserResource(Resource):
-            class Meta:
-                model = User
-
         class CustomUserResource(Resource):
             class Meta:
                 model = CustomUser
 
-        self.assertTrue(UserResource.Meta.is_auth_user)
+        self.assertTrue(self.UserResource.Meta.is_auth_user)
         self.assertFalse(CustomUserResource.Meta.is_auth_user)
 
         with patch('jsonapi.resource.ResourceManager') as mock_manager:
             mock_manager.get_concrete_model_by_name.return_value = CustomUser
-            self.assertFalse(UserResource.Meta.is_auth_user)
+            self.assertFalse(self.UserResource.Meta.is_auth_user)
             self.assertTrue(CustomUserResource.Meta.is_auth_user)
+
+    def test_is_inherited(self):
+        class AChild(self.A):
+            pass
+
+        class AChildResource(Resource):
+            class Meta:
+                model = AChild
+
+        self.assertFalse(self.AResource.Meta.is_inherited)
+        self.assertFalse(self.UserResource.Meta.is_inherited)
+        self.assertTrue(AChildResource.Meta.is_inherited)
