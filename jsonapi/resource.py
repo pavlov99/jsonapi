@@ -22,22 +22,6 @@ class ResourceManager(object):
     """ Resource utils functionality."""
 
     @staticmethod
-    def get_resource_name(resource):
-        """ Define resource name based on Meta information.
-
-        :param Resource.Meta meta: resource metainformation
-        :return: name of resource
-        :rtype: str
-
-        """
-        name = getattr(resource.Meta, 'name', None)
-        if name is not None:
-            return name
-        else:
-            return get_model_name(
-                ResourceManager.get_concrete_model(resource.Meta))
-
-    @staticmethod
     def get_concrete_model_by_name(model_name):
         """ Get model by its name.
 
@@ -59,28 +43,36 @@ class ResourceManager(object):
         return model
 
     @staticmethod
-    def get_concrete_model(meta):
+    def get_concrete_model(model):
         """ Get model defined in Meta.
 
-        :param Resource.Meta meta: resource metainformation
+        :param str or django.db.models.Model model:
         :return: model or None
         :rtype django.db.models.Model or None:
-        :raise ValueError: model is not found
+        :raise ValueError: model is not found or abstract
 
         """
-        model = getattr(meta, 'model', None)
-
-        if model is None:
-            return None
-
-        if not (inspect.isclass(model) and issubclass(model, models.Model)):
+        if not(inspect.isclass(model) and issubclass(model, models.Model)):
             model = ResourceManager.get_concrete_model_by_name(model)
 
-        if model._meta.abstract:
-            raise ValueError(
-                "Abstract model {} could not be resource".format(model))
-
         return model
+
+    @staticmethod
+    def get_resource_name(meta):
+        """ Define resource name based on Meta information.
+
+        :param Resource.Meta meta: resource meta information
+        :return: name of resource
+        :rtype: str
+        :raises ValueError:
+
+        """
+        if meta.name is None and not meta.is_model:
+            msg = "Either name or model for resource.Meta shoud be provided"
+            raise ValueError(msg)
+
+        name = meta.name or get_model_name(ResourceManager.get_concrete_model(meta))
+        return name
 
 
 def merge_metas(*metas):
@@ -109,6 +101,8 @@ class ResourceMetaClass(type):
     Meta.is_auth_user whether model is AUTH_USER or not
     Meta.is_inherited whether model has parent or not.
 
+    Meta.is_model: whether resource based on model or not
+
     NOTE: is_inherited is used for related fields queries. For fields it is only
     parent model used (django.db.models.Model).
 
@@ -117,23 +111,25 @@ class ResourceMetaClass(type):
     def __new__(mcs, name, bases, attrs):
         cls = super(ResourceMetaClass, mcs).__new__(mcs, name, bases, attrs)
 
-        metas = [getattr(base, 'Meta', None) for base in bases]
-        metas.append(cls.Meta)
-        cls.Meta = merge_metas(*metas)
-
-        # TODO: check exact Resource class, not name
         if name == "Resource":
             return cls
 
-        cls.Meta.name = ResourceManager.get_resource_name(cls)
-        cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
-        cls.Meta.is_auth_user = cls.Meta.model is \
-            ResourceManager.get_concrete_model_by_name(settings.AUTH_USER_MODEL)
+        metas = [getattr(base, 'Meta', None) for base in bases]
+        metas.append(cls.Meta)
+        cls.Meta = merge_metas(*metas)
+        cls.Meta.is_model = bool(getattr(cls.Meta, 'model', False))
 
-        print(cls.Meta.name, cls.Meta.model, cls.Meta.is_auth_user)
-        # TODO: Define inheritance correctly.
-        cls.Meta.is_inherited = cls.Meta.model.mro()[1] is not models.Model \
-            and not cls.Meta.is_auth_user
+        if cls.Meta.is_model:
+            model = ResourceManager.get_concrete_model(cls.Meta.model)
+            cls.Meta.model = model
+            if model._meta.abstract:
+                raise ValueError(
+                    "Abstract model {} could not be resource".format(model))
+
+            # TODO: Define inheritance correctly.
+            cls.Meta.is_inherited = model.mro()[1] is not models.Model \
+                and not cls.Meta.is_auth_user
+
         return cls
 
 
@@ -149,6 +145,7 @@ class Resource(Serializer, Deserializer, Authenticator):
     )
 
     class Meta:
+        name = None
         fieldnames_include = None
         fieldnames_exclude = None
         page_size = None
@@ -157,6 +154,12 @@ class Resource(Serializer, Deserializer, Authenticator):
         @classproperty
         def name_plural(cls):
             return "{0}s".format(cls.name)
+
+        @classproperty
+        def is_auth_user(cls):
+            auth_user_model = ResourceManager.get_concrete_model_by_name(
+                settings.AUTH_USER_MODEL)
+            return cls.model is auth_user_model
 
     @classmethod
     def _get_fields_own(cls, model):
