@@ -102,7 +102,7 @@ class ResourceManager(object):
             msg = "Either name or model for resource.Meta shoud be provided"
             raise ValueError(msg)
 
-        name = meta.name or get_model_name(ResourceManager.get_concrete_model(meta))
+        name = meta.name or get_model_name(ResourceManager.get_concrete_model(meta.model))
         return name
 
 
@@ -149,6 +149,7 @@ class ResourceMetaClass(type):
         metas.append(cls.Meta)
         cls.Meta = merge_metas(*metas)
         cls.Meta.is_model = bool(getattr(cls.Meta, 'model', False))
+        cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
 
         if cls.Meta.is_model:
             model = ResourceManager.get_concrete_model(cls.Meta.model)

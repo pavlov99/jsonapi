@@ -11,11 +11,11 @@ class TestResourceMeta(TestCase):
         class AResource(Resource):
             class Meta:
                 model = A
-                name = "a_name"
 
         class AChildResource(Resource):
             class Meta:
                 model = AChild
+                name = "ac"
 
         class BResource(Resource):
             class Meta:
@@ -32,10 +32,12 @@ class TestResourceMeta(TestCase):
 
     def test_resource_name(self):
         self.assertEqual(Resource.Meta.name, None)
-        self.assertEqual(self.AResource.Meta.name, 'a_name')
-        self.assertEqual(self.AResource.Meta.name_plural, 'a_names')
+        self.assertEqual(self.AResource.Meta.name, 'a')
+        self.assertEqual(self.AResource.Meta.name_plural, 'as')
         self.assertEqual(self.BResource.Meta.name, 'b')
         self.assertEqual(self.BResource.Meta.name_plural, 'bs')
+        self.assertEqual(self.AChildResource.Meta.name, 'ac')
+        self.assertEqual(self.AChildResource.Meta.name_plural, 'acs')
 
     def test_resource_is_model(self):
         self.assertTrue(self.AResource.Meta.is_model)
