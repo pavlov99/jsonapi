@@ -15,8 +15,8 @@
     :target: https://crate.io/packages/jsonapi
     :alt: Version
 
-.. image:: https://pypip.in/d/jsonapi/badge.png
-    :target: https://crate.io/packages/jsonapi
+.. image:: https://pypip.in/download/jsonapi/badge.svg
+    :target: https://pypi.python.org/pypi/jsonapi/
     :alt: Downloads
 
 .. image:: https://pypip.in/format/jsonapi/badge.png
@@ -27,6 +27,10 @@
 .. image:: https://pypip.in/license/jsonapi/badge.png
     :target: https://pypi.python.org/pypi/jsonapi/
     :alt: License
+
+.. image:: https://pypip.in/status/jsonapi/badge.svg
+    :target: https://pypi.python.org/pypi/jsonapi/
+    :alt: Development Status
 
 
 Documentation: http://jsonapi.readthedocs.org/
