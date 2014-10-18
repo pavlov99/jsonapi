@@ -34,7 +34,6 @@ class ResourceManager(object):
         if name is not None:
             return name
         else:
-            # NOTE: _meta.model_name is not supported py Djanog 1.5
             return get_model_name(
                 ResourceManager.get_concrete_model(resource.Meta))
 
@@ -130,6 +129,8 @@ class ResourceMetaClass(type):
         cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
         cls.Meta.is_auth_user = cls.Meta.model is \
             ResourceManager.get_concrete_model_by_name(settings.AUTH_USER_MODEL)
+
+        print(cls.Meta.name, cls.Meta.model, cls.Meta.is_auth_user)
         # TODO: Define inheritance correctly.
         cls.Meta.is_inherited = cls.Meta.model.mro()[1] is not models.Model \
             and not cls.Meta.is_auth_user

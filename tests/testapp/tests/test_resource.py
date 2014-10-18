@@ -351,14 +351,20 @@ class TestResourceRelationship(TestCase):
 
 
 class TestResource(TestCase):
+    def tearDown(self):
+        clear_app_cache('testapp')
+
     def test_resource_name(self):
         self.assertEqual(AuthorResource.Meta.name, 'author')
         self.assertEqual(AuthorResource.Meta.name_plural, 'authors')
 
     def test_resource_fields_shortcuts(self):
+        class A(models.Model):
+            field = models.IntegerField()
+
         class TestResource(Resource):
             class Meta:
-                name = 'test'
+                model = A
 
         TestResource.fields = {
             "own": {
