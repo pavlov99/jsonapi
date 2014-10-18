@@ -1,4 +1,35 @@
-""" Resource definition."""
+""" Resource definition.
+
+There are two tipes of resources:
+    * simple resources
+    * model resources
+
+Simple resources require name Meta property to be defined.
+Example:
+    class SimpleResource(Resource):
+        class Meta:
+            name = "simple_name"
+
+Django model resources require model to be defined
+Example:
+    class ModelResource(Resource):
+        class Meta:
+            model = "myapp.mymodel"
+
+There are several optional Meta parameters:
+    * fieldnames_include = None
+    * fieldnames_exclude = None
+    * page_size = None
+    * allowed_methods = ('get',)
+
+Properties:
+
+    * name_plural
+    * is_model
+    * is_inherited
+    * is_auth_user
+
+"""
 from . import six
 import inspect
 import logging
