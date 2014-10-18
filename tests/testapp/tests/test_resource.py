@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase
 import json
 
 from django.db import models
@@ -7,7 +7,6 @@ from mixer.backend.django import mixer
 from jsonapi.resource import Resource
 from jsonapi.api import API
 from jsonapi.django_utils import clear_app_cache
-from tests.testapp.resources import AuthorResource
 
 
 class TestResourceRelationship(TestCase):
@@ -355,6 +354,13 @@ class TestResource(TestCase):
         clear_app_cache('testapp')
 
     def test_resource_name(self):
+        class Author(models.Model):
+            field = models.IntegerField()
+
+        class AuthorResource(Resource):
+            class Meta:
+                model = Author
+
         self.assertEqual(AuthorResource.Meta.name, 'author')
         self.assertEqual(AuthorResource.Meta.name_plural, 'authors')
 
@@ -390,8 +396,7 @@ class TestResource(TestCase):
         })
 
     def test_resource_get_empty(self):
-        c = Client()
-        response = c.get(
+        response = self.client.get(
             '/api/author',
             content_type='application/vnd.api+json'
         )
@@ -403,9 +408,8 @@ class TestResource(TestCase):
         self.assertEqual(data, data_expected)
 
     def test_resource_own_fields_serialization(self):
-        c = Client()
         mixer.blend('testapp.author')
-        response = c.get(
+        response = self.client.get(
             '/api/author',
             content_type='application/vnd.api+json'
         )
@@ -415,8 +419,7 @@ class TestResource(TestCase):
 
     def test_resource_get(self):
         post = mixer.blend('testapp.post')
-        c = Client()
-        response = c.get(
+        response = self.client.get(
             '/api/post',
             content_type='application/vnd.api+json'
         )
