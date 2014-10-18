@@ -102,7 +102,7 @@ class ResourceManager(object):
             msg = "Either name or model for resource.Meta shoud be provided"
             raise ValueError(msg)
 
-        name = meta.name or get_model_name(ResourceManager.get_concrete_model(meta))
+        name = meta.name or get_model_name(ResourceManager.get_concrete_model(meta.model))
         return name
 
 
@@ -141,14 +141,17 @@ class ResourceMetaClass(type):
 
     def __new__(mcs, name, bases, attrs):
         cls = super(ResourceMetaClass, mcs).__new__(mcs, name, bases, attrs)
-
-        if name == "Resource":
-            return cls
-
         metas = [getattr(base, 'Meta', None) for base in bases]
         metas.append(cls.Meta)
         cls.Meta = merge_metas(*metas)
+
+        # NOTE: Resource.Meta should be defined before metaclass returns
+        # Resource.
+        if name == "Resource":
+            return cls
+
         cls.Meta.is_model = bool(getattr(cls.Meta, 'model', False))
+        cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
 
         if cls.Meta.is_model:
             model = ResourceManager.get_concrete_model(cls.Meta.model)
@@ -398,7 +401,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         return result
 
     @classmethod
-    def get(cls, request, **kwargs):
+    def get(cls, request=None, **kwargs):
         """ Get resource http response.
 
         :return str: resource
@@ -452,7 +455,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         return response
 
     @classmethod
-    def create(cls, request, documents, **kwargs):
+    def create(cls, documents, request=None, **kwargs):
         data = cls.load_documents(documents)
         model = cls.Meta.model
         items = data[cls.Meta.name_plural]
