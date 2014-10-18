@@ -6,8 +6,6 @@ from django.db import models
 from mixer.backend.django import mixer
 
 from jsonapi.resource import Resource
-from jsonapi.api import API
-from jsonapi.django_utils import clear_app_cache
 
 
 class TestResource(TestCase):
@@ -42,7 +40,6 @@ class TestResource(TestCase):
             "to_many": TestResource.fields["to_many"]
         })
 
-    @unittest.skip('Design reimplementation')
     def test_resource_get_empty(self):
         response = self.client.get(
             '/api/author',
@@ -55,7 +52,6 @@ class TestResource(TestCase):
         }
         self.assertEqual(data, data_expected)
 
-    @unittest.skip('Design reimplementation')
     def test_resource_own_fields_serialization(self):
         mixer.blend('testapp.author')
         response = self.client.get(
@@ -66,7 +62,6 @@ class TestResource(TestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(len(data["authors"]), 1)
 
-    @unittest.skip('Design reimplementation')
     def test_resource_get(self):
         post = mixer.blend('testapp.post')
         response = self.client.get(
@@ -81,6 +76,7 @@ class TestResource(TestCase):
                 "title": post.title,
                 "links": {
                     "author": post.author_id,
+                    "user": post.user_id,
                 }
             }]
         }
