@@ -37,6 +37,8 @@ Create resource for model, register it with api and use it within urls!
             model = 'testapp.author'
 
     # urls.py
+    from .resources import api
+
     urlpatterns = patterns(
         '',
         url(r'^api', include(api.urls))
@@ -61,8 +63,8 @@ What makes a decent API Framework? These features:
     + Caching
     + \+ Serialization
     + Throttling
-    + Authentication
-    + Permissions
+    + \+ Authentication
+    + Authorization/Permissions
 
 Proper API frameworks also need:
 
@@ -71,11 +73,14 @@ Proper API frameworks also need:
     + Documentation
     + An active community to advance and support the framework
 
-TODO
+
+Docs
 ====
 
-Define logger. It could write to database of file. Data is accessable in admin interface. Format is similar to /var/log/nginx/access.log
-
+    - Resource definition
+    - Resource and Models discovery
+    - Authentication
+    - Authorization
 
 Indices and tables
 ==================

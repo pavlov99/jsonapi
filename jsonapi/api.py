@@ -202,11 +202,12 @@ class API(object):
             return HttpResponseNotAllowed(
                 permitted_methods=allowed_http_methods)
 
-        user = resource.authenticate(request)
-        if resource.Meta.authenticators and user is None:
-            return HttpResponse("Not Authenticated", status=404)
+        if resource.Meta.authenticators:
+            user = resource.authenticate(request)
+            if user is None or not user.is_authenticated():
+                return HttpResponse("Not Authenticated", status=404)
 
-        kwargs = {}
+        kwargs = dict(request=request)
         if ids is not None:
             kwargs['ids'] = ids.split(",")
 

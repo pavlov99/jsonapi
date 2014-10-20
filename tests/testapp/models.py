@@ -2,9 +2,9 @@
 
 Model relationship:
 
-      Author
-       ||
-       ||
+      Author  auth.User
+       ||        |
+       ||        @
        ||-----@ Post ----> PostWithPicture
        |  ______/
        |  |
@@ -12,9 +12,8 @@ Model relationship:
        Comment
 
 """
-
-
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Author(models.Model):
@@ -24,6 +23,7 @@ class Author(models.Model):
 class Post(models.Model):
     title = models.CharField(max_length=100)
     author = models.ForeignKey(Author)
+    user = models.ForeignKey(User)
 
     @property
     def title_uppercased(self):

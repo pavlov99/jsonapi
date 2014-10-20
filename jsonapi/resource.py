@@ -1,9 +1,41 @@
-""" Resource definition."""
+""" Resource definition.
+
+There are two tipes of resources:
+    * simple resources
+    * model resources
+
+Simple resources require name Meta property to be defined.
+Example:
+    class SimpleResource(Resource):
+        class Meta:
+            name = "simple_name"
+
+Django model resources require model to be defined
+Example:
+    class ModelResource(Resource):
+        class Meta:
+            model = "myapp.mymodel"
+
+There are several optional Meta parameters:
+    * fieldnames_include = None
+    * fieldnames_exclude = None
+    * page_size = None
+    * allowed_methods = ('get',)
+
+Properties:
+
+    * name_plural
+    * is_model
+    * is_inherited
+    * is_auth_user
+
+"""
 from . import six
 import inspect
 import logging
-from django.db import models
+from django.conf import settings
 from django.core.paginator import Paginator
+from django.db import models
 
 from .utils import classproperty, Choices
 from .django_utils import get_model_name
@@ -21,50 +53,57 @@ class ResourceManager(object):
     """ Resource utils functionality."""
 
     @staticmethod
-    def get_resource_name(resource):
-        """ Define resource name based on Meta information.
+    def get_concrete_model_by_name(model_name):
+        """ Get model by its name.
 
-        :param Resource.Meta meta: resource metainformation
-        :return: name of resource
-        :rtype: str
+        :param str model_name: name of model.
+        :return django.db.models.Model:
 
-        """
-        name = getattr(resource.Meta, 'name', None)
-        if name is not None:
-            return name
-        else:
-            # NOTE: _meta.model_name is not supported py Djanog 1.5
-            return get_model_name(
-                ResourceManager.get_concrete_model(resource.Meta))
-
-    @staticmethod
-    def get_concrete_model(meta):
-        """ Get model defined in Meta.
-
-        :param Resource.Meta meta: resource metainformation
-        :return: model or None
-        :rtype django.db.models.Model or None:
-        :raise ValueError: model is not found
+        Example:
+            get_concrete_model_by_name('auth.User')
+            django.contrib.auth.models.User
 
         """
-        model = getattr(meta, 'model', None)
-
-        if model is None:
-            return None
-
-        if isinstance(model, six.string_types) and len(model.split('.')) == 2:
-            app_name, model_name = model.split('.')
+        if isinstance(model_name, six.string_types) and \
+                len(model_name.split('.')) == 2:
+            app_name, model_name = model_name.split('.')
             model = models.get_model(app_name, model_name)
-        elif inspect.isclass(model) and issubclass(model, models.Model):
-            pass
         else:
-            raise ValueError("{0} is not a Django model".format(model))
-
-        if model._meta.abstract:
-            raise ValueError(
-                "Abstract model {} could not be resource".format(model))
+            raise ValueError("{0} is not a Django model".format(model_name))
 
         return model
+
+    @staticmethod
+    def get_concrete_model(model):
+        """ Get model defined in Meta.
+
+        :param str or django.db.models.Model model:
+        :return: model or None
+        :rtype django.db.models.Model or None:
+        :raise ValueError: model is not found or abstract
+
+        """
+        if not(inspect.isclass(model) and issubclass(model, models.Model)):
+            model = ResourceManager.get_concrete_model_by_name(model)
+
+        return model
+
+    @staticmethod
+    def get_resource_name(meta):
+        """ Define resource name based on Meta information.
+
+        :param Resource.Meta meta: resource meta information
+        :return: name of resource
+        :rtype: str
+        :raises ValueError:
+
+        """
+        if meta.name is None and not meta.is_model:
+            msg = "Either name or model for resource.Meta shoud be provided"
+            raise ValueError(msg)
+
+        name = meta.name or get_model_name(ResourceManager.get_concrete_model(meta.model))
+        return name
 
 
 def merge_metas(*metas):
@@ -86,21 +125,41 @@ def merge_metas(*metas):
 
 class ResourceMetaClass(type):
 
-    """ Metaclass for JSON:API resources."""
+    """ Metaclass for JSON:API resources.
+
+    .. versionadded:: 0.5.0
+
+    Meta.is_auth_user whether model is AUTH_USER or not
+    Meta.is_inherited whether model has parent or not.
+
+    Meta.is_model: whether resource based on model or not
+
+    NOTE: is_inherited is used for related fields queries. For fields it is only
+    parent model used (django.db.models.Model).
+
+    """
 
     def __new__(mcs, name, bases, attrs):
         cls = super(ResourceMetaClass, mcs).__new__(mcs, name, bases, attrs)
-
         metas = [getattr(base, 'Meta', None) for base in bases]
         metas.append(cls.Meta)
         cls.Meta = merge_metas(*metas)
 
-        # TODO: check exact Resource class, not name
+        # NOTE: Resource.Meta should be defined before metaclass returns
+        # Resource.
         if name == "Resource":
             return cls
 
-        cls.Meta.name = ResourceManager.get_resource_name(cls)
-        cls.Meta.model = ResourceManager.get_concrete_model(cls.Meta)
+        cls.Meta.is_model = bool(getattr(cls.Meta, 'model', False))
+        cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
+
+        if cls.Meta.is_model:
+            model = ResourceManager.get_concrete_model(cls.Meta.model)
+            cls.Meta.model = model
+            if model._meta.abstract:
+                raise ValueError(
+                    "Abstract model {} could not be resource".format(model))
+
         return cls
 
 
@@ -116,6 +175,7 @@ class Resource(Serializer, Deserializer, Authenticator):
     )
 
     class Meta:
+        name = None
         fieldnames_include = None
         fieldnames_exclude = None
         page_size = None
@@ -124,6 +184,17 @@ class Resource(Serializer, Deserializer, Authenticator):
         @classproperty
         def name_plural(cls):
             return "{0}s".format(cls.name)
+
+        @classproperty
+        def is_auth_user(cls):
+            auth_user_model = ResourceManager.get_concrete_model_by_name(
+                settings.AUTH_USER_MODEL)
+            return cls.model is auth_user_model
+
+        @classproperty
+        def is_inherited(cls):
+            is_base = (cls.model.mro()[1] is models.Model) or cls.is_auth_user
+            return not is_base
 
     @classmethod
     def _get_fields_own(cls, model):
@@ -290,18 +361,72 @@ class Resource(Serializer, Deserializer, Authenticator):
         }
 
     @classmethod
-    def get(cls, **kwargs):
+    def __generate_user_resource_paths(cls, paths):
+        if all(p[-1].Meta.is_auth_user for p in paths):
+            return paths
+
+        next_paths = []
+        for path in paths:
+            if path[-1].Meta.is_auth_user:
+                next_paths.append(path)
+            else:
+                for field_info in path[-1].fields.values():
+                    next_resource = field_info["related_resource"]
+                    if next_resource is not None and next_resource not in path \
+                            and not next_resource.Meta.is_inherited:
+                        next_paths.append(path + [next_resource])
+        return cls.__generate_user_resource_paths(next_paths)
+
+
+    @classproperty
+    def _auth_user_resource_paths(cls):
+        """ Return information about AUTH_USER relation.
+
+        :return Nont: for AUTH_USER resource
+        :return list paths: List of paths to user resource.
+            Each path is a list of visited resources.
+
+        """
+        if cls.Meta.is_auth_user:
+            return None
+
+        paths = cls.__generate_user_resource_paths([[cls]])
+        # NOTE: current model is not included into query, so first element of
+        # path is not included.
+        result = [
+            "__".join([
+                get_model_name(resource.Meta.model) for resource in path[1:]
+            ]) for path in paths
+        ]
+        return result
+
+    @classmethod
+    def get(cls, request=None, **kwargs):
         """ Get resource http response.
 
         :return str: resource
 
         """
         model = cls.Meta.model
+        queryset = model.objects
+
         filters = {}
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
-        queryset = model.objects.filter(**filters)
+        if cls.Meta.authenticators:
+            user = cls.authenticate(request)
+            auth_user_resource_paths = cls._auth_user_resource_paths
+            if auth_user_resource_paths is None:
+                queryset = queryset.filter(id=user.id)
+            else:
+                user_filter = models.Q()
+                for path in auth_user_resource_paths:
+                    user_filter = user_filter | Q(**{path: user})
+
+                queryset = queryset.filter(user_filter)
+
+        queryset = queryset.filter(**filters)
         objects = queryset
         meta = {}
         if cls.Meta.page_size is not None:
@@ -335,7 +460,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         return response
 
     @classmethod
-    def create(cls, documents, **kwargs):
+    def create(cls, documents, request=None, **kwargs):
         data = cls.load_documents(documents)
         model = cls.Meta.model
         items = data[cls.Meta.name_plural]
