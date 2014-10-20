@@ -408,6 +408,8 @@ class Resource(Serializer, Deserializer, Authenticator):
 
         """
         model = cls.Meta.model
+        queryset = model.objects
+
         filters = {}
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
@@ -416,12 +418,15 @@ class Resource(Serializer, Deserializer, Authenticator):
             user = cls.authenticate(request)
             auth_user_resource_paths = cls._auth_user_resource_paths
             if auth_user_resource_paths is None:
-                filters["id"] = user.id
+                queryset = queryset.filter(id=user.id)
             else:
+                user_filter = models.Q()
                 for path in auth_user_resource_paths:
-                    filters[path] = user
+                    user_filter = user_filter | Q(**{path: user})
 
-        queryset = model.objects.filter(**filters)
+                queryset = queryset.filter(user_filter)
+
+        queryset = queryset.filter(**filters)
         objects = queryset
         meta = {}
         if cls.Meta.page_size is not None:
