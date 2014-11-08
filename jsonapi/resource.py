@@ -174,6 +174,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         ('to_one', 'TO_ONE'),
         ('to_many', 'TO_MANY'),
     )
+    RESERVED_GET_PARAMS = ('include', 'sort', 'fields', 'page')
 
     class Meta:
         name = None
@@ -410,7 +411,11 @@ class Resource(Serializer, Deserializer, Authenticator):
         model = cls.Meta.model
         queryset = model.objects
 
-        filters = {}
+        filters = {
+            k: v for k, v in kwargs.items()
+            if k not in cls.RESERVED_GET_PARAMS
+            # k in cls.fields_own
+        }
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
@@ -427,10 +432,14 @@ class Resource(Serializer, Deserializer, Authenticator):
                 queryset = queryset.filter(user_filter)
 
         queryset = queryset.filter(**filters)
-        objects = queryset
 
+        # Sort
+        if 'sort' in kwargs:
+            queryset = queryset.order_by(*kwargs['sort'].split(","))
+
+        # Fields serialisation
         fields = cls.fields_own
-        if kwargs.get('fields'):
+        if 'fields' in kwargs:
             fieldnames = kwargs['fields'].split(",")
             fieldnames.append("id")  # add id to fieldset
             fields = {
@@ -438,6 +447,7 @@ class Resource(Serializer, Deserializer, Authenticator):
                 if name in fieldnames
             }
 
+        objects = queryset
         meta = {}
         if cls.Meta.page_size is not None:
             paginator = Paginator(queryset, cls.Meta.page_size)
