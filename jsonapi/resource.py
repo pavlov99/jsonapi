@@ -102,7 +102,8 @@ class ResourceManager(object):
             msg = "Either name or model for resource.Meta shoud be provided"
             raise ValueError(msg)
 
-        name = meta.name or get_model_name(ResourceManager.get_concrete_model(meta.model))
+        name = meta.name or get_model_name(
+            ResourceManager.get_concrete_model(meta.model))
         return name
 
 
@@ -377,7 +378,6 @@ class Resource(Serializer, Deserializer, Authenticator):
                         next_paths.append(path + [next_resource])
         return cls.__generate_user_resource_paths(next_paths)
 
-
     @classproperty
     def _auth_user_resource_paths(cls):
         """ Return information about AUTH_USER relation.
@@ -422,12 +422,22 @@ class Resource(Serializer, Deserializer, Authenticator):
             else:
                 user_filter = models.Q()
                 for path in auth_user_resource_paths:
-                    user_filter = user_filter | Q(**{path: user})
+                    user_filter = user_filter | models.Q(**{path: user})
 
                 queryset = queryset.filter(user_filter)
 
         queryset = queryset.filter(**filters)
         objects = queryset
+
+        fields = cls.fields_own
+        if kwargs.get('fields'):
+            fieldnames = kwargs['fields'].split(",")
+            fieldnames.append("id")  # add id to fieldset
+            fields = {
+                name: value for name, value in fields.items()
+                if name in fieldnames
+            }
+
         meta = {}
         if cls.Meta.page_size is not None:
             paginator = Paginator(queryset, cls.Meta.page_size)
@@ -446,7 +456,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         data = [
             cls.dump_document(
                 m,
-                fields=cls.fields_own,
+                fields=fields,
                 fields_to_one=cls.fields_to_one,
                 # fields_to_many=cls.fields_to_many
             )
