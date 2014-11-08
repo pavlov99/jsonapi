@@ -174,6 +174,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         ('to_one', 'TO_ONE'),
         ('to_many', 'TO_MANY'),
     )
+    RESERVED_GET_PARAMS = ('include', 'sort', 'fields', 'page')
 
     class Meta:
         name = None
@@ -410,7 +411,11 @@ class Resource(Serializer, Deserializer, Authenticator):
         model = cls.Meta.model
         queryset = model.objects
 
-        filters = {}
+        filters = {
+            k: v for k, v in kwargs.items()
+            if k not in cls.RESERVED_GET_PARAMS
+            # k in cls.fields_own
+        }
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
@@ -429,6 +434,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         queryset = queryset.filter(**filters)
         objects = queryset
 
+        # Fields serialisation
         fields = cls.fields_own
         if kwargs.get('fields'):
             fieldnames = kwargs['fields'].split(",")
