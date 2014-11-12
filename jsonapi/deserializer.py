@@ -8,14 +8,14 @@ from .utils import classproperty
 class DeserializerMeta(object):
 
     @classproperty
-    def form(cls, fields=None):
+    def form(cls):
         if cls.model is not None:
 
             class Form(ModelForm):
                 class Meta:
-                    fields = list(fields or cls.fields_own.keys())
                     model = cls.model
-            return Form()
+
+            return Form
         else:
             return None
 
