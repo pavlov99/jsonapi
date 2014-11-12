@@ -482,9 +482,11 @@ class Resource(Serializer, Deserializer, Authenticator):
     @classmethod
     def create(cls, documents, request=None, **kwargs):
         data = cls.load_documents(documents)
-        model = cls.Meta.model
         items = data[cls.Meta.name_plural]
 
-        model.objects.bulk_create([
-            model(**item) for item in items
-        ])
+        models = []
+        for item in items:
+            form = cls.Meta.form(item)
+            models.append(form.save())
+
+        return models
