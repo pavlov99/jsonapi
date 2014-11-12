@@ -10,10 +10,12 @@ class DeserializerMeta(object):
     @classproperty
     def form(cls):
         if cls.model is not None:
+
             class Form(ModelForm):
                 class Meta:
                     model = cls.model
-            return Form()
+
+            return Form
         else:
             return None
 
