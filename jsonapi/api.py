@@ -219,5 +219,6 @@ class API(object):
             return HttpResponse(items, content_type="application/vnd.api+json")
         elif request.method == "POST":
             data = request.body.decode('utf8')
-            resource.create(data, **kwargs)
-            return HttpResponse()
+            response = resource.create(data, **kwargs)
+            return HttpResponse(
+                response, content_type="application/vnd.api+json", status=201)
