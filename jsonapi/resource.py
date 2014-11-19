@@ -174,7 +174,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         ('to_one', 'TO_ONE'),
         ('to_many', 'TO_MANY'),
     )
-    RESERVED_GET_PARAMS = ('include', 'sort', 'fields', 'page')
+    RESERVED_GET_PARAMS = ('include', 'sort', 'fields', 'page', 'ids')
 
     class Meta:
         name = None
