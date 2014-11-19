@@ -490,3 +490,27 @@ class Resource(Serializer, Deserializer, Authenticator):
             models.append(form.save())
 
         return models
+
+    @classmethod
+    def delete(cls, request=None, **kwargs):
+        model = cls.Meta.model
+        queryset = model.objects
+
+        filters = {}
+        if kwargs.get('ids'):
+            filters["id__in"] = kwargs.get('ids')
+
+        if cls.Meta.authenticators:
+            user = cls.authenticate(request)
+            auth_user_resource_paths = cls._auth_user_resource_paths
+            if auth_user_resource_paths is None:
+                queryset = queryset.filter(id=user.id)
+            else:
+                user_filter = models.Q()
+                for path in auth_user_resource_paths:
+                    user_filter = user_filter | models.Q(**{path: user})
+
+                queryset = queryset.filter(user_filter)
+
+        queryset.filter(**filters).delete()
+        return ""
