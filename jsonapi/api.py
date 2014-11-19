@@ -226,6 +226,6 @@ class API(object):
             if ids is None:
                 return HttpResponse("Resource ids not specified", status=404)
 
-            response = resource.delete(data, **kwargs)
+            response = resource.delete(**kwargs)
             return HttpResponse(
                 response, content_type="application/vnd.api+json", status=204)
