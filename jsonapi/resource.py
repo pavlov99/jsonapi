@@ -402,14 +402,47 @@ class Resource(Serializer, Deserializer, Authenticator):
         return result
 
     @classmethod
+    def get_queryset(cls, request=None, **kwargs):
+        """ Get objects queryset.
+
+        Method is used to generate objects queryset for resource operations.
+        It is aimed to:
+            * Filter objects based on user. Object could be in queryset only if
+            there is attribute-ForeignKey-ManyToMany path from current resource
+            to current auth_user.
+            * Select related objects (or prefetch them) based on requested
+            requested objects to include
+
+        NOTE: if you need to get user in this method, use
+        cls.authenticate(request), because user could be authenticated using
+        HTTP_BASIC method, not only session.
+
+        """
+        queryset = cls.Meta.model.objects
+
+        if cls.Meta.authenticators:
+            user = cls.authenticate(request)
+            auth_user_resource_paths = cls._auth_user_resource_paths
+            if auth_user_resource_paths is None:
+                # Resource is user
+                queryset = queryset.filter(id=user.id)
+            else:
+                user_filter = models.Q()
+                for path in auth_user_resource_paths:
+                    user_filter = user_filter | models.Q(**{path: user})
+
+                queryset = queryset.filter(user_filter)
+
+        return queryset
+
+    @classmethod
     def get(cls, request=None, **kwargs):
         """ Get resource http response.
 
         :return str: resource
 
         """
-        model = cls.Meta.model
-        queryset = model.objects
+        queryset = cls.get_queryset(request=request, **kwargs)
 
         filters = {
             k: v for k, v in kwargs.items()
@@ -418,18 +451,6 @@ class Resource(Serializer, Deserializer, Authenticator):
         }
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
-
-        if cls.Meta.authenticators:
-            user = cls.authenticate(request)
-            auth_user_resource_paths = cls._auth_user_resource_paths
-            if auth_user_resource_paths is None:
-                queryset = queryset.filter(id=user.id)
-            else:
-                user_filter = models.Q()
-                for path in auth_user_resource_paths:
-                    user_filter = user_filter | models.Q(**{path: user})
-
-                queryset = queryset.filter(user_filter)
 
         queryset = queryset.filter(**filters)
 
