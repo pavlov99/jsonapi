@@ -23,7 +23,6 @@
     :target: https://pypi.python.org/pypi/jsonapi/
     :alt: Download format
 
-
 .. image:: https://pypip.in/license/jsonapi/badge.png
     :target: https://pypi.python.org/pypi/jsonapi/
     :alt: License
@@ -31,6 +30,13 @@
 .. image:: https://pypip.in/status/jsonapi/badge.svg
     :target: https://pypi.python.org/pypi/jsonapi/
     :alt: Development Status
+
+
+Task board:
+
+.. image:: https://badge.waffle.io/pavlov99/jsonapi.png?label=ready&title=Ready
+    :target: https://waffle.io/pavlov99/jsonapi/
+    :alt: Ready stories.
 
 
 Documentation: http://jsonapi.readthedocs.org/
