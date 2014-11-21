@@ -176,12 +176,12 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        content_type = request.META.get('CONTENT_TYPE') or \
-            request.META.get('content_type')
-        if content_type != API.CONTENT_TYPE:
-            msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
-            return HttpResponse(
-                msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+        # content_type = request.META.get('content_type') or \
+            # request.META.get('CONTENT_TYPE')
+        # if content_type != API.CONTENT_TYPE:
+            # msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
+            # return HttpResponse(
+                # msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
         self.update_urls(request)
         resource_info = {
@@ -206,12 +206,12 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        content_type = request.META.get('CONTENT_TYPE') or \
-            request.META.get('content_type')
-        if content_type != API.CONTENT_TYPE:
-            msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
-            return HttpResponse(
-                msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+        # content_type = request.META.get('content_type') or \
+            # request.META.get('CONTENT_TYPE')
+        # if content_type != API.CONTENT_TYPE:
+            # msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
+            # return HttpResponse(
+                # msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
