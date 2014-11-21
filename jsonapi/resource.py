@@ -38,7 +38,7 @@ from django.core.paginator import Paginator
 from django.db import models
 
 from .utils import classproperty, Choices
-from .django_utils import get_model_name
+from .django_utils import get_model_name, get_model_by_name
 from .serializers import Serializer
 from .deserializer import Deserializer
 from .auth import Authenticator
@@ -53,27 +53,6 @@ class ResourceManager(object):
     """ Resource utils functionality."""
 
     @staticmethod
-    def get_concrete_model_by_name(model_name):
-        """ Get model by its name.
-
-        :param str model_name: name of model.
-        :return django.db.models.Model:
-
-        Example:
-            get_concrete_model_by_name('auth.User')
-            django.contrib.auth.models.User
-
-        """
-        if isinstance(model_name, six.string_types) and \
-                len(model_name.split('.')) == 2:
-            app_name, model_name = model_name.split('.')
-            model = models.get_model(app_name, model_name)
-        else:
-            raise ValueError("{0} is not a Django model".format(model_name))
-
-        return model
-
-    @staticmethod
     def get_concrete_model(model):
         """ Get model defined in Meta.
 
@@ -84,7 +63,7 @@ class ResourceManager(object):
 
         """
         if not(inspect.isclass(model) and issubclass(model, models.Model)):
-            model = ResourceManager.get_concrete_model_by_name(model)
+            model = get_model_by_name(model)
 
         return model
 
@@ -189,8 +168,7 @@ class Resource(Serializer, Deserializer, Authenticator):
 
         @classproperty
         def is_auth_user(cls):
-            auth_user_model = ResourceManager.get_concrete_model_by_name(
-                settings.AUTH_USER_MODEL)
+            auth_user_model = get_model_by_name(settings.AUTH_USER_MODEL)
             return cls.model is auth_user_model
 
         @classproperty

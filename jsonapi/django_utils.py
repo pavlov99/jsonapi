@@ -4,6 +4,29 @@ Utils are used to work with different django versions.
 
 """
 import django
+from django.db import models
+from . import six
+
+
+def get_model_by_name(model_name):
+    """ Get model by its name.
+
+    :param str model_name: name of model.
+    :return django.db.models.Model:
+
+    Example:
+        get_concrete_model_by_name('auth.User')
+        django.contrib.auth.models.User
+
+    """
+    if isinstance(model_name, six.string_types) and \
+            len(model_name.split('.')) == 2:
+        app_name, model_name = model_name.split('.')
+        model = models.get_model(app_name, model_name)
+    else:
+        raise ValueError("{0} is not a Django model".format(model_name))
+
+    return model
 
 
 def get_model_name(model):
@@ -21,6 +44,7 @@ def get_model_name(model):
         model_name = opts.model_name
 
     return model_name
+
 
 def clear_app_cache(app_name):
     """ Clear django cache for models.
