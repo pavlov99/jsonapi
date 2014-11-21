@@ -38,7 +38,7 @@ class TestRequestParser(TestCase):
             ("resource2", "b"),
             ("resource2", "c"),
         ]
-        self.assertEqual(result["sort"], expected_result)
+        self.assertEqual(set(result["sort"]), set(expected_result))
 
     @unittest.skip("Not Implemented. Requires custom query parser")
     def test_parse_sort_typed_complex(self):

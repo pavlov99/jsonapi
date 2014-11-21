@@ -1,7 +1,8 @@
 """ Parser for request parameters."""
 import re
 from collections import OrderedDict
-from django.http import QueryDict
+
+from .django_utils import get_querydict
 
 
 class RequestParser(object):
@@ -38,8 +39,7 @@ class RequestParser(object):
                 case
 
         """
-
-        querydict = dict(QueryDict(query).iterlists())
+        querydict = get_querydict(query)
         sort_params, querydict = cls.parse_sort(querydict)
         include_params, querydict = cls.parse_include(querydict)
         page, querydict = cls.parse_page(querydict)
