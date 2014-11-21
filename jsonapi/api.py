@@ -26,6 +26,7 @@ from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
 
+from . import statuses
 from .utils import Choices
 
 logger = logging.getLogger(__name__)
@@ -176,7 +177,8 @@ class API(object):
             request.META.get('content_type')
         if content_type != API.CONTENT_TYPE:
             msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
-            return HttpResponse(msg, status=415)
+            return HttpResponse(
+                msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
         self.update_urls(request)
         resource_info = {
@@ -202,7 +204,8 @@ class API(object):
             request.META.get('content_type')
         if content_type != API.CONTENT_TYPE:
             msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
-            return HttpResponse(msg, status=415)
+            return HttpResponse(
+                msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
