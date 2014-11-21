@@ -1,4 +1,5 @@
 """ Parser for request parameters."""
+import re
 
 
 class RequestParser(object):
@@ -8,6 +9,9 @@ class RequestParser(object):
 
 
     """
+
+    RE_SORT = re.compile('^sort\[(?P<resource>\w+)\]$')
+
     @classmethod
     def parse(cls, querydict):
         """ Parse querydict data.
@@ -31,5 +35,38 @@ class RequestParser(object):
                 case
 
         """
-        result = {}
+
+        sort_params, querydict = cls.parse_sort(querydict)
+
+        result = {
+            "sort": sort_params or None,
+        }
+
         return result
+
+    @classmethod
+    def prepare_values(cls, values):
+        return [x for value in values for x in value.split(",")]
+
+    @classmethod
+    def parse_sort(cls, querydict):
+        """ Return filtered querydict.
+
+        Check for keys in format 'sort' or 'sort[<resource>]'
+
+        """
+        filtered_querydict = {}
+        sort_params = {}
+
+        for key, values in querydict.items():
+            sort_match = cls.RE_SORT.match(key)
+
+            if key == "sort":
+                sort_params = cls.prepare_values(values)
+            elif sort_match is not None:
+                resource_name = sort_match.group("resource")
+                sort_params[resource_name] = cls.prepare_values(values)
+            else:
+                filtered_querydict[key] = values
+
+        return sort_params, filtered_querydict

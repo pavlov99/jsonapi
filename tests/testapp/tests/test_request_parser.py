@@ -12,7 +12,7 @@ class TestRequestParser(TestCase):
     def test_parse_sort_empty(self):
         querydict = {}
         result = RequestParser.parse(querydict)
-        self.assertEqual(result["sort"], [])
+        self.assertEqual(result["sort"], None)
 
     def test_parse_sort_one_param(self):
         querydict = {"sort": ["a"]}
