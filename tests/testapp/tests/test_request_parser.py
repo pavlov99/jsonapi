@@ -29,10 +29,25 @@ class TestRequestParser(TestCase):
         result = RequestParser.parse(querydict)
         self.assertEqual(result["sort"], ["a", "b"])
 
+        query = "sort=a,-b"
+        querydict = dict(QueryDict(query).iterlists())
+        result = RequestParser.parse(querydict)
+        self.assertEqual(result["sort"], ["a", "-b"])
+
         query = "sort=a&sort=b"
         querydict = dict(QueryDict(query).iterlists())
         result = RequestParser.parse(querydict)
         self.assertEqual(result["sort"], ["a", "b"])
+
+    def test_parse_sort_typed(self):
+        query = "sort[resource1]=a&sort[resource2]=b,c"
+        querydict = dict(QueryDict(query).iterlists())
+        result = RequestParser.parse(querydict)
+        expected_result = {
+            "resource1": ["a"],
+            "resource2": ["b", "c"],
+        }
+        self.assertEqual(result["sort"], expected_result)
 
     def test_parse_include(self):
         pass
