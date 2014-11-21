@@ -2,7 +2,6 @@ ENV=$(CURDIR)/.env
 BIN=$(ENV)/bin
 PYTHON=$(BIN)/python
 DJANGO_ADMIN=$(shell which django-admin.py)
-DJANGO_ADMIN=$(BIN)/django-admin.py
 SETTINGS_TEST=tests.testapp.settings.test
 SETTINGS_DEV=tests.testapp.settings.dev
 PARAMS_DEV=--settings=$(SETTINGS_DEV) --pythonpath=$(CURDIR)
