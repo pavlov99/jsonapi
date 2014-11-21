@@ -13,6 +13,7 @@ class RequestParser(object):
     """
 
     RE_SORT = re.compile('^sort\[(?P<resource>\w+)\]$')
+    RE_FIELDS = re.compile('^fields\[(?P<resource>\w+)\]$')
 
     @classmethod
     def parse(cls, query):
@@ -42,11 +43,15 @@ class RequestParser(object):
         sort_params, querydict = cls.parse_sort(querydict)
         include_params, querydict = cls.parse_include(querydict)
         page, querydict = cls.parse_page(querydict)
+        fields_params, querydict = cls.parse_fields(querydict)
+        filters = ["{}={}".format(k, v[0]) for k, v in querydict.items()]
 
         result = {
             "sort": sort_params,
             "include": include_params,
             "page": page,
+            "fields": fields_params,
+            "filters": filters,
         }
 
         return result
@@ -115,3 +120,31 @@ class RequestParser(object):
 
         filtered_querydict = OrderedDict(filtered_querydict_items)
         return page, filtered_querydict
+
+    @classmethod
+    def parse_fields(cls, querydict):
+        filtered_querydict_items = []
+        fields_params_items = []
+        fields_params = []
+
+        for key, values in querydict.items():
+            fields_match = cls.RE_FIELDS.match(key)
+
+            if key == "fields":
+                fields_params = cls.prepare_values(values)
+            elif fields_match is not None:
+                resource_name = fields_match.group("resource")
+                fields_params_items.extend([
+                    (resource_name, value)
+                    for value in cls.prepare_values(values)
+                ])
+            else:
+                filtered_querydict_items.append((key, values))
+
+        filtered_querydict = OrderedDict(filtered_querydict_items)
+
+        if fields_params_items and fields_params:
+            raise ValueError("Either default or typed fields should be used")
+
+        fields_params = fields_params_items or fields_params
+        return fields_params, filtered_querydict

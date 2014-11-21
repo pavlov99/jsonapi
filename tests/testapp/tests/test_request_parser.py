@@ -31,10 +31,10 @@ class TestRequestParser(TestCase):
         self.assertEqual(result["sort"], ["a", "b"])
 
     def test_parse_sort_typed(self):
-        query = "sort[resource1]=a&sort[resource2]=b,c"
+        query = "sort[resource_1]=a&sort[resource2]=b,c"
         result = RequestParser.parse(query)
         expected_result = [
-            ("resource1", "a"),
+            ("resource_1", "a"),
             ("resource2", "b"),
             ("resource2", "c"),
         ]
@@ -82,5 +82,54 @@ class TestRequestParser(TestCase):
         result = RequestParser.parse(query)
         self.assertEqual(result["page"], 1)
 
+    def test_parse_fields_empty(self):
+        query = ""
+        result = RequestParser.parse(query)
+        self.assertEqual(result["fields"], [])
+
+    def test_parse_fields_one_param(self):
+        query = "fields=a"
+        result = RequestParser.parse(query)
+        self.assertEqual(result["fields"], ["a"])
+
+    def test_parse_fields_two_param(self):
+        query = "fields=a,b"
+        result = RequestParser.parse(query)
+        self.assertEqual(result["fields"], ["a", "b"])
+
+        query = "fields=a&fields=b"
+        result = RequestParser.parse(query)
+        self.assertEqual(result["fields"], ["a", "b"])
+
+    def test_parse_fields_typed(self):
+        query = "fields[resource_1]=a&fields[resource2]=b,c"
+        result = RequestParser.parse(query)
+        expected_result = [
+            ("resource_1", "a"),
+            ("resource2", "b"),
+            ("resource2", "c"),
+        ]
+        self.assertEqual(sorted(result["fields"]), sorted(expected_result))
+
+    @unittest.skip("Not Implemented. Requires custom query parser")
+    def test_parse_fields_typed_complex(self):
+        query = "fields[resource2]=a&fields[resource1]=c&fields[resource2]=b"
+        result = RequestParser.parse(query)
+        expected_result = [
+            ("resource2", "a"),
+            ("resource1", "c"),
+            ("resource2", "b"),
+        ]
+        self.assertEqual(result["fields"], expected_result)
+
+    def test_parse_fields_default_and_typed(self):
+        query = "fields=a&fields[a]=b"
+        # TODO: define concrete error
+        with self.assertRaises(ValueError):
+            RequestParser.parse(query)
+
     def test_parse_filters(self):
-        pass
+        query = "a=1&b__in=[1,2]&c__gt=0&fields=a&sort=b&include=c&page=1"
+        result = RequestParser.parse(query)
+        self.assertEqual(
+            set(result["filters"]), {"a=1", "b__in=[1,2]", "c__gt=0"})
