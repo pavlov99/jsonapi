@@ -1,5 +1,7 @@
 """ Parser for request parameters."""
 import re
+from collections import OrderedDict
+from django.http import QueryDict
 
 
 class RequestParser(object):
@@ -13,7 +15,7 @@ class RequestParser(object):
     RE_SORT = re.compile('^sort\[(?P<resource>\w+)\]$')
 
     @classmethod
-    def parse(cls, querydict):
+    def parse(cls, query):
         """ Parse querydict data.
 
         Define, what parameters are general and what are resource specific,
@@ -21,12 +23,12 @@ class RequestParser(object):
         defined, all of the query parametres which dont match them are
         resource specific. So parser is resource independend.
 
-        :param dict querydict: dictionary in format
+        :param str query: dictionary in format
             {param: [value]}. To get querydict in Django use
             querydict = dict(django.http.QueryDict('a=1&a=2').iterlists())
         :return dict result: dictionary in format {key: value}.
             key = [sort|include|page|filter]
-            sort (list or dict)
+            sort (None or list or dict)
                 * If case of 'sort' key passed, value is a list of
                 fields to sort.
 
@@ -36,10 +38,11 @@ class RequestParser(object):
 
         """
 
+        querydict = dict(QueryDict(query).iterlists())
         sort_params, querydict = cls.parse_sort(querydict)
 
         result = {
-            "sort": sort_params or None,
+            "sort": sort_params,
         }
 
         return result
@@ -55,8 +58,9 @@ class RequestParser(object):
         Check for keys in format 'sort' or 'sort[<resource>]'
 
         """
-        filtered_querydict = {}
-        sort_params = {}
+        filtered_querydict_items = []
+        sort_params_items = []
+        sort_params = []
 
         for key, values in querydict.items():
             sort_match = cls.RE_SORT.match(key)
@@ -65,8 +69,17 @@ class RequestParser(object):
                 sort_params = cls.prepare_values(values)
             elif sort_match is not None:
                 resource_name = sort_match.group("resource")
-                sort_params[resource_name] = cls.prepare_values(values)
+                sort_params_items.extend([
+                    (resource_name, value)
+                    for value in cls.prepare_values(values)
+                ])
             else:
-                filtered_querydict[key] = values
+                filtered_querydict_items.append((key, values))
 
+        filtered_querydict = OrderedDict(filtered_querydict_items)
+
+        if sort_params_items and sort_params:
+            raise ValueError("Either default or typed sort should be used")
+
+        sort_params = sort_params_items or sort_params
         return sort_params, filtered_querydict
