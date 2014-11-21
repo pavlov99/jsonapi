@@ -34,11 +34,13 @@
 Development
 ===========
 
-Task board:
-
 .. image:: https://badge.waffle.io/pavlov99/jsonapi.png?label=ready&title=Ready
     :target: https://waffle.io/pavlov99/jsonapi/
     :alt: Ready stories.
+
+
+Throughput Graph
+----------------
 
 .. image:: https://graphs.waffle.io/pavlov99/jsonapi/throughput.svg
     :target: https://waffle.io/pavlov99/jsonapi/metrics
