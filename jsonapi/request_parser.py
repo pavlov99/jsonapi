@@ -40,9 +40,13 @@ class RequestParser(object):
 
         querydict = dict(QueryDict(query).iterlists())
         sort_params, querydict = cls.parse_sort(querydict)
+        include_params, querydict = cls.parse_include(querydict)
+        page, querydict = cls.parse_page(querydict)
 
         result = {
             "sort": sort_params,
+            "include": include_params,
+            "page": page,
         }
 
         return result
@@ -83,3 +87,31 @@ class RequestParser(object):
 
         sort_params = sort_params_items or sort_params
         return sort_params, filtered_querydict
+
+    @classmethod
+    def parse_include(cls, querydict):
+        """ Parse include resources."""
+        include_params = []
+        filtered_querydict_items = []
+        for key, values in querydict.items():
+            if key == "include":
+                include_params = cls.prepare_values(values)
+            else:
+                filtered_querydict_items.append((key, values))
+
+        filtered_querydict = OrderedDict(filtered_querydict_items)
+        return include_params, filtered_querydict
+
+    @classmethod
+    def parse_page(cls, querydict):
+        """ Parse page."""
+        page = None
+        filtered_querydict_items = []
+        for key, values in querydict.items():
+            if key == "page":
+                page = int(cls.prepare_values(values)[0])
+            else:
+                filtered_querydict_items.append((key, values))
+
+        filtered_querydict = OrderedDict(filtered_querydict_items)
+        return page, filtered_querydict

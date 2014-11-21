@@ -57,11 +57,30 @@ class TestRequestParser(TestCase):
         with self.assertRaises(ValueError):
             RequestParser.parse(query)
 
-    def test_parse_filters(self):
-        pass
+    def test_parse_include_empty(self):
+        query = ""
+        result = RequestParser.parse(query)
+        self.assertEqual(result["include"], [])
 
-    def test_parse_include(self):
-        pass
+    def test_parse_include_one(self):
+        query = "include=a"
+        result = RequestParser.parse(query)
+        self.assertEqual(result["include"], ["a"])
+
+    def test_parse_include_complex(self):
+        query = "include=a,b,a.b"
+        result = RequestParser.parse(query)
+        self.assertEqual(result["include"], ["a", "b", "a.b"])
+
+    def test_parse_page_empty(self):
+        query = ""
+        result = RequestParser.parse(query)
+        self.assertEqual(result["page"], None)
 
     def test_parse_page(self):
+        query = "page=1"
+        result = RequestParser.parse(query)
+        self.assertEqual(result["page"], 1)
+
+    def test_parse_filters(self):
         pass
