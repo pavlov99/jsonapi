@@ -170,6 +170,9 @@ class API(object):
     def map_view(self, request):
         """ Show information about available resources.
 
+        .. versionadded:: 0.5.7
+            Content-Type check
+
         :return django.http.HttpResponse
 
         """
@@ -196,6 +199,9 @@ class API(object):
 
     def handler_view(self, request, resource_name, ids=None):
         """ Handler for resources.
+
+        .. versionadded:: 0.5.7
+            Content-Type check
 
         :return django.http.HttpResponse
 
