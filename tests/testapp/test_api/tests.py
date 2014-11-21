@@ -128,6 +128,12 @@ class TestApi(TestCase):
         self.assertEqual(self.api.resource_map['b'], AResource)
         self.assertNotIn('a', self.api.resource_map)
 
+    def test_content_type_validation(self):
+        response = self.client.get('/api', content_type='application/json')
+        self.assertEqual(response.status_code, 415)
+        self.assertEqual(
+            response.content, "Content-Type SHOULD be application/vnd.api+json")
+
     @unittest.skipIf(django.VERSION[:2] == (1, 5),
                      "FIXME: For some reason does not work. Tested manually")
     def test_base_url(self):

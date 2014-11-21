@@ -41,6 +41,7 @@ class API(object):
         ('PATCH', 'update'),
         ('DELETE', 'delete'),
     )
+    CONTENT_TYPE = "application/vnd.api+json"
 
     def __init__(self):
         self._resources = []
@@ -171,6 +172,12 @@ class API(object):
         :return django.http.HttpResponse
 
         """
+        content_type = request.META.get('CONTENT_TYPE') or \
+            request.META.get('content_type')
+        if content_type != API.CONTENT_TYPE:
+            msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
+            return HttpResponse(msg, status=415)
+
         self.update_urls(request)
         resource_info = {
             "resources": [{
@@ -191,6 +198,12 @@ class API(object):
         :return django.http.HttpResponse
 
         """
+        content_type = request.META.get('CONTENT_TYPE') or \
+            request.META.get('content_type')
+        if content_type != API.CONTENT_TYPE:
+            msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
+            return HttpResponse(msg, status=415)
+
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
 
@@ -216,16 +229,16 @@ class API(object):
 
             items = json.dumps(
                 resource.get(**kwargs), cls=resource.Meta.encoder)
-            return HttpResponse(items, content_type="application/vnd.api+json")
+            return HttpResponse(items, content_type=self.CONTENT_TYPE)
         elif request.method == "POST":
             data = request.body.decode('utf8')
             response = resource.create(data, **kwargs)
             return HttpResponse(
-                response, content_type="application/vnd.api+json", status=201)
+                response, content_type=self.CONTENT_TYPE, status=201)
         elif request.method == "DELETE":
             if ids is None:
                 return HttpResponse("Resource ids not specified", status=404)
 
             response = resource.delete(**kwargs)
             return HttpResponse(
-                response, content_type="application/vnd.api+json", status=204)
+                response, content_type=self.CONTENT_TYPE, status=204)
