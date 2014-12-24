@@ -5,7 +5,7 @@ from .django_utils import get_model_name, get_model_by_name
 
 
 ModelInfo = namedtuple("ModelInfo", [
-    "model", "fields_own", "fields_to_one", "fields_to_many"
+    "fields_own", "fields_to_one", "fields_to_many"
 ])
 
 
@@ -23,7 +23,7 @@ class Field(object):
         self.category = category
 
     def __repr__(self):
-        return self.name
+        return "<Field: {}>".format(self.name)
 
 
 def get_parent(model):
@@ -43,17 +43,16 @@ class ModelInspector(object):
         ('to_many', 'TO_MANY'),
     )
 
-    def __init__(self):
-        self.models = [ModelInfo(
-            model=model,
-            fields_own=self._get_fields_own(model),
-            fields_to_one=self._get_fields_self_foreign_key(model),
-            fields_to_many=self._get_fields_others_foreign_key(model) +
-                self._get_fields_others_foreign_key(model)
-        ) for model in models.get_models()]
-
     def inspect(self):
-        pass
+        self.models = {
+            model: ModelInfo(
+                fields_own=self._get_fields_own(model),
+                fields_to_one=self._get_fields_self_foreign_key(model),
+                fields_to_many=self._get_fields_others_foreign_key(model) +
+                    self._get_fields_others_foreign_key(model)
+        ) for model in models.get_models()}
+        # auth_user_model = get_user_model()
+        # user_info = [m for m in mi.models if m.model is auth_user_model][0]
 
     @classmethod
     def _get_fields_own(cls, model):
@@ -98,7 +97,7 @@ class ModelInspector(object):
     def _get_fields_self_many_to_many(cls, model):
         fields = [
             Field(
-                name=fields.name,
+                name=field.name,
                 related_model=field.rel.to,
                 category=Field.CATEGORIES.TO_MANY
             ) for field in model._meta.many_to_many
