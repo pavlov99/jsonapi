@@ -20,15 +20,15 @@ All of the relationship for B class are defined in related classes
 There is no OneToMany relationship in Django, so there are no AMany
 and BOne classes.
 
-    AAbstractOne      AOne  BManyToMany
+       AAbstractOne      AOne  BManyToMany
             |              |        @
             |              |        |
             @              @        @
-        AAbstract => AA -> A -----> B ------ BProxy
+ User--@AAbstract => AA -> A -----> B ------ BProxy
             @              @        |
             |              |        |
             @              @        @
-AAbstractManyToMany AManyToMany BMany
+  AAbstractManyToMany AManyToMany BMany
 
 """
 from django.db import models
