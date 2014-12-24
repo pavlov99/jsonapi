@@ -2,7 +2,7 @@ from django.test import TestCase
 from jsonapi.api import API
 from jsonapi.resource import Resource
 
-from .models import (
+from ..models import (
     AAbstractOne, AAbstractManyToMany, AAbstract, AA, AOne, AManyToMany,
     A, B, BMany, BManyToMany, BProxy,
 )
