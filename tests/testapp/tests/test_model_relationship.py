@@ -2,11 +2,11 @@ from django.test import TestCase
 from django.contrib.auth import get_user_model
 from jsonapi.api import API
 from jsonapi.resource import Resource
-from jsonapi.model_inspector import ModelInspector
+from jsonapi.model_inspector import ModelInspector, Field
 
 from ..models import (
     AAbstractOne, AAbstractManyToMany, AAbstract, AA, AOne, AManyToMany,
-    A, B, BMany, BManyToMany, BProxy,
+    A, B, BMany, BManyToMany, BProxy, Post
 )
 
 
@@ -44,6 +44,13 @@ class TestResourceRelationship(TestCase):
         self.assertEqual(model_info.fields_to_one, [])
         field_names = [f.name for f in model_info.fields_to_many]
         self.assertEqual(len(field_names), len(set(field_names)))
+
+        expected_fields = {
+            Field("post_set", Field.CATEGORIES.TO_MANY, Post),
+            Field("aa_set", Field.CATEGORIES.TO_MANY, self.classes["AA"]),
+        }
+        self.assertEqual(len(model_info.fields_to_many), 3)
+        self.assertTrue(set(model_info.fields_to_many) > set(expected_fields))
 
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):

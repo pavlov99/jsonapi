@@ -22,8 +22,20 @@ class Field(object):
         self.related_model = related_model
         self.category = category
 
+    def query_name(self):
+        """ Get field name used in queries."""
+        return get_model_name(get_parent(self.related_model))
+
     def __repr__(self):
-        return "<Field: {}>".format(self.name)
+        suffix = "({})".format(get_model_name(self.related_model))\
+            if self.related_model else ""
+        return "<Field: {}{}>".format(self.name, suffix)
+
+    def __hash__(self):
+        return hash((self.name, self.related_model, self.category))
+
+    def __eq__(self, other):
+        return hash(self) == hash(other)
 
 
 def get_parent(model):
@@ -37,19 +49,12 @@ class ModelInspector(object):
 
     """ Inspect Django models."""
 
-    FIELD_TYPES = Choices(
-        ('own', 'OWN'),
-        ('to_one', 'TO_ONE'),
-        ('to_many', 'TO_MANY'),
-    )
-
     def inspect(self):
         self.models = {
             model: ModelInfo(
                 fields_own=self._get_fields_own(model),
                 fields_to_one=self._get_fields_self_foreign_key(model),
-                fields_to_many=self._get_fields_others_foreign_key(model) +
-                    self._get_fields_others_foreign_key(model)
+                fields_to_many=self._get_fields_others_foreign_key(model)
         ) for model in models.get_models()}
         # auth_user_model = get_user_model()
         # user_info = [m for m in mi.models if m.model is auth_user_model][0]
@@ -80,16 +85,23 @@ class ModelInspector(object):
 
     @classmethod
     def _get_fields_others_foreign_key(cls, model):
+        """ Get to-namy related field.
+
+        If related model has children, link current model only to related. Child
+        links make relationship complicated.
+
+        """
         fields = [
             Field(
                 name=field.rel.related_name or "{}_set".format(
-                    get_model_name(get_parent(related_model))),
+                    get_model_name(related_model)),
                 related_model=related_model,
                 category=Field.CATEGORIES.TO_MANY
             ) for related_model in models.get_models()
             for field in related_model._meta.fields
             if related_model != model and field.rel
             and field.rel.to == model and field.rel.multiple
+            and related_model is get_parent(related_model)
         ]
         return fields
 
