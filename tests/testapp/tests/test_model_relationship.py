@@ -1,6 +1,8 @@
 from django.test import TestCase
+from django.contrib.auth import get_user_model
 from jsonapi.api import API
 from jsonapi.resource import Resource
+from jsonapi.model_inspector import ModelInspector
 
 from ..models import (
     AAbstractOne, AAbstractManyToMany, AAbstract, AA, AOne, AManyToMany,
@@ -23,6 +25,7 @@ class TestResourceRelationship(TestCase):
             BMany=BMany,
             BManyToMany=BManyToMany,
             BProxy=BProxy,
+            User=get_user_model(),
         )
 
         self.resources = {
@@ -33,6 +36,14 @@ class TestResourceRelationship(TestCase):
             ) for classname, cls in self.classes.items()
             if not cls._meta.abstract
         }
+        self.model_inspector = ModelInspector()
+        self.model_inspector.inspect()
+
+    def test_model_User(self):
+        model_info = self.model_inspector.models[self.classes["User"]]
+        self.assertEqual(model_info.fields_to_one, [])
+        field_names = [f.name for f in model_info.fields_to_many]
+        self.assertEqual(len(field_names), len(set(field_names)))
 
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):
