@@ -52,6 +52,10 @@ class TestResourceRelationship(TestCase):
         self.assertEqual(len(model_info.fields_to_many), 3)
         self.assertTrue(set(model_info.fields_to_many) > set(expected_fields))
 
+    def test_model_aabstract(self):
+        self.assertFalse(
+            self.classes["AAbstract"] in self.model_inspector.models)
+
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):
             class AAbstractResource(Resource):
