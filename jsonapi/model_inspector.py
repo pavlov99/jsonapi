@@ -103,7 +103,8 @@ class ModelInspector(object):
             if related_model is not model and
             related_model is get_parent(related_model)
             for field in related_model._meta.fields
-            if field.rel and field.rel.to is model and field.rel.multiple
+            if field.rel and field.rel.to is model._meta.concrete_model and
+            field.rel.multiple
         ]
         return fields
 
@@ -130,6 +131,6 @@ class ModelInspector(object):
             if related_model is not model
             and related_model is get_parent(related_model)
             for field in related_model._meta.many_to_many
-            if field.rel.to is model
+            if field.rel.to is model._meta.concrete_model
         ]
         return fields

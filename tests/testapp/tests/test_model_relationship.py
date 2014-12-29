@@ -108,6 +108,7 @@ class TestResourceRelationship(TestCase):
 
     def test_model_b(self):
         model_info = self.model_inspector.models[self.classes["B"]]
+        proxy_model_info = self.model_inspector.models[self.classes["BProxy"]]
 
         expected_fields_own = {
             Field("id", Field.CATEGORIES.OWN, None),
@@ -137,6 +138,13 @@ class TestResourceRelationship(TestCase):
             set(model_info.fields_to_one), set(expected_fields_to_one))
         self.assertEqual(
             set(model_info.fields_to_many), set(expected_fields_to_many))
+
+        self.assertEqual(
+            set(proxy_model_info.fields_own), set(expected_fields_own))
+        self.assertEqual(
+            set(proxy_model_info.fields_to_one), set(expected_fields_to_one))
+        self.assertEqual(
+            set(proxy_model_info.fields_to_many), set(expected_fields_to_many))
 
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):
