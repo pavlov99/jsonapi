@@ -100,8 +100,7 @@ class ModelInspector(object):
                 related_model=related_model,
                 category=Field.CATEGORIES.TO_MANY
             ) for related_model in models.get_models()
-            if related_model is not model and
-            related_model is get_parent(related_model)
+            if related_model is get_parent(related_model)
             for field in related_model._meta.fields
             if field.rel and field.rel.to is model._meta.concrete_model and
             field.rel.multiple
