@@ -54,7 +54,8 @@ class ModelInspector(object):
             model: ModelInfo(
                 fields_own=self._get_fields_own(model),
                 fields_to_one=self._get_fields_self_foreign_key(model),
-                fields_to_many=self._get_fields_others_foreign_key(model)
+                fields_to_many=self._get_fields_others_foreign_key(model) +\
+                    self._get_fields_self_many_to_many(model)
         ) for model in models.get_models()}
         # auth_user_model = get_user_model()
         # user_info = [m for m in mi.models if m.model is auth_user_model][0]

@@ -49,7 +49,7 @@ class TestResourceRelationship(TestCase):
             Field("post_set", Field.CATEGORIES.TO_MANY, Post),
             Field("aa_set", Field.CATEGORIES.TO_MANY, self.classes["AA"]),
         }
-        self.assertEqual(len(model_info.fields_to_many), 3)
+        self.assertEqual(len(model_info.fields_to_many), 5)
         self.assertTrue(set(model_info.fields_to_many) > set(expected_fields))
 
     def test_model_aabstract(self):
