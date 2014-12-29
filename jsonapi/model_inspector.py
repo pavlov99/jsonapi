@@ -100,10 +100,10 @@ class ModelInspector(object):
                 related_model=related_model,
                 category=Field.CATEGORIES.TO_MANY
             ) for related_model in models.get_models()
+            if related_model is not model and
+            related_model is get_parent(related_model)
             for field in related_model._meta.fields
-            if related_model is not model and field.rel
-            and field.rel.to is model and field.rel.multiple
-            and related_model is get_parent(related_model)
+            if field.rel and field.rel.to is model and field.rel.multiple
         ]
         return fields
 
@@ -128,6 +128,7 @@ class ModelInspector(object):
                 category=Field.CATEGORIES.TO_MANY
             ) for related_model in models.get_models()
             if related_model is not model
+            and related_model is get_parent(related_model)
             for field in related_model._meta.many_to_many
             if field.rel.to is model
         ]

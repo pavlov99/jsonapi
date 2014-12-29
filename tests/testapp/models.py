@@ -20,11 +20,11 @@ All of the relationship for B class are defined in related classes
 There is no OneToMany relationship in Django, so there are no AMany
 and BOne classes.
 
-       AAbstractOne      AOne  BManyToMany
+       AAbstractOne      AOne  BManyToMany -> BManyToManyChild
             |              |        @
             |              |        |
             @              @        @
- User--@AAbstract => AA -> A -----> B ------ BProxy
+ User--@AAbstract => AA -> A -----> B ------- BProxy
             @              @        |
             |              |        |
             @              @        @
@@ -136,6 +136,10 @@ class BMany(models.Model):
 class BManyToMany(models.Model):
     field = models.IntegerField()
     bs = models.ManyToManyField(B, related_name="bmanytomanys")
+
+
+class BManyToManyChild(BManyToMany):
+    pass
 
 
 class BProxy(B):

@@ -6,7 +6,7 @@ from jsonapi.model_inspector import ModelInspector, Field
 
 from ..models import (
     AAbstractOne, AAbstractManyToMany, AAbstract, AA, AOne, AManyToMany,
-    A, B, BMany, BManyToMany, BProxy, Post
+    A, B, BMany, BManyToMany, BProxy, Post, BManyToManyChild
 )
 
 
@@ -24,6 +24,7 @@ class TestResourceRelationship(TestCase):
             B=B,
             BMany=BMany,
             BManyToMany=BManyToMany,
+            BManyToManyChild=BManyToManyChild,
             BProxy=BProxy,
             User=get_user_model(),
         )
