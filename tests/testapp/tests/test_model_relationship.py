@@ -105,6 +105,38 @@ class TestResourceRelationship(TestCase):
         self.assertEqual(
             set(model_info.fields_to_many), set(expected_fields_to_many))
 
+    def test_model_b(self):
+        model_info = self.model_inspector.models[self.classes["B"]]
+
+        expected_fields_own = {
+            Field("id", Field.CATEGORIES.OWN, None),
+            Field("field_abstract", Field.CATEGORIES.OWN, None),
+            Field("field_a", Field.CATEGORIES.OWN, None),
+            Field("field_b", Field.CATEGORIES.OWN, None),
+        }
+        expected_fields_to_one = {
+            Field("user", Field.CATEGORIES.TO_ONE, self.classes["User"]),
+            Field("a_abstract_one", Field.CATEGORIES.TO_ONE,
+                  self.classes["AAbstractOne"]),
+            Field("a_one", Field.CATEGORIES.TO_ONE,
+                  self.classes["AOne"]),
+        }
+        expected_fields_to_many = {
+            Field("a_abstract_many_to_manys", Field.CATEGORIES.TO_MANY,
+                  self.classes["AAbstractManyToMany"]),
+            Field("a_many_to_manys", Field.CATEGORIES.TO_MANY,
+                  self.classes["AManyToMany"]),
+            Field("bmanys", Field.CATEGORIES.TO_MANY,
+                  self.classes["BMany"]),
+            Field("bmanytomanys", Field.CATEGORIES.TO_MANY,
+                  self.classes["BManyToMany"]),
+        }
+        self.assertEqual(set(model_info.fields_own), set(expected_fields_own))
+        self.assertEqual(
+            set(model_info.fields_to_one), set(expected_fields_to_one))
+        self.assertEqual(
+            set(model_info.fields_to_many), set(expected_fields_to_many))
+
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):
             class AAbstractResource(Resource):
