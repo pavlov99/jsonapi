@@ -57,6 +57,34 @@ class TestResourceRelationship(TestCase):
         self.assertFalse(
             self.classes["AAbstract"] in self.model_inspector.models)
 
+    def test_model_aabstractone(self):
+        model_info = self.model_inspector.models[self.classes["AAbstractOne"]]
+        expected_fields_own = {
+            Field("id", Field.CATEGORIES.OWN, None),
+            Field("field", Field.CATEGORIES.OWN, None),
+        }
+        expected_fields_to_many = {
+            Field("aa_set", Field.CATEGORIES.TO_MANY, self.classes["AA"]),
+        }
+        self.assertEqual(set(model_info.fields_own), expected_fields_own)
+        self.assertEqual(model_info.fields_to_one, [])
+        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+
+    def test_model_aabstractmanytomany(self):
+        model_info = self.model_inspector.models[
+            self.classes["AAbstractManyToMany"]]
+        expected_fields_own = {
+            Field("id", Field.CATEGORIES.OWN, None),
+            Field("field", Field.CATEGORIES.OWN, None),
+        }
+        expected_fields_to_many = {
+            Field("testapp_aa_related", Field.CATEGORIES.TO_MANY,
+                  self.classes["AA"]),
+        }
+        self.assertEqual(set(model_info.fields_own), expected_fields_own)
+        self.assertEqual(model_info.fields_to_one, [])
+        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+
     def test_model_aa(self):
         model_info = self.model_inspector.models[self.classes["AA"]]
 
@@ -105,6 +133,32 @@ class TestResourceRelationship(TestCase):
             set(model_info.fields_to_one), set(expected_fields_to_one))
         self.assertEqual(
             set(model_info.fields_to_many), set(expected_fields_to_many))
+
+    def test_model_aone(self):
+        model_info = self.model_inspector.models[self.classes["AOne"]]
+        expected_fields_own = {
+            Field("id", Field.CATEGORIES.OWN, None),
+            Field("field", Field.CATEGORIES.OWN, None),
+        }
+        expected_fields_to_many = {
+            Field("a_set", Field.CATEGORIES.TO_MANY, self.classes["A"]),
+        }
+        self.assertEqual(set(model_info.fields_own), expected_fields_own)
+        self.assertEqual(model_info.fields_to_one, [])
+        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+
+    def test_model_amanytomany(self):
+        model_info = self.model_inspector.models[self.classes["AManyToMany"]]
+        expected_fields_own = {
+            Field("id", Field.CATEGORIES.OWN, None),
+            Field("field", Field.CATEGORIES.OWN, None),
+        }
+        expected_fields_to_many = {
+            Field("a_set", Field.CATEGORIES.TO_MANY, self.classes["A"]),
+        }
+        self.assertEqual(set(model_info.fields_own), expected_fields_own)
+        self.assertEqual(model_info.fields_to_one, [])
+        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
 
     def test_model_b(self):
         model_info = self.model_inspector.models[self.classes["B"]]
