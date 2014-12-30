@@ -1,12 +1,22 @@
 from collections import namedtuple
 from django.db import models
+from django.contrib.auth import get_user_model
 from .utils import Choices
 from .django_utils import get_model_name, get_model_by_name
 
 
-ModelInfo = namedtuple("ModelInfo", [
-    "fields_own", "fields_to_one", "fields_to_many"
-])
+class ModelInfo(object):
+
+    def __init__(self, fields_own=None, fields_to_one=None,
+                 fields_to_many=None, auth_user_paths=None):
+        self.fields_own = fields_own or []
+        self.fields_to_one = fields_to_one or []
+        self.fields_to_many = fields_to_many or []
+        self.auth_user_paths = auth_user_paths or []
+
+    @property
+    def relation_fields(self):
+        return self.fields_to_one + self.fields_to_many
 
 
 class Field(object):
@@ -58,8 +68,8 @@ class ModelInspector(object):
                     self._get_fields_self_many_to_many(model) +\
                     self._get_fields_others_many_to_many(model)
         ) for model in models.get_models()}
-        # auth_user_model = get_user_model()
-        # user_info = [m for m in mi.models if m.model is auth_user_model][0]
+        self.models[get_user_model()].auth_user_paths = ['']
+        self._update_auth_user_paths()
 
     @classmethod
     def _filter_child_model_fields(cls, fields):
@@ -163,3 +173,32 @@ class ModelInspector(object):
         ]
         fields = cls._filter_child_model_fields(fields)
         return fields
+
+    def _update_auth_user_paths(self):
+        paths = [[get_user_model()]]
+
+        while paths:
+            current_paths = paths
+            paths = []
+            for current_path in current_paths:
+                current_model = current_path[-1]
+                current_model_name = get_model_name(current_model)
+                current_model_info = self.models[current_model]
+
+                for field in current_model_info.relation_fields:
+                    related_model = field.related_model
+
+                    if related_model in current_path:
+                        # NOTE: cycle detected.
+                        continue
+
+                    related_model_info = self.models[related_model]
+                    related_model_info.auth_user_paths.extend([
+                        current_model_name + ("__" + p if p else "")
+                        for p in current_model_info.auth_user_paths
+                        if current_model_name not in p
+                    ])
+                    related_model_info.auth_user_paths = list(set(
+                        related_model_info.auth_user_paths))
+
+                    paths.append(current_path + [related_model])

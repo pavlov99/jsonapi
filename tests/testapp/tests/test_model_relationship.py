@@ -70,6 +70,9 @@ class TestResourceRelationship(TestCase):
         self.assertEqual(model_info.fields_to_one, [])
         self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
 
+        expected_auth_user_paths = ["aa__user",]
+        self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
+
     def test_model_aabstractmanytomany(self):
         model_info = self.model_inspector.models[
             self.classes["AAbstractManyToMany"]]
@@ -84,6 +87,9 @@ class TestResourceRelationship(TestCase):
         self.assertEqual(set(model_info.fields_own), expected_fields_own)
         self.assertEqual(model_info.fields_to_one, [])
         self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+
+        expected_auth_user_paths = ["aa__user",]
+        self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
 
     def test_model_aa(self):
         model_info = self.model_inspector.models[self.classes["AA"]]
@@ -106,6 +112,9 @@ class TestResourceRelationship(TestCase):
             set(model_info.fields_to_one), set(expected_fields_to_one))
         self.assertEqual(
             set(model_info.fields_to_many), set(expected_fields_to_many))
+
+        expected_auth_user_paths = ["user",]
+        self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
 
     def test_model_a(self):
         model_info = self.model_inspector.models[self.classes["A"]]
