@@ -62,6 +62,35 @@ class ModelInspector(object):
         # user_info = [m for m in mi.models if m.model is auth_user_model][0]
 
     @classmethod
+    def _filter_child_model_fields(cls, fields):
+        """ Keep only related model fields.
+
+        Example: Inherited models: A -> B -> C
+        B has one-to-many relationship to BMany.
+        after inspection BMany would have links to B and C. Keep only B. Parent
+        model A could not be used (It would not be in fields)
+
+        :param list fields: model fields.
+        :return list fields: filtered fields.
+
+        """
+        indexes_to_remove = set([])
+        for index1, field1 in enumerate(fields):
+            for index2, field2 in enumerate(fields):
+                if index1 < index2 and index1 not in indexes_to_remove and\
+                        index2 not in indexes_to_remove:
+                    if issubclass(field1.related_model, field2.related_model):
+                        indexes_to_remove.add(index1)
+
+                    if issubclass(field2.related_model, field1.related_model):
+                        indexes_to_remove.add(index2)
+
+        fields = [field for index, field in enumerate(fields)
+                  if index not in indexes_to_remove]
+
+        return fields
+
+    @classmethod
     def _get_fields_own(cls, model):
         fields = [
             Field(
@@ -100,11 +129,12 @@ class ModelInspector(object):
                 related_model=related_model,
                 category=Field.CATEGORIES.TO_MANY
             ) for related_model in models.get_models()
-            if related_model is get_parent(related_model)
+            if not related_model._meta.proxy
             for field in related_model._meta.fields
             if field.rel and field.rel.to is model._meta.concrete_model and
             field.rel.multiple
         ]
+        fields = cls._filter_child_model_fields(fields)
         return fields
 
     @classmethod
@@ -128,8 +158,8 @@ class ModelInspector(object):
                 category=Field.CATEGORIES.TO_MANY
             ) for related_model in models.get_models()
             if related_model is not model
-            and related_model is get_parent(related_model)
             for field in related_model._meta.many_to_many
             if field.rel.to is model._meta.concrete_model
         ]
+        fields = cls._filter_child_model_fields(fields)
         return fields
