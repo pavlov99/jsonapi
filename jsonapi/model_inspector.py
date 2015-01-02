@@ -1,18 +1,18 @@
-from collections import namedtuple
 from django.db import models
 from django.contrib.auth import get_user_model
 from .utils import Choices
-from .django_utils import get_model_name, get_model_by_name
+from .django_utils import get_model_name
 
 
 class ModelInfo(object):
 
-    def __init__(self, fields_own=None, fields_to_one=None,
-                 fields_to_many=None, auth_user_paths=None):
+    def __init__(self, fields_own=None, fields_to_one=None, fields_to_many=None,
+                 auth_user_paths=None, is_user=None):
         self.fields_own = fields_own or []
         self.fields_to_one = fields_to_one or []
         self.fields_to_many = fields_to_many or []
         self.auth_user_paths = auth_user_paths or []
+        self.is_user = is_user
 
     @property
     def relation_fields(self):
@@ -20,6 +20,20 @@ class ModelInfo(object):
 
 
 class Field(object):
+
+    """ Field information.
+
+    is_bidirectional is True if related model has reference to current model as
+    well.
+
+    Example:
+    A -@ B -> BChild
+
+    A has reference to B, but not BChild, but both B and BChild have reference
+    to A. A to B fields are bidirectional, BChild to A field is not
+    bidirectional.
+
+    """
 
     CATEGORIES = Choices(
         ('own', 'OWN'),
@@ -31,6 +45,7 @@ class Field(object):
         self.name = name
         self.related_model = related_model
         self.category = category
+        self.is_bidirectional = None
 
     def query_name(self):
         """ Get field name used in queries."""
@@ -60,16 +75,25 @@ class ModelInspector(object):
     """ Inspect Django models."""
 
     def inspect(self):
+        user_model = get_user_model()
+
         self.models = {
             model: ModelInfo(
                 fields_own=self._get_fields_own(model),
                 fields_to_one=self._get_fields_self_foreign_key(model),
-                fields_to_many=self._get_fields_others_foreign_key(model) +\
-                    self._get_fields_self_many_to_many(model) +\
-                    self._get_fields_others_many_to_many(model)
-        ) for model in models.get_models()}
-        self.models[get_user_model()].auth_user_paths = ['']
-        self._update_auth_user_paths()
+                fields_to_many=self._get_fields_others_foreign_key(model) +
+                self._get_fields_self_many_to_many(model) +
+                self._get_fields_others_many_to_many(model),
+                is_user=(model is user_model or issubclass(model, user_model))
+            ) for model in models.get_models()
+        }
+
+        self._update_bidirectional_fields()
+        for model, model_info in self.models.items():
+            if model_info.is_user:
+                model_info.auth_user_paths = ['']
+            else:
+                self._update_auth_user_paths_model(model)
 
     @classmethod
     def _filter_child_model_fields(cls, fields):
@@ -174,15 +198,24 @@ class ModelInspector(object):
         fields = cls._filter_child_model_fields(fields)
         return fields
 
-    def _update_auth_user_paths(self):
-        paths = [[get_user_model()]]
+    def _update_bidirectional_fields(self):
+        for model, model_info in self.models.items():
+            for field in model_info.relation_fields:
+                related_model = field.related_model
+                related_model_info = self.models[related_model]
+                for related_model_field in related_model_info.relation_fields:
+                    if related_model_field.related_model is model:
+                        field.is_bidirectional = True
+
+    def _update_auth_user_paths_model(self, model):
+        paths = [[model]]
 
         while paths:
             current_paths = paths
             paths = []
+
             for current_path in current_paths:
                 current_model = current_path[-1]
-                current_model_name = get_model_name(current_model)
                 current_model_info = self.models[current_model]
 
                 for field in current_model_info.relation_fields:
@@ -192,13 +225,12 @@ class ModelInspector(object):
                         # NOTE: cycle detected.
                         continue
 
+                    # if related model is user model, add it.
                     related_model_info = self.models[related_model]
-                    related_model_info.auth_user_paths.extend([
-                        current_model_name + ("__" + p if p else "")
-                        for p in current_model_info.auth_user_paths
-                        if current_model_name not in p
-                    ])
-                    related_model_info.auth_user_paths = list(set(
-                        related_model_info.auth_user_paths))
+                    path = current_path + [related_model]
 
-                    paths.append(current_path + [related_model])
+                    if related_model_info.is_user:
+                        self.models[model].auth_user_paths.append(
+                            "__".join([get_model_name(m) for m in path[1:]]))
+                    else:
+                        paths.append(path)
