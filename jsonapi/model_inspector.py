@@ -88,7 +88,6 @@ class ModelInspector(object):
             ) for model in models.get_models()
         }
 
-        self._update_bidirectional_fields()
         for model, model_info in self.models.items():
             if model_info.is_user:
                 model_info.auth_user_paths = ['']
@@ -198,15 +197,6 @@ class ModelInspector(object):
         fields = cls._filter_child_model_fields(fields)
         return fields
 
-    def _update_bidirectional_fields(self):
-        for model, model_info in self.models.items():
-            for field in model_info.relation_fields:
-                related_model = field.related_model
-                related_model_info = self.models[related_model]
-                for related_model_field in related_model_info.relation_fields:
-                    if related_model_field.related_model is model:
-                        field.is_bidirectional = True
-
     def _update_auth_user_paths_model(self, model):
         # (field from previous model, related field of this model, model)
         paths = [[(None, None, model)]]
@@ -236,7 +226,8 @@ class ModelInspector(object):
                         if (related_related_model is current_model or
                             issubclass(current_model, related_related_model)) \
                             and (current_model, field) not in used_links \
-                            and (related_model, related_field) not in used_links:
+                            and (related_model, related_field) not in \
+                                used_links:
 
                             path = current_path + [
                                 (field, related_field, related_model)]
