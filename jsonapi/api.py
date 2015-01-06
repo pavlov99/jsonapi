@@ -28,6 +28,7 @@ import json
 
 from . import statuses
 from .utils import Choices
+from .model_inspector import ModelInspector
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,8 @@ class API(object):
         self._resources = []
         self.base_url = None  # base server url
         self.api_url = None  # api root url
+        self.model_inspector = ModelInspector()
+        self.model_inspector.inspect()
 
     @property
     def resource_map(self):
