@@ -70,7 +70,8 @@ class TestResourceRelationship(TestCase):
         }
         self.assertEqual(set(model_info.fields_own), expected_fields_own)
         self.assertEqual(model_info.fields_to_one, [])
-        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+        self.assertEqual(set(model_info.fields_to_many),
+                         expected_fields_to_many)
 
         expected_auth_user_paths = ["aa__user"]
         self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
@@ -88,7 +89,8 @@ class TestResourceRelationship(TestCase):
         }
         self.assertEqual(set(model_info.fields_own), expected_fields_own)
         self.assertEqual(model_info.fields_to_one, [])
-        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+        self.assertEqual(set(model_info.fields_to_many),
+                         expected_fields_to_many)
 
         expected_auth_user_paths = ["aa__user"]
         self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
@@ -121,7 +123,6 @@ class TestResourceRelationship(TestCase):
     def test_model_a(self):
         model_info = self.model_inspector.models[self.classes["A"]]
 
-        import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
         expected_fields_own = {
             Field("id", Field.CATEGORIES.OWN, None),
             Field("field_abstract", Field.CATEGORIES.OWN, None),
@@ -160,7 +161,8 @@ class TestResourceRelationship(TestCase):
         }
         self.assertEqual(set(model_info.fields_own), expected_fields_own)
         self.assertEqual(model_info.fields_to_one, [])
-        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+        self.assertEqual(set(model_info.fields_to_many),
+                         expected_fields_to_many)
 
         expected_auth_user_paths = ["a__user"]
         self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
@@ -176,7 +178,8 @@ class TestResourceRelationship(TestCase):
         }
         self.assertEqual(set(model_info.fields_own), expected_fields_own)
         self.assertEqual(model_info.fields_to_one, [])
-        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+        self.assertEqual(set(model_info.fields_to_many),
+                         expected_fields_to_many)
 
         expected_auth_user_paths = ["a__user"]
         self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
@@ -221,7 +224,7 @@ class TestResourceRelationship(TestCase):
         self.assertEqual(
             set(proxy_model_info.fields_to_many), set(expected_fields_to_many))
 
-        expected_auth_user_paths = ["a__user"]
+        expected_auth_user_paths = ["user"]
         self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
         self.assertEqual(
             proxy_model_info.auth_user_paths, expected_auth_user_paths)
@@ -238,7 +241,10 @@ class TestResourceRelationship(TestCase):
         expected_fields_to_many = set({})
         self.assertEqual(set(model_info.fields_own), expected_fields_own)
         self.assertEqual(set(model_info.fields_to_one), expected_fields_to_one)
-        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+        self.assertEqual(set(model_info.fields_to_many),
+                         expected_fields_to_many)
+        expected_auth_user_paths = ["b__user"]
+        self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
 
     def test_model_bmanytomany(self):
         model_info = self.model_inspector.models[self.classes["BManyToMany"]]
@@ -252,10 +258,14 @@ class TestResourceRelationship(TestCase):
         }
         self.assertEqual(set(model_info.fields_own), expected_fields_own)
         self.assertEqual(set(model_info.fields_to_one), expected_fields_to_one)
-        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+        self.assertEqual(set(model_info.fields_to_many),
+                         expected_fields_to_many)
+        expected_auth_user_paths = ["b__user"]
+        self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
 
     def test_model_bmanytomanychild(self):
-        model_info = self.model_inspector.models[self.classes["BManyToManyChild"]]
+        model_info = self.model_inspector.models[
+            self.classes["BManyToManyChild"]]
         expected_fields_own = {
             Field("id", Field.CATEGORIES.OWN, None),
             Field("field", Field.CATEGORIES.OWN, None),
@@ -266,7 +276,10 @@ class TestResourceRelationship(TestCase):
         }
         self.assertEqual(set(model_info.fields_own), expected_fields_own)
         self.assertEqual(set(model_info.fields_to_one), expected_fields_to_one)
-        self.assertEqual(set(model_info.fields_to_many), expected_fields_to_many)
+        self.assertEqual(set(model_info.fields_to_many),
+                         expected_fields_to_many)
+        expected_auth_user_paths = ["b__user"]
+        self.assertEqual(model_info.auth_user_paths, expected_auth_user_paths)
 
     def test_abstract_model_resource(self):
         with self.assertRaises(ValueError):

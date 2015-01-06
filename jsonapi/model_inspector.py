@@ -208,29 +208,43 @@ class ModelInspector(object):
                         field.is_bidirectional = True
 
     def _update_auth_user_paths_model(self, model):
-        paths = [[model]]
+        # (field from previous model, related field of this model, model)
+        paths = [[(None, None, model)]]
 
         while paths:
             current_paths = paths
             paths = []
 
             for current_path in current_paths:
-                current_model = current_path[-1]
+                current_model = current_path[-1][-1]
                 current_model_info = self.models[current_model]
+
+                # NOTE: calculate used models links. Link is defined by model
+                # and field used.
+                used_links = set()
+                for node1, node2 in zip(current_path[:-1], current_path[1:]):
+                    used_links.add((node1[2], node1[1]))
+                    used_links.add((node2[2], node2[1]))
+                    used_links.add((node1[2], node2[0]))
 
                 for field in current_model_info.relation_fields:
                     related_model = field.related_model
-
-                    if related_model in current_path:
-                        # NOTE: cycle detected.
-                        continue
-
-                    # if related model is user model, add it.
                     related_model_info = self.models[related_model]
-                    path = current_path + [related_model]
 
-                    if related_model_info.is_user:
-                        self.models[model].auth_user_paths.append(
-                            "__".join([get_model_name(m) for m in path[1:]]))
-                    else:
-                        paths.append(path)
+                    for related_field in related_model_info.relation_fields:
+                        related_related_model = related_field.related_model
+                        if (related_related_model is current_model or
+                            issubclass(current_model, related_related_model)) \
+                            and (current_model, field) not in used_links \
+                            and (related_model, related_field) not in used_links:
+
+                            path = current_path + [
+                                (field, related_field, related_model)]
+
+                            if related_model_info.is_user:
+                                self.models[model].auth_user_paths.append(
+                                    "__".join([
+                                        get_model_name(p[2]) for p in path[1:]
+                                    ]))
+                            else:
+                                paths.append(path)
