@@ -351,7 +351,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         queryset = cls.Meta.model.objects
 
         if cls.Meta.authenticators:
-            model_info = cls.Meta.api.model_inspector[cls.Meta.model]
+            model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
             user_filter = models.Q()
             for path in model_info.auth_user_paths:
                 querydict = {path: user} if path else {"id": user.id}
