@@ -5,6 +5,7 @@ Utils are used to work with different django versions.
 """
 import django
 from django.db import models
+from django.http import QueryDict
 from . import six
 
 
@@ -58,3 +59,10 @@ def clear_app_cache(app_name):
         loading_cache.app_models[app_name].clear()
     else:
         loading_cache.all_models[app_name].clear()
+
+
+def get_querydict(query):
+    if six.PY2:
+        return dict(QueryDict(query).iterlists())
+    else:
+        return dict(QueryDict(query).lists())

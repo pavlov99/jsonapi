@@ -1,10 +1,7 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from jsonapi.resource import Resource
-from mock import patch
-import unittest
-
-from .models import CustomUser, A, AChild
+from .models import A, AChild
 
 
 class TestResourceMeta(TestCase):
@@ -47,26 +44,3 @@ class TestResourceMeta(TestCase):
     def test_resource_model(self):
         self.assertEqual(self.AResource.Meta.model, A)
         self.assertFalse(hasattr(self.BResource.Meta, "model"))
-
-    def test_is_auth_user(self):
-        self.assertFalse(self.AResource.Meta.is_auth_user)
-        self.assertTrue(self.UserResource.Meta.is_auth_user)
-
-    @unittest.skip("FIXME: fix patch")
-    def test_is_auth_user_inheritance(self):
-        class CustomUserResource(Resource):
-            class Meta:
-                model = CustomUser
-
-        self.assertTrue(self.UserResource.Meta.is_auth_user)
-        self.assertFalse(CustomUserResource.Meta.is_auth_user)
-
-        with patch('jsonapi.django_utils.get_model_by_name',
-                   return_value=CustomUser):
-            self.assertTrue(CustomUserResource.Meta.is_auth_user)
-            self.assertFalse(self.UserResource.Meta.is_auth_user)
-
-    def test_is_inherited(self):
-        self.assertFalse(self.AResource.Meta.is_inherited)
-        self.assertFalse(self.UserResource.Meta.is_inherited)
-        self.assertTrue(self.AChildResource.Meta.is_inherited)

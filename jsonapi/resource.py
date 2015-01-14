@@ -166,15 +166,6 @@ class Resource(Serializer, Deserializer, Authenticator):
         def name_plural(cls):
             return "{0}s".format(cls.name)
 
-        @classproperty
-        def is_auth_user(cls):
-            auth_user_model = get_model_by_name(settings.AUTH_USER_MODEL)
-            return cls.model is auth_user_model
-
-        @classproperty
-        def is_inherited(cls):
-            is_base = (cls.model.mro()[1] is models.Model) or cls.is_auth_user
-            return not is_base
 
     @classmethod
     def _get_fields_own(cls, model):
@@ -341,46 +332,7 @@ class Resource(Serializer, Deserializer, Authenticator):
         }
 
     @classmethod
-    def __generate_user_resource_paths(cls, paths):
-        if all(p[-1].Meta.is_auth_user for p in paths):
-            return paths
-
-        next_paths = []
-        for path in paths:
-            if path[-1].Meta.is_auth_user:
-                next_paths.append(path)
-            else:
-                for field_info in path[-1].fields.values():
-                    next_resource = field_info["related_resource"]
-                    if next_resource is not None and next_resource not in path \
-                            and not next_resource.Meta.is_inherited:
-                        next_paths.append(path + [next_resource])
-        return cls.__generate_user_resource_paths(next_paths)
-
-    @classproperty
-    def _auth_user_resource_paths(cls):
-        """ Return information about AUTH_USER relation.
-
-        :return Nont: for AUTH_USER resource
-        :return list paths: List of paths to user resource.
-            Each path is a list of visited resources.
-
-        """
-        if cls.Meta.is_auth_user:
-            return None
-
-        paths = cls.__generate_user_resource_paths([[cls]])
-        # NOTE: current model is not included into query, so first element of
-        # path is not included.
-        result = [
-            "__".join([
-                get_model_name(resource.Meta.model) for resource in path[1:]
-            ]) for path in paths
-        ]
-        return result
-
-    @classmethod
-    def get_queryset(cls, request=None, **kwargs):
+    def get_queryset(cls, user=None, **kwargs):
         """ Get objects queryset.
 
         Method is used to generate objects queryset for resource operations.
@@ -399,17 +351,13 @@ class Resource(Serializer, Deserializer, Authenticator):
         queryset = cls.Meta.model.objects
 
         if cls.Meta.authenticators:
-            user = cls.authenticate(request)
-            auth_user_resource_paths = cls._auth_user_resource_paths
-            if auth_user_resource_paths is None:
-                # Resource is user
-                queryset = queryset.filter(id=user.id)
-            else:
-                user_filter = models.Q()
-                for path in auth_user_resource_paths:
-                    user_filter = user_filter | models.Q(**{path: user})
+            model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+            user_filter = models.Q()
+            for path in model_info.auth_user_paths:
+                querydict = {path: user} if path else {"id": user.id}
+                user_filter = user_filter | models.Q(**querydict)
 
-                queryset = queryset.filter(user_filter)
+            queryset = queryset.filter(user_filter)
 
         return queryset
 
@@ -420,7 +368,8 @@ class Resource(Serializer, Deserializer, Authenticator):
         :return str: resource
 
         """
-        queryset = cls.get_queryset(request=request, **kwargs)
+        user = cls.authenticate(request)
+        queryset = cls.get_queryset(user=user, **kwargs)
 
         filters = {
             k: v for k, v in kwargs.items()

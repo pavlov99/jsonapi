@@ -31,15 +31,25 @@
     :target: https://pypi.python.org/pypi/jsonapi/
     :alt: Development Status
 
-
-Task board:
+Development
+===========
 
 .. image:: https://badge.waffle.io/pavlov99/jsonapi.png?label=ready&title=Ready
     :target: https://waffle.io/pavlov99/jsonapi/
     :alt: Ready stories.
 
 
-Documentation: http://jsonapi.readthedocs.org/
+Throughput Graph
+----------------
 
-Root docs (api docs)
-Specification: http://jsonapi.org/
+.. image:: https://graphs.waffle.io/pavlov99/jsonapi/throughput.svg
+    :target: https://waffle.io/pavlov99/jsonapi/metrics
+    :alt: 'Throughput Graph'
+
+
+Documentation
+=============
+
+Library: http://jsonapi.readthedocs.org/
+
+Api Specification: http://jsonapi.org/

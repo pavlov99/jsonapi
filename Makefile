@@ -63,6 +63,11 @@ shell:
 install:
 	$(PYTHON) setup.py install
 
+.PHONY: graph_models
+# target: graph_models - graph models
+graph_models: $(ENV)
+	$(DJANGO_ADMIN) graph_models --output=models.png $(PARAMS_DEV) testapp
+
 .PHONY: docs
 # target: docs - build documentation
 docs:
