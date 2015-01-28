@@ -132,4 +132,4 @@ class TestRequestParser(TestCase):
         query = "a=1&b__in=[1,2]&c__gt=0&fields=a&sort=b&include=c&page=1"
         result = RequestParser.parse(query)
         self.assertEqual(
-            set(result["filters"]), {"a=1", "b__in=[1,2]", "c__gt=0"})
+            result["filters"], {"a": "1", "b__in": "[1,2]", "c__gt": "0"})

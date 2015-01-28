@@ -44,7 +44,7 @@ class RequestParser(object):
         include_params, querydict = cls.parse_include(querydict)
         page, querydict = cls.parse_page(querydict)
         fields_params, querydict = cls.parse_fields(querydict)
-        filters = ["{}={}".format(k, v[0]) for k, v in querydict.items()]
+        filters = {k: v[0] for k, v in querydict.items()}
 
         result = {
             "sort": sort_params,

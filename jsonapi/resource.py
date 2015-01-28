@@ -370,12 +370,9 @@ class Resource(Serializer, Deserializer, Authenticator):
         """
         user = cls.authenticate(request)
         queryset = cls.get_queryset(user=user, **kwargs)
+        print(kwargs)
 
-        filters = {
-            k: v for k, v in kwargs.items()
-            if k not in cls.RESERVED_GET_PARAMS
-            # k in cls.fields_own
-        }
+        filters = kwargs.get("filters", {})
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
@@ -383,12 +380,12 @@ class Resource(Serializer, Deserializer, Authenticator):
 
         # Sort
         if 'sort' in kwargs:
-            queryset = queryset.order_by(*kwargs['sort'].split(","))
+            queryset = queryset.order_by(*kwargs['sort'])
 
         # Fields serialisation
         fields = cls.fields_own
         if 'fields' in kwargs:
-            fieldnames = kwargs['fields'].split(",")
+            fieldnames = kwargs['fields']
             fieldnames.append("id")  # add id to fieldset
             fields = {
                 name: value for name, value in fields.items()

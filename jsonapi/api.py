@@ -29,6 +29,7 @@ import json
 from . import statuses
 from .utils import Choices
 from .model_inspector import ModelInspector
+from .request_parser import RequestParser
 
 logger = logging.getLogger(__name__)
 
@@ -179,13 +180,6 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        # content_type = request.META.get('content_type') or \
-            # request.META.get('CONTENT_TYPE')
-        # if content_type != API.CONTENT_TYPE:
-            # msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
-            # return HttpResponse(
-                # msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
-
         self.update_urls(request)
         resource_info = {
             "resources": [{
@@ -200,6 +194,29 @@ class API(object):
         response = json.dumps(resource_info)
         return HttpResponse(response, content_type="application/vnd.api+json")
 
+    def handler_view_get(self, resource, **kwargs):
+        items = json.dumps(
+            resource.get(**kwargs),
+            cls=resource.Meta.encoder
+        )
+        return HttpResponse(items, content_type=self.CONTENT_TYPE)
+
+    def handler_view_post(self, resource, data, **kwargs):
+        response = resource.create(data, **kwargs)
+        return HttpResponse(
+            response, content_type=self.CONTENT_TYPE, status=201)
+
+    def handler_view_put(self, resource, **kwargs):
+        pass
+
+    def handler_view_delete(self, resource, **kwargs):
+        if 'ids' not in kwargs:
+            return HttpResponse("Resource ids not specified", status=404)
+
+        response = resource.delete(**kwargs)
+        return HttpResponse(
+            response, content_type=self.CONTENT_TYPE, status=204)
+
     def handler_view(self, request, resource_name, ids=None):
         """ Handler for resources.
 
@@ -209,13 +226,6 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        # content_type = request.META.get('content_type') or \
-            # request.META.get('CONTENT_TYPE')
-        # if content_type != API.CONTENT_TYPE:
-            # msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
-            # return HttpResponse(
-                # msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
-
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
 
@@ -232,25 +242,17 @@ class API(object):
             if user is None or not user.is_authenticated():
                 return HttpResponse("Not Authenticated", status=404)
 
-        kwargs = dict(request=request)
+        queryargs = RequestParser.parse(
+            "&".join(["=".join(i) for i in request.GET.items()])
+        )
+        kwargs = dict(request=request, queryargs=queryargs)
         if ids is not None:
             kwargs['ids'] = ids.split(",")
 
         if request.method == "GET":
-            kwargs.update(request.GET.dict())
-
-            items = json.dumps(
-                resource.get(**kwargs), cls=resource.Meta.encoder)
-            return HttpResponse(items, content_type=self.CONTENT_TYPE)
+            return self.handler_view_get(resource, **kwargs)
         elif request.method == "POST":
             data = request.body.decode('utf8')
-            response = resource.create(data, **kwargs)
-            return HttpResponse(
-                response, content_type=self.CONTENT_TYPE, status=201)
+            return self.handler_view_post(resource, data, **kwargs)
         elif request.method == "DELETE":
-            if ids is None:
-                return HttpResponse("Resource ids not specified", status=404)
-
-            response = resource.delete(**kwargs)
-            return HttpResponse(
-                response, content_type=self.CONTENT_TYPE, status=204)
+            return self.handler_view_delete(resource, **kwargs)
