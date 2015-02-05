@@ -5,12 +5,13 @@ from ..models import Author
 class TestApiClient(TestCase):
     def test_create_model(self):
         self.assertEqual(Author.objects.count(), 0)
+        # NOTE: send individual resource
         response = self.client.post(
             '/api/author',
             {
-                "authors": [
-                    {"name": "author"},
-                ]
+                "authors": {
+                    "name": "author"
+                },
             },
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -23,6 +24,7 @@ class TestApiClient(TestCase):
     def test_create_models(self):
         self.assertEqual(Author.objects.count(), 0)
         # TODO: try to decrease number of queries
+        # NOTE: send resource collection
         with self.assertNumQueries(3):
             response = self.client.post(
                 '/api/author',

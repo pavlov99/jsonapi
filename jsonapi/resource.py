@@ -34,6 +34,7 @@ from . import six
 import inspect
 import logging
 from django.core.paginator import Paginator
+from django.forms import ModelForm
 from django.db import models
 
 from .utils import classproperty
@@ -189,6 +190,19 @@ class Resource(Serializer, Authenticator):
         return queryset
 
     @classmethod
+    def get_form(cls, fields=None):
+        """ Create Partial Form based on given fields.
+
+        :param list fields: list of field names.
+
+        """
+        meta_attributes = {"model": cls.Meta.model, "fields": fields or '__all__'}
+        Form = type('Form', (ModelForm,), {
+            "Meta": type('Meta', (object,), meta_attributes)
+        })
+        return Form
+
+    @classmethod
     def get(cls, request=None, **kwargs):
         """ Get resource http response.
 
@@ -252,16 +266,36 @@ class Resource(Serializer, Authenticator):
 
     @classmethod
     def create(cls, request=None, **kwargs):
-        documents = kwargs['documents']
-        data = cls.load_documents(documents)
+        import ast
+        jdata = request.body.decode('utf8')
+        data = ast.literal_eval(jdata)
         items = data[cls.Meta.name_plural]
+        is_collection = isinstance(items, list)
 
-        models = []
+        if not is_collection:
+            items = [items]
+
+        objects = []
+        Form = cls.get_form()
         for item in items:
-            form = cls.Meta.form(item)
-            models.append(form.save())
+            form = Form(item)
+            objects.append(form.save())
 
-        return models
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        data = [
+            cls.dump_document(
+                m,
+                fields_own=model_info.fields_own,
+                fields_to_one=model_info.fields_to_one,
+            )
+            for m in objects
+        ]
+
+        if not is_collection:
+            data = data[0]
+
+        response = {cls.Meta.name_plural: data}
+        return response
 
     @classmethod
     def delete(cls, request=None, **kwargs):
