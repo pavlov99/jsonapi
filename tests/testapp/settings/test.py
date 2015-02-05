@@ -2,7 +2,6 @@ from .base import *
 
 INSTALLED_APPS += (
     'tests.testapp.test_api',
-    'tests.testapp.test_resource_meta',
 )
 
 if django.VERSION[:2] < (1, 6):
