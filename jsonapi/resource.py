@@ -36,10 +36,9 @@ import logging
 from django.core.paginator import Paginator
 from django.db import models
 
-from .utils import classproperty, Choices
+from .utils import classproperty
 from .django_utils import get_model_name, get_model_by_name
 from .serializers import Serializer
-from .deserializer import Deserializer
 from .auth import Authenticator
 from .request_parser import RequestParser
 
@@ -144,7 +143,7 @@ class ResourceMetaClass(type):
 
 
 @six.add_metaclass(ResourceMetaClass)
-class Resource(Serializer, Deserializer, Authenticator):
+class Resource(Serializer, Authenticator):
 
     """ Base JSON:API resource class."""
 
