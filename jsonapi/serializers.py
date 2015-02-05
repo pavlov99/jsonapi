@@ -85,7 +85,7 @@ class Serializer(object):
                 cls, "dump_document_{}".format(data["name"]), None)
 
             if field_serializer is not None:
-                value = field_serializer(value)
+                value = field_serializer(model_instance)
             else:
                 try:
                     field = model_instance._meta.get_field(data["name"])
@@ -114,14 +114,3 @@ class Serializer(object):
             )
 
         return document
-
-    @classmethod
-    def load_document(cls, document):
-        """ Given document get model.
-
-        :param dict document: Document
-        :return django.db.models.Model model: model instance
-
-        """
-
-        pass
