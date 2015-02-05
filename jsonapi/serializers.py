@@ -104,11 +104,11 @@ class Serializer(object):
             document["links"] = {}
 
         for field in fields_to_one:
-            document["links"][name] = getattr(
+            document["links"][field.name] = getattr(
                 model_instance, "{}_id".format(field.name))
 
         for field in fields_to_many:
-            document["links"][name] = list(
+            document["links"][field.name] = list(
                 getattr(model_instance, field.name).
                 values_list("id", flat=True)
             )

@@ -33,8 +33,8 @@ class PostResource(Resource):
         model = 'testapp.Post'
 
     @staticmethod
-    def dump_document_title(value):
-        return value
+    def dump_document_title(obj):
+        return obj.title
 
 
 @api.register
