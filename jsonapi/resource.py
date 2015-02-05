@@ -41,6 +41,7 @@ from .django_utils import get_model_name, get_model_by_name
 from .serializers import Serializer
 from .deserializer import Deserializer
 from .auth import Authenticator
+from .request_parser import RequestParser
 
 __all__ = 'Resource',
 
@@ -147,13 +148,6 @@ class Resource(Serializer, Deserializer, Authenticator):
 
     """ Base JSON:API resource class."""
 
-    FIELD_TYPES = Choices(
-        ('own', 'OWN'),
-        ('to_one', 'TO_ONE'),
-        ('to_many', 'TO_MANY'),
-    )
-    RESERVED_GET_PARAMS = ('include', 'sort', 'fields', 'page', 'ids')
-
     class Meta:
         name = None
         fieldnames_include = None
@@ -204,7 +198,11 @@ class Resource(Serializer, Deserializer, Authenticator):
         """
         user = cls.authenticate(request)
         queryset = cls.get_queryset(user=user, **kwargs)
-        filters = kwargs.get("filters", {})
+        queryargs = RequestParser.parse(
+            "&".join(["=".join(i) for i in request.GET.items()]))
+
+        # Filters
+        filters = queryargs.get("filters", {})
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
@@ -215,14 +213,13 @@ class Resource(Serializer, Deserializer, Authenticator):
             queryset = queryset.order_by(*kwargs['sort'])
 
         # Fields serialisation
-        fields = cls.fields_own
-        if 'fields' in kwargs:
-            fieldnames = kwargs['fields']
+        # NOTE: currently filter only own fields
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        fields_own = model_info.fields_own
+        if queryargs['fields']:
+            fieldnames = queryargs['fields']
             fieldnames.append("id")  # add id to fieldset
-            fields = {
-                name: value for name, value in fields.items()
-                if name in fieldnames
-            }
+            fields_own = [f for f in fields_own if f.name in fieldnames]
 
         objects = queryset
         meta = {}
@@ -243,21 +240,20 @@ class Resource(Serializer, Deserializer, Authenticator):
         data = [
             cls.dump_document(
                 m,
-                fields=fields,
-                fields_to_one=cls.fields_to_one,
-                # fields_to_many=cls.fields_to_many
+                fields_own=fields_own,
+                fields_to_one=model_info.fields_to_one,
+                # fields_to_many=model_info.fields_to_many
             )
             for m in objects
         ]
-        response = {
-            cls.Meta.name_plural: data
-        }
+        response = {cls.Meta.name_plural: data}
         if meta:
             response["meta"] = meta
         return response
 
     @classmethod
-    def create(cls, documents, request=None, **kwargs):
+    def create(cls, request=None, **kwargs):
+        documents = kwargs['documents']
         data = cls.load_documents(documents)
         items = data[cls.Meta.name_plural]
 
