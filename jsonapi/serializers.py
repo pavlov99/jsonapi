@@ -61,7 +61,7 @@ class Serializer(object):
     Meta = SerializerMeta
 
     @classmethod
-    def dump_document(cls, model_instance, fields=None, fields_to_one=None,
+    def dump_document(cls, model_instance, fields_own=None, fields_to_one=None,
                       fields_to_many=None):
         """ Get document for model_instance.
 
@@ -72,23 +72,23 @@ class Serializer(object):
         :return dict: document
 
         """
-        fields = fields or {}
-        fields_to_one = fields_to_one or {}
-        fields_to_many = fields_to_many or {}
+        fields_own = fields_own or []
+        fields_to_one = fields_to_one or []
+        fields_to_many = fields_to_many or []
 
         document = {}
         # apply rules for field serialization
-        for name, data in fields.items():
-            value = getattr(model_instance, data["name"])
+        for field in fields_own:
+            value = getattr(model_instance, field.name)
 
             field_serializer = getattr(
-                cls, "dump_document_{}".format(data["name"]), None)
+                cls, "dump_document_{}".format(field.name), None)
 
             if field_serializer is not None:
-                value = field_serializer(value)
+                value = field_serializer(model_instance)
             else:
                 try:
-                    field = model_instance._meta.get_field(data["name"])
+                    field = model_instance._meta.get_field(field.name)
                 except models.fields.FieldDoesNotExist:
                     # Field is property
                     pass
@@ -98,30 +98,19 @@ class Serializer(object):
                     elif isinstance(field, models.CommaSeparatedIntegerField):
                         value = [v for v in value]
 
-            document[name] = value
+            document[field.name] = value
 
         if fields_to_one or fields_to_many:
             document["links"] = {}
 
-        for name, data in fields_to_one.items():
-            document["links"][name] = getattr(
-                model_instance, "{}_id".format(data["name"]))
+        for field in fields_to_one:
+            document["links"][field.name] = getattr(
+                model_instance, "{}_id".format(field.name))
 
-        for name, data in fields_to_many.items():
-            document["links"][name] = list(
-                getattr(model_instance, data["name"]).
+        for field in fields_to_many:
+            document["links"][field.name] = list(
+                getattr(model_instance, field.name).
                 values_list("id", flat=True)
             )
 
         return document
-
-    @classmethod
-    def load_document(cls, document):
-        """ Given document get model.
-
-        :param dict document: Document
-        :return django.db.models.Model model: model instance
-
-        """
-
-        pass

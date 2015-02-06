@@ -17,7 +17,7 @@ class UserResource(Resource):
 class AuthorResource(Resource):
     class Meta:
         model = 'testapp.Author'
-        allowed_methods = 'get', 'create'
+        allowed_methods = 'get', 'create', 'update', 'delete'
 
 
 @api.register
@@ -33,8 +33,8 @@ class PostResource(Resource):
         model = 'testapp.Post'
 
     @staticmethod
-    def dump_document_title(value):
-        return value
+    def dump_document_title(obj):
+        return obj.title
 
 
 @api.register

@@ -31,17 +31,19 @@ Properties:
 
 """
 from . import six
+import ast
 import inspect
 import logging
-from django.conf import settings
+import django
 from django.core.paginator import Paginator
+from django.forms import ModelForm
 from django.db import models
 
-from .utils import classproperty, Choices
+from .utils import classproperty
 from .django_utils import get_model_name, get_model_by_name
 from .serializers import Serializer
-from .deserializer import Deserializer
 from .auth import Authenticator
+from .request_parser import RequestParser
 
 __all__ = 'Resource',
 
@@ -144,16 +146,9 @@ class ResourceMetaClass(type):
 
 
 @six.add_metaclass(ResourceMetaClass)
-class Resource(Serializer, Deserializer, Authenticator):
+class Resource(Serializer, Authenticator):
 
     """ Base JSON:API resource class."""
-
-    FIELD_TYPES = Choices(
-        ('own', 'OWN'),
-        ('to_one', 'TO_ONE'),
-        ('to_many', 'TO_MANY'),
-    )
-    RESERVED_GET_PARAMS = ('include', 'sort', 'fields', 'page', 'ids')
 
     class Meta:
         name = None
@@ -165,171 +160,6 @@ class Resource(Serializer, Deserializer, Authenticator):
         @classproperty
         def name_plural(cls):
             return "{0}s".format(cls.name)
-
-
-    @classmethod
-    def _get_fields_own(cls, model):
-        fields = {
-            field.name: {
-                "type": Resource.FIELD_TYPES.OWN,
-                "name": field.name,
-                "related_resource": None,
-            } for field in model._meta.fields
-            if field.rel is None and (field.serialize or field.name == 'id')
-        }
-        return fields
-
-    @classmethod
-    def _get_fields_self_foreign_key(cls, model):
-        fields = {}
-        model_resource_map = cls.Meta.api.model_resource_map
-        for field in model._meta.fields:
-            if field.rel and field.rel.multiple:
-                # relationship is ForeignKey
-                related_model = field.rel.to
-                if related_model in model_resource_map:
-                    # there is resource for related model
-                    related_resource = model_resource_map[related_model]
-                    fields[related_resource.Meta.name] = {
-                        "type": Resource.FIELD_TYPES.TO_ONE,
-                        "name": field.name,
-                        "related_resource": related_resource,
-                    }
-
-        return fields
-
-    @classmethod
-    def _get_fields_others_foreign_key(cls, model):
-        fields = {}
-        model_resource_map = cls.Meta.api.model_resource_map
-        for related_model, related_resource in model_resource_map.items():
-            if related_model == model:
-                # Do not check relationship with self
-                continue
-
-            for field in related_model._meta.fields:
-                if field.rel and field.rel.to == model and field.rel.multiple:
-                    # and not issubclass(related_model, model)? <- OneToOne rel
-                    fields[related_resource.Meta.name_plural] = {
-                        "type": Resource.FIELD_TYPES.TO_MANY,
-                        "name": field.rel.related_name or "{}_set".format(
-                            get_model_name(field.model)
-                        ),
-                        "related_resource": related_resource,
-                    }
-        return fields
-
-    @classmethod
-    def _get_fields_self_many_to_many(cls, model):
-        fields = {}
-        model_resource_map = cls.Meta.api.model_resource_map
-        for field in model._meta.many_to_many:
-            related_model = field.rel.to
-            if related_model in model_resource_map:
-                # there is resource for related model
-                related_resource = model_resource_map[related_model]
-                fields[related_resource.Meta.name_plural] = {
-                    "type": Resource.FIELD_TYPES.TO_MANY,
-                    "name": field.name,
-                    "related_resource": related_resource,
-                }
-        return fields
-
-    @classmethod
-    def _get_fields_others_many_to_many(cls, model):
-        fields = {}
-        model_resource_map = cls.Meta.api.model_resource_map
-        for related_model, related_resource in model_resource_map.items():
-            if related_model == model:
-                # Do not check relationship with self
-                continue
-
-            for field in related_model._meta.many_to_many:
-                if field.rel.to == model:
-                    fields[related_resource.Meta.name_plural] = {
-                        "type": Resource.FIELD_TYPES.TO_MANY,
-                        "name": field.rel.related_name or "{}_set".format(
-                            get_model_name(field.model)
-                        ),
-                        "related_resource": related_resource,
-                    }
-        return fields
-
-    @classproperty
-    def fields(cls):
-        """ Get resource fields.
-
-        Analyze related to resource model and models related to it.
-        Method builds resource relations based on related model relationship.
-        If there is no resource for related model, corresponding field would
-        not appear in resource, because there are no rules to serialize it.
-
-        :return dict: fields with following format:
-            {
-                fieldname: {
-                    "type": ["own"|"to_one"|"to_many"],
-                    "related_resource": [None|<resource>],
-                    "name": model field name: "title, author_id, comment_set"
-                }
-            }
-
-        fieldname is given according to resource names, to follow jsonapi
-        name attribute is name of Django model field.
-
-        #1 Get fields from model own
-        #2 Get fields from model foreign keys
-        #3 Get foreign keys from other models to current
-        #4 Get many-to-many fields from model
-        #5 Get many-to-many from other models to current
-
-        """
-        model = getattr(cls.Meta, 'model', None)
-        fields = {}
-        if model is None:
-            return fields
-
-        fields.update(cls._get_fields_own(model))
-        fields.update(cls._get_fields_self_foreign_key(model))
-        fields.update(cls._get_fields_others_foreign_key(model))
-        fields.update(cls._get_fields_self_many_to_many(model))
-        fields.update(cls._get_fields_others_many_to_many(model))
-
-        if cls.Meta.fieldnames_include is not None:
-            for fieldname in cls.Meta.fieldnames_include:
-                fields[fieldname] = {
-                    "type": Resource.FIELD_TYPES.OWN,
-                    "name": fieldname,
-                    "related_resource": None,
-                }
-
-        fields = {
-            k: v for k, v in fields.items()
-            if cls.Meta.fieldnames_exclude is None or
-            v["name"] not in cls.Meta.fieldnames_exclude
-        }
-
-        return fields
-
-    @classproperty
-    def fields_own(cls):
-        return {
-            k: v for k, v in cls.fields.items()
-            if v["type"] == Resource.FIELD_TYPES.OWN
-        }
-
-    @classproperty
-    def fields_to_one(cls):
-        return {
-            k: v for k, v in cls.fields.items()
-            if v["type"] == Resource.FIELD_TYPES.TO_ONE
-        }
-
-    @classproperty
-    def fields_to_many(cls):
-        return {
-            k: v for k, v in cls.fields.items()
-            if v["type"] == Resource.FIELD_TYPES.TO_MANY
-        }
 
     @classmethod
     def get_queryset(cls, user=None, **kwargs):
@@ -362,6 +192,25 @@ class Resource(Serializer, Deserializer, Authenticator):
         return queryset
 
     @classmethod
+    def get_form(cls, fields=None):
+        """ Create Partial Form based on given fields.
+
+        :param list fields: list of field names.
+
+        """
+        meta_attributes = {"model": cls.Meta.model}
+        if django.VERSION[:2] >= (1, 6):
+            meta_attributes["fields"] = '__all__'
+
+        if fields is not None:
+            meta_attributes["fields"] = fields
+
+        Form = type('Form', (ModelForm,), {
+            "Meta": type('Meta', (object,), meta_attributes)
+        })
+        return Form
+
+    @classmethod
     def get(cls, request=None, **kwargs):
         """ Get resource http response.
 
@@ -370,12 +219,11 @@ class Resource(Serializer, Deserializer, Authenticator):
         """
         user = cls.authenticate(request)
         queryset = cls.get_queryset(user=user, **kwargs)
+        queryargs = RequestParser.parse(
+            "&".join(["=".join(i) for i in request.GET.items()]))
 
-        filters = {
-            k: v for k, v in kwargs.items()
-            if k not in cls.RESERVED_GET_PARAMS
-            # k in cls.fields_own
-        }
+        # Filters
+        filters = queryargs.get("filters", {})
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
@@ -383,17 +231,16 @@ class Resource(Serializer, Deserializer, Authenticator):
 
         # Sort
         if 'sort' in kwargs:
-            queryset = queryset.order_by(*kwargs['sort'].split(","))
+            queryset = queryset.order_by(*kwargs['sort'])
 
         # Fields serialisation
-        fields = cls.fields_own
-        if 'fields' in kwargs:
-            fieldnames = kwargs['fields'].split(",")
+        # NOTE: currently filter only own fields
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        fields_own = model_info.fields_own
+        if queryargs['fields']:
+            fieldnames = queryargs['fields']
             fieldnames.append("id")  # add id to fieldset
-            fields = {
-                name: value for name, value in fields.items()
-                if name in fieldnames
-            }
+            fields_own = [f for f in fields_own if f.name in fieldnames]
 
         objects = queryset
         meta = {}
@@ -414,51 +261,91 @@ class Resource(Serializer, Deserializer, Authenticator):
         data = [
             cls.dump_document(
                 m,
-                fields=fields,
-                fields_to_one=cls.fields_to_one,
-                # fields_to_many=cls.fields_to_many
+                fields_own=fields_own,
+                fields_to_one=model_info.fields_to_one,
+                # fields_to_many=model_info.fields_to_many
             )
             for m in objects
         ]
-        response = {
-            cls.Meta.name_plural: data
-        }
+        response = {cls.Meta.name_plural: data}
         if meta:
             response["meta"] = meta
         return response
 
     @classmethod
-    def create(cls, documents, request=None, **kwargs):
-        data = cls.load_documents(documents)
+    def post(cls, request=None, **kwargs):
+        jdata = request.body.decode('utf8')
+        data = ast.literal_eval(jdata)
         items = data[cls.Meta.name_plural]
+        is_collection = isinstance(items, list)
 
-        models = []
+        if not is_collection:
+            items = [items]
+
+        objects = []
+        Form = cls.get_form()
         for item in items:
-            form = cls.Meta.form(item)
-            models.append(form.save())
+            form = Form(item)
+            objects.append(form.save())
 
-        return models
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        data = [
+            cls.dump_document(
+                m,
+                fields_own=model_info.fields_own,
+                fields_to_one=model_info.fields_to_one,
+            )
+            for m in objects
+        ]
+
+        if not is_collection:
+            data = data[0]
+
+        response = {cls.Meta.name_plural: data}
+        return response
+
+    @classmethod
+    def put(cls, request=None, **kwargs):
+        # TODO: check ids for elements.
+        # TODO: check form is valid for elements.
+        # TODO: check kwargs has ids.
+        jdata = request.body.decode('utf8')
+        data = ast.literal_eval(jdata)
+        items = data[cls.Meta.name_plural]
+        is_collection = isinstance(items, list)
+
+        if not is_collection:
+            items = [items]
+
+        objects_map = cls.Meta.model.objects.in_bulk(kwargs["ids"])
+
+        objects = []
+        Form = cls.get_form()
+        for item in items:
+            instance = objects_map[item["id"]]
+            form = Form(item, instance=instance)
+            objects.append(form.save())
+
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        data = [
+            cls.dump_document(
+                m,
+                fields_own=model_info.fields_own,
+                fields_to_one=model_info.fields_to_one,
+            )
+            for m in objects
+        ]
+
+        if not is_collection:
+            data = data[0]
+
+        response = {cls.Meta.name_plural: data}
+        return response
 
     @classmethod
     def delete(cls, request=None, **kwargs):
-        model = cls.Meta.model
-        queryset = model.objects
-
-        filters = {}
-        if kwargs.get('ids'):
-            filters["id__in"] = kwargs.get('ids')
-
-        if cls.Meta.authenticators:
-            user = cls.authenticate(request)
-            auth_user_resource_paths = cls._auth_user_resource_paths
-            if auth_user_resource_paths is None:
-                queryset = queryset.filter(id=user.id)
-            else:
-                user_filter = models.Q()
-                for path in auth_user_resource_paths:
-                    user_filter = user_filter | models.Q(**{path: user})
-
-                queryset = queryset.filter(user_filter)
-
-        queryset.filter(**filters).delete()
+        # TODO: raise Error if there are no ids.
+        user = cls.authenticate(request)
+        queryset = cls.get_queryset(user=user, **kwargs)
+        queryset.filter(id__in=kwargs['ids']).delete()
         return ""

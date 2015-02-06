@@ -26,7 +26,6 @@ from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
 
-from . import statuses
 from .utils import Choices
 from .model_inspector import ModelInspector
 
@@ -40,7 +39,7 @@ class API(object):
     HTTP_METHODS = Choices(
         ('GET', 'get'),
         ('POST', 'create'),
-        ('PATCH', 'update'),
+        ('PUT', 'update'),
         ('DELETE', 'delete'),
     )
     CONTENT_TYPE = "application/vnd.api+json"
@@ -179,13 +178,6 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        # content_type = request.META.get('content_type') or \
-            # request.META.get('CONTENT_TYPE')
-        # if content_type != API.CONTENT_TYPE:
-            # msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
-            # return HttpResponse(
-                # msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
-
         self.update_urls(request)
         resource_info = {
             "resources": [{
@@ -200,6 +192,31 @@ class API(object):
         response = json.dumps(resource_info)
         return HttpResponse(response, content_type="application/vnd.api+json")
 
+    def handler_view_get(self, resource, **kwargs):
+        items = json.dumps(
+            resource.get(**kwargs),
+            cls=resource.Meta.encoder
+        )
+        return HttpResponse(items, content_type=self.CONTENT_TYPE)
+
+    def handler_view_post(self, resource, **kwargs):
+        response = resource.post(**kwargs)
+        return HttpResponse(
+            response, content_type=self.CONTENT_TYPE, status=201)
+
+    def handler_view_put(self, resource, **kwargs):
+        response = resource.put(**kwargs)
+        return HttpResponse(
+            response, content_type=self.CONTENT_TYPE, status=200)
+
+    def handler_view_delete(self, resource, **kwargs):
+        if 'ids' not in kwargs:
+            return HttpResponse("Resource ids not specified", status=404)
+
+        response = resource.delete(**kwargs)
+        return HttpResponse(
+            response, content_type=self.CONTENT_TYPE, status=204)
+
     def handler_view(self, request, resource_name, ids=None):
         """ Handler for resources.
 
@@ -209,20 +226,11 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        # content_type = request.META.get('content_type') or \
-            # request.META.get('CONTENT_TYPE')
-        # if content_type != API.CONTENT_TYPE:
-            # msg = "Content-Type SHOULD be {}".format(API.CONTENT_TYPE)
-            # return HttpResponse(
-                # msg, status=statuses.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
-
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
 
         allowed_http_methods = {
-            getattr(API.HTTP_METHODS, x) for x
-            in resource.Meta.allowed_methods
-        }
+            getattr(API.HTTP_METHODS, x) for x in resource.Meta.allowed_methods}
         if request.method not in allowed_http_methods:
             return HttpResponseNotAllowed(
                 permitted_methods=allowed_http_methods)
@@ -237,20 +245,10 @@ class API(object):
             kwargs['ids'] = ids.split(",")
 
         if request.method == "GET":
-            kwargs.update(request.GET.dict())
-
-            items = json.dumps(
-                resource.get(**kwargs), cls=resource.Meta.encoder)
-            return HttpResponse(items, content_type=self.CONTENT_TYPE)
+            return self.handler_view_get(resource, **kwargs)
         elif request.method == "POST":
-            data = request.body.decode('utf8')
-            response = resource.create(data, **kwargs)
-            return HttpResponse(
-                response, content_type=self.CONTENT_TYPE, status=201)
+            return self.handler_view_post(resource, **kwargs)
+        elif request.method == "PUT":
+            return self.handler_view_put(resource, **kwargs)
         elif request.method == "DELETE":
-            if ids is None:
-                return HttpResponse("Resource ids not specified", status=404)
-
-            response = resource.delete(**kwargs)
-            return HttpResponse(
-                response, content_type=self.CONTENT_TYPE, status=204)
+            return self.handler_view_delete(resource, **kwargs)
