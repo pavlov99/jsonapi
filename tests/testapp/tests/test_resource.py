@@ -9,37 +9,6 @@ from jsonapi.resource import Resource
 
 
 class TestResource(TestCase):
-    def test_resource_fields_shortcuts(self):
-        class Acld(models.Model):
-            field = models.IntegerField()
-
-        class TestResource(Resource):
-            class Meta:
-                model = Acld
-
-        TestResource.fields = {
-            "own": {
-                "type": Resource.FIELD_TYPES.OWN
-            },
-            "to_one": {
-                "type": Resource.FIELD_TYPES.TO_ONE
-            },
-            "to_many": {
-                "type": Resource.FIELD_TYPES.TO_MANY
-            },
-        }
-        self.assertEqual(TestResource.fields_own, {
-            "own": TestResource.fields["own"]
-        })
-
-        self.assertEqual(TestResource.fields_to_one, {
-            "to_one": TestResource.fields["to_one"]
-        })
-
-        self.assertEqual(TestResource.fields_to_many, {
-            "to_many": TestResource.fields["to_many"]
-        })
-
     def test_resource_get_empty(self):
         response = self.client.get(
             '/api/author',

@@ -5,6 +5,7 @@ import json
 from mixer.backend.django import mixer
 
 from jsonapi.serializers import Serializer, DatetimeDecimalEncoder
+from jsonapi.model_inspector import Field
 
 from ..models import TestSerializerAllFields
 
@@ -16,11 +17,11 @@ class TestSerializers(TestCase):
         self.obj = mixer.blend(TestSerializerAllFields)
 
     def test_django_fields_serialization(self):
-        fields = {
-            f.name: {"name": f.name}
+        fields_own = [
+            Field(f.name, Field.CATEGORIES.OWN)
             for f in self.obj._meta.fields if f.serialize
-        }
-        obj = Serializer.dump_document(self.obj, fields=fields)
+        ]
+        obj = Serializer.dump_document(self.obj, fields_own=fields_own)
 
         self.assertEqual(obj['big_integer'], self.obj.big_integer)
         self.assertEqual(obj['boolean'], self.obj.boolean)
@@ -51,19 +52,17 @@ class TestSerializers(TestCase):
         self.assertEqual(obj['url'], self.obj.url)
 
     def test_dump_document_field_redefinition(self):
-        fields = {
-            "id": {"name": "id"},
-            "char": {"name": "char"},
-        }
-        obj_dump = Serializer.dump_document(self.obj, fields)
+        fields_own = [
+            Field(name, Field.CATEGORIES.OWN) for name in ["id", "char"]]
+        obj_dump = Serializer.dump_document(self.obj, fields_own)
         expected_dump = {
             "id": self.obj.id,
             "char": self.obj.char,
         }
         self.assertEqual(obj_dump, expected_dump)
 
-        Serializer.dump_document_char = staticmethod(lambda value: None)
-        obj_dump = Serializer.dump_document(self.obj, fields)
+        Serializer.dump_document_char = staticmethod(lambda obj: None)
+        obj_dump = Serializer.dump_document(self.obj, fields_own)
         expected_dump["char"] = None
         self.assertEqual(obj_dump, expected_dump)
 

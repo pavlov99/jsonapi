@@ -31,16 +31,18 @@ Properties:
 
 """
 from . import six
+import ast
 import inspect
 import logging
 from django.core.paginator import Paginator
+from django.forms import ModelForm
 from django.db import models
 
-from .utils import classproperty, Choices
+from .utils import classproperty
 from .django_utils import get_model_name, get_model_by_name
 from .serializers import Serializer
-from .deserializer import Deserializer
 from .auth import Authenticator
+from .request_parser import RequestParser
 
 __all__ = 'Resource',
 
@@ -143,16 +145,9 @@ class ResourceMetaClass(type):
 
 
 @six.add_metaclass(ResourceMetaClass)
-class Resource(Serializer, Deserializer, Authenticator):
+class Resource(Serializer, Authenticator):
 
     """ Base JSON:API resource class."""
-
-    FIELD_TYPES = Choices(
-        ('own', 'OWN'),
-        ('to_one', 'TO_ONE'),
-        ('to_many', 'TO_MANY'),
-    )
-    RESERVED_GET_PARAMS = ('include', 'sort', 'fields', 'page', 'ids')
 
     class Meta:
         name = None
@@ -196,6 +191,19 @@ class Resource(Serializer, Deserializer, Authenticator):
         return queryset
 
     @classmethod
+    def get_form(cls, fields=None):
+        """ Create Partial Form based on given fields.
+
+        :param list fields: list of field names.
+
+        """
+        meta_attributes = {"model": cls.Meta.model, "fields": fields or '__all__'}
+        Form = type('Form', (ModelForm,), {
+            "Meta": type('Meta', (object,), meta_attributes)
+        })
+        return Form
+
+    @classmethod
     def get(cls, request=None, **kwargs):
         """ Get resource http response.
 
@@ -204,7 +212,11 @@ class Resource(Serializer, Deserializer, Authenticator):
         """
         user = cls.authenticate(request)
         queryset = cls.get_queryset(user=user, **kwargs)
-        filters = kwargs.get("filters", {})
+        queryargs = RequestParser.parse(
+            "&".join(["=".join(i) for i in request.GET.items()]))
+
+        # Filters
+        filters = queryargs.get("filters", {})
         if kwargs.get('ids'):
             filters["id__in"] = kwargs.get('ids')
 
@@ -215,14 +227,13 @@ class Resource(Serializer, Deserializer, Authenticator):
             queryset = queryset.order_by(*kwargs['sort'])
 
         # Fields serialisation
-        fields = cls.fields_own
-        if 'fields' in kwargs:
-            fieldnames = kwargs['fields']
+        # NOTE: currently filter only own fields
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        fields_own = model_info.fields_own
+        if queryargs['fields']:
+            fieldnames = queryargs['fields']
             fieldnames.append("id")  # add id to fieldset
-            fields = {
-                name: value for name, value in fields.items()
-                if name in fieldnames
-            }
+            fields_own = [f for f in fields_own if f.name in fieldnames]
 
         objects = queryset
         meta = {}
@@ -243,51 +254,91 @@ class Resource(Serializer, Deserializer, Authenticator):
         data = [
             cls.dump_document(
                 m,
-                fields=fields,
-                fields_to_one=cls.fields_to_one,
-                # fields_to_many=cls.fields_to_many
+                fields_own=fields_own,
+                fields_to_one=model_info.fields_to_one,
+                # fields_to_many=model_info.fields_to_many
             )
             for m in objects
         ]
-        response = {
-            cls.Meta.name_plural: data
-        }
+        response = {cls.Meta.name_plural: data}
         if meta:
             response["meta"] = meta
         return response
 
     @classmethod
-    def create(cls, documents, request=None, **kwargs):
-        data = cls.load_documents(documents)
+    def post(cls, request=None, **kwargs):
+        jdata = request.body.decode('utf8')
+        data = ast.literal_eval(jdata)
         items = data[cls.Meta.name_plural]
+        is_collection = isinstance(items, list)
 
-        models = []
+        if not is_collection:
+            items = [items]
+
+        objects = []
+        Form = cls.get_form()
         for item in items:
-            form = cls.Meta.form(item)
-            models.append(form.save())
+            form = Form(item)
+            objects.append(form.save())
 
-        return models
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        data = [
+            cls.dump_document(
+                m,
+                fields_own=model_info.fields_own,
+                fields_to_one=model_info.fields_to_one,
+            )
+            for m in objects
+        ]
+
+        if not is_collection:
+            data = data[0]
+
+        response = {cls.Meta.name_plural: data}
+        return response
+
+    @classmethod
+    def put(cls, request=None, **kwargs):
+        # TODO: check ids for elements.
+        # TODO: check form is valid for elements.
+        # TODO: check kwargs has ids.
+        jdata = request.body.decode('utf8')
+        data = ast.literal_eval(jdata)
+        items = data[cls.Meta.name_plural]
+        is_collection = isinstance(items, list)
+
+        if not is_collection:
+            items = [items]
+
+        objects_map = cls.Meta.model.objects.in_bulk(kwargs["ids"])
+
+        objects = []
+        Form = cls.get_form()
+        for item in items:
+            instance = objects_map[item["id"]]
+            form = Form(item, instance=instance)
+            objects.append(form.save())
+
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        data = [
+            cls.dump_document(
+                m,
+                fields_own=model_info.fields_own,
+                fields_to_one=model_info.fields_to_one,
+            )
+            for m in objects
+        ]
+
+        if not is_collection:
+            data = data[0]
+
+        response = {cls.Meta.name_plural: data}
+        return response
 
     @classmethod
     def delete(cls, request=None, **kwargs):
-        model = cls.Meta.model
-        queryset = model.objects
-
-        filters = {}
-        if kwargs.get('ids'):
-            filters["id__in"] = kwargs.get('ids')
-
-        if cls.Meta.authenticators:
-            user = cls.authenticate(request)
-            auth_user_resource_paths = cls._auth_user_resource_paths
-            if auth_user_resource_paths is None:
-                queryset = queryset.filter(id=user.id)
-            else:
-                user_filter = models.Q()
-                for path in auth_user_resource_paths:
-                    user_filter = user_filter | models.Q(**{path: user})
-
-                queryset = queryset.filter(user_filter)
-
-        queryset.filter(**filters).delete()
+        # TODO: raise Error if there are no ids.
+        user = cls.authenticate(request)
+        queryset = cls.get_queryset(user=user, **kwargs)
+        queryset.filter(id__in=kwargs['ids']).delete()
         return ""
