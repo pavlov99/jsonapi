@@ -266,7 +266,7 @@ class Resource(Serializer, Authenticator):
         return response
 
     @classmethod
-    def create(cls, request=None, **kwargs):
+    def post(cls, request=None, **kwargs):
         jdata = request.body.decode('utf8')
         data = ast.literal_eval(jdata)
         items = data[cls.Meta.name_plural]
@@ -298,7 +298,46 @@ class Resource(Serializer, Authenticator):
         return response
 
     @classmethod
+    def put(cls, request=None, **kwargs):
+        # TODO: check ids for elements.
+        # TODO: check form is valid for elements.
+        # TODO: check kwargs has ids.
+        jdata = request.body.decode('utf8')
+        data = ast.literal_eval(jdata)
+        items = data[cls.Meta.name_plural]
+        is_collection = isinstance(items, list)
+
+        if not is_collection:
+            items = [items]
+
+        objects_map = cls.Meta.model.objects.in_bulk(kwargs["ids"])
+
+        objects = []
+        Form = cls.get_form()
+        for item in items:
+            instance = objects_map[item["id"]]
+            form = Form(item, instance=instance)
+            objects.append(form.save())
+
+        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        data = [
+            cls.dump_document(
+                m,
+                fields_own=model_info.fields_own,
+                fields_to_one=model_info.fields_to_one,
+            )
+            for m in objects
+        ]
+
+        if not is_collection:
+            data = data[0]
+
+        response = {cls.Meta.name_plural: data}
+        return response
+
+    @classmethod
     def delete(cls, request=None, **kwargs):
+        # TODO: raise Error if there are no ids.
         user = cls.authenticate(request)
         queryset = cls.get_queryset(user=user, **kwargs)
         queryset.filter(id__in=kwargs['ids']).delete()

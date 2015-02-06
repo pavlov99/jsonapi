@@ -39,7 +39,7 @@ class API(object):
     HTTP_METHODS = Choices(
         ('GET', 'get'),
         ('POST', 'create'),
-        ('PATCH', 'update'),
+        ('PUT', 'update'),
         ('DELETE', 'delete'),
     )
     CONTENT_TYPE = "application/vnd.api+json"
@@ -200,12 +200,14 @@ class API(object):
         return HttpResponse(items, content_type=self.CONTENT_TYPE)
 
     def handler_view_post(self, resource, **kwargs):
-        response = resource.create(**kwargs)
+        response = resource.post(**kwargs)
         return HttpResponse(
             response, content_type=self.CONTENT_TYPE, status=201)
 
     def handler_view_put(self, resource, **kwargs):
-        pass
+        response = resource.put(**kwargs)
+        return HttpResponse(
+            response, content_type=self.CONTENT_TYPE, status=200)
 
     def handler_view_delete(self, resource, **kwargs):
         if 'ids' not in kwargs:
@@ -245,7 +247,8 @@ class API(object):
         if request.method == "GET":
             return self.handler_view_get(resource, **kwargs)
         elif request.method == "POST":
-            kwargs['data'] = request.body.decode('utf8')
             return self.handler_view_post(resource, **kwargs)
+        elif request.method == "PUT":
+            return self.handler_view_put(resource, **kwargs)
         elif request.method == "DELETE":
             return self.handler_view_delete(resource, **kwargs)

@@ -17,7 +17,7 @@ class UserResource(Resource):
 class AuthorResource(Resource):
     class Meta:
         model = 'testapp.Author'
-        allowed_methods = 'get', 'create'
+        allowed_methods = 'get', 'create', 'update', 'delete'
 
 
 @api.register
