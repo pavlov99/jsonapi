@@ -31,6 +31,7 @@ Properties:
 
 """
 from . import six
+import ast
 import inspect
 import logging
 from django.core.paginator import Paginator
@@ -266,7 +267,6 @@ class Resource(Serializer, Authenticator):
 
     @classmethod
     def create(cls, request=None, **kwargs):
-        import ast
         jdata = request.body.decode('utf8')
         data = ast.literal_eval(jdata)
         items = data[cls.Meta.name_plural]
@@ -299,24 +299,7 @@ class Resource(Serializer, Authenticator):
 
     @classmethod
     def delete(cls, request=None, **kwargs):
-        model = cls.Meta.model
-        queryset = model.objects
-
-        filters = {}
-        if kwargs.get('ids'):
-            filters["id__in"] = kwargs.get('ids')
-
-        if cls.Meta.authenticators:
-            user = cls.authenticate(request)
-            auth_user_resource_paths = cls._auth_user_resource_paths
-            if auth_user_resource_paths is None:
-                queryset = queryset.filter(id=user.id)
-            else:
-                user_filter = models.Q()
-                for path in auth_user_resource_paths:
-                    user_filter = user_filter | models.Q(**{path: user})
-
-                queryset = queryset.filter(user_filter)
-
-        queryset.filter(**filters).delete()
+        user = cls.authenticate(request)
+        queryset = cls.get_queryset(user=user, **kwargs)
+        queryset.filter(id__in=kwargs['ids']).delete()
         return ""
