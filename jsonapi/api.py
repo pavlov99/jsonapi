@@ -193,9 +193,18 @@ class API(object):
         return HttpResponse(items, content_type=self.CONTENT_TYPE)
 
     def handler_view_post(self, resource, **kwargs):
-        response = resource.post(**kwargs)
-        return HttpResponse(
-            response, content_type=self.CONTENT_TYPE, status=201)
+        data = resource.post(**kwargs)
+        response = HttpResponse(
+            json.dumps(data), content_type=self.CONTENT_TYPE, status=201)
+
+        items = data[resource.Meta.name_plural]
+        items = items if isinstance(items, list) else [items]
+
+        response["Location"] = "{}/{}".format(
+            resource.Meta.name,
+            ",".join([str(x["id"]) for x in items])
+        )
+        return response
 
     def handler_view_put(self, resource, **kwargs):
         response = resource.put(**kwargs)

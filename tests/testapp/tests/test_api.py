@@ -4,6 +4,7 @@ from jsonapi.resource import Resource
 from mixer.backend.django import mixer
 import django
 import unittest
+import json
 
 from ..models import Author
 from ..urls import api
@@ -164,10 +165,24 @@ class TestApiClient(TestCase):
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
-        self.assertEqual(response.status_code, 201)
+
         self.assertEqual(Author.objects.count(), 1)
         author = Author.objects.get()
+
+        expected_data = {
+            "authors": {
+                "id": author.id,
+                "name": author.name,
+            }
+        }
+        self.assertEqual(response.status_code, 201)
         self.assertEqual(author.name, "author")
+        data = json.loads(response.content)
+        self.assertEqual(data, expected_data)
+        self.assertTrue(response.has_header("Location"))
+
+        location = "http://testserver/api/author/{}".format(author.id)
+        self.assertEqual(response["Location"], location)
 
     def test_create_models(self):
         self.assertEqual(Author.objects.count(), 0)
@@ -188,8 +203,23 @@ class TestApiClient(TestCase):
             )
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Author.objects.count(), 3)
+        authors = Author.objects.all()
         authors_names = Author.objects.values_list('name', flat=True)
         self.assertEqual(set(authors_names), {"author1", "author2", "author3"})
+
+        expected_data = {
+            "authors": [{
+                "id": author.id,
+                "name": author.name,
+            } for author in authors]
+        }
+
+        data = json.loads(response.content)
+        self.assertEqual(data, expected_data)
+        self.assertTrue(response.has_header("Location"))
+
+        location = "http://testserver/api/author/1,2,3"
+        self.assertEqual(response["Location"], location)
 
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")

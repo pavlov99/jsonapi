@@ -82,6 +82,10 @@ Docs
     - Authentication
     - Authorization
 
+Examples
+========
+curl -v -H "Content-Type: application/vnd.api+json" 127.0.0.1:8000/api/author
+
 Indices and tables
 ==================
 
