@@ -26,7 +26,6 @@ from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
 
-from .utils import Choices
 from .model_inspector import ModelInspector
 
 logger = logging.getLogger(__name__)
@@ -36,12 +35,6 @@ class API(object):
 
     """ API handler."""
 
-    HTTP_METHODS = Choices(
-        ('GET', 'get'),
-        ('POST', 'create'),
-        ('PUT', 'update'),
-        ('DELETE', 'delete'),
-    )
     CONTENT_TYPE = "application/vnd.api+json"
 
     def __init__(self):
@@ -229,8 +222,7 @@ class API(object):
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
 
-        allowed_http_methods = {
-            getattr(API.HTTP_METHODS, x) for x in resource.Meta.allowed_methods}
+        allowed_http_methods = resource.Meta.allowed_methods
         if request.method not in allowed_http_methods:
             return HttpResponseNotAllowed(
                 permitted_methods=allowed_http_methods)

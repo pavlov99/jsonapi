@@ -20,7 +20,7 @@ There are several optional Meta parameters:
     * fieldnames_include = None
     * fieldnames_exclude = None
     * page_size = None
-    * allowed_methods = ('get',)
+    * allowed_methods = ('GET',)
 
 Properties:
 
@@ -155,7 +155,7 @@ class Resource(Serializer, Authenticator):
         fieldnames_include = None
         fieldnames_exclude = None
         page_size = None
-        allowed_methods = 'get',
+        allowed_methods = 'GET',
 
         @classproperty
         def name_plural(cls):
