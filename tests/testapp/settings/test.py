@@ -1,9 +1,5 @@
 from .base import *
 
-INSTALLED_APPS += (
-    'tests.testapp.test_api',
-)
-
 if django.VERSION[:2] < (1, 6):
     TEST_RUNNER = 'discover_runner.DiscoverRunner'
 

@@ -26,7 +26,6 @@ from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
 
-from .utils import Choices
 from .model_inspector import ModelInspector
 
 logger = logging.getLogger(__name__)
@@ -36,12 +35,6 @@ class API(object):
 
     """ API handler."""
 
-    HTTP_METHODS = Choices(
-        ('GET', 'get'),
-        ('POST', 'create'),
-        ('PUT', 'update'),
-        ('DELETE', 'delete'),
-    )
     CONTENT_TYPE = "application/vnd.api+json"
 
     def __init__(self):
@@ -200,18 +193,30 @@ class API(object):
         return HttpResponse(items, content_type=self.CONTENT_TYPE)
 
     def handler_view_post(self, resource, **kwargs):
-        response = resource.post(**kwargs)
-        return HttpResponse(
-            response, content_type=self.CONTENT_TYPE, status=201)
+        data = resource.post(**kwargs)
+        response = HttpResponse(
+            json.dumps(data), content_type=self.CONTENT_TYPE, status=201)
+
+        items = data[resource.Meta.name_plural]
+        items = items if isinstance(items, list) else [items]
+
+        response["Location"] = "{}/{}".format(
+            resource.Meta.name,
+            ",".join([str(x["id"]) for x in items])
+        )
+        return response
 
     def handler_view_put(self, resource, **kwargs):
+        if 'ids' not in kwargs:
+            return HttpResponse("Request SHOULD have resource ids", status=400)
+
         response = resource.put(**kwargs)
         return HttpResponse(
             response, content_type=self.CONTENT_TYPE, status=200)
 
     def handler_view_delete(self, resource, **kwargs):
         if 'ids' not in kwargs:
-            return HttpResponse("Resource ids not specified", status=404)
+            return HttpResponse("Request SHOULD have resource ids", status=400)
 
         response = resource.delete(**kwargs)
         return HttpResponse(
@@ -229,8 +234,7 @@ class API(object):
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
 
-        allowed_http_methods = {
-            getattr(API.HTTP_METHODS, x) for x in resource.Meta.allowed_methods}
+        allowed_http_methods = resource.Meta.allowed_methods
         if request.method not in allowed_http_methods:
             return HttpResponseNotAllowed(
                 permitted_methods=allowed_http_methods)
@@ -238,7 +242,7 @@ class API(object):
         if resource.Meta.authenticators:
             user = resource.authenticate(request)
             if user is None or not user.is_authenticated():
-                return HttpResponse("Not Authenticated", status=404)
+                return HttpResponse("Not Authenticated", status=401)
 
         kwargs = dict(request=request)
         if ids is not None:
