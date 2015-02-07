@@ -271,3 +271,32 @@ class TestApiClient(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.content, "Request SHOULD have resource ids")
+
+    def test_delete_model(self):
+        author = mixer.blend("testapp.author")
+        response = self.client.delete(
+            '/api/author/{}'.format(author.id),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(Author.objects.count(), 0)
+
+    def test_delete_models(self):
+        authors = mixer.cycle(2).blend("testapp.author")
+        response = self.client.delete(
+            '/api/author/{}'.format(",".join([str(a.id) for a in authors])),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(Author.objects.count(), 0)
+
+    def test_delete_model_missing_ids(self):
+        response = self.client.delete(
+            '/api/author',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Request SHOULD have resource ids")
