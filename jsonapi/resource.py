@@ -173,9 +173,8 @@ class Resource(Serializer, Authenticator):
             * Select related objects (or prefetch them) based on requested
             requested objects to include
 
-        NOTE: if you need to get user in this method, use
-        cls.authenticate(request), because user could be authenticated using
-        HTTP_BASIC method, not only session.
+        NOTE: use user from parameters, it could be authenticated not with
+            session, so request.user might not work
 
         """
         queryset = cls.Meta.model.objects
@@ -189,6 +188,26 @@ class Resource(Serializer, Authenticator):
 
             queryset = queryset.filter(user_filter)
 
+        return queryset
+
+    @classmethod
+    def update_get_queryset(cls, queryset, **kwargs):
+        """ Update permission queryset for GET operations."""
+        return queryset
+
+    @classmethod
+    def update_post_queryset(cls, queryset, **kwargs):
+        """ Update permission queryset for POST operations."""
+        return queryset
+
+    @classmethod
+    def update_put_queryset(cls, queryset, **kwargs):
+        """ Update permission queryset for PUT operations."""
+        return queryset
+
+    @classmethod
+    def update_delete_queryset(cls, queryset, **kwargs):
+        """ Update permission queryset for delete operations."""
         return queryset
 
     @classmethod
