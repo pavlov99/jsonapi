@@ -207,13 +207,16 @@ class API(object):
         return response
 
     def handler_view_put(self, resource, **kwargs):
+        if 'ids' not in kwargs:
+            return HttpResponse("Request SHOULD have resource ids", status=400)
+
         response = resource.put(**kwargs)
         return HttpResponse(
             response, content_type=self.CONTENT_TYPE, status=200)
 
     def handler_view_delete(self, resource, **kwargs):
         if 'ids' not in kwargs:
-            return HttpResponse("Resource ids not specified", status=404)
+            return HttpResponse("Request SHOULD have resource ids", status=400)
 
         response = resource.delete(**kwargs)
         return HttpResponse(

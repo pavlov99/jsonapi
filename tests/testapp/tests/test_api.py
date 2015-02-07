@@ -257,7 +257,6 @@ class TestApiClient(TestCase):
         for author in Author.objects.all():
             self.assertEqual(author.name, "author")
 
-    @unittest.skip("Not Implemented")
     def test_update_model_missing_ids(self):
         author = mixer.blend("testapp.author")
         response = self.client.put(
@@ -270,4 +269,5 @@ class TestApiClient(TestCase):
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.content, "Request SHOULD have resource ids")
