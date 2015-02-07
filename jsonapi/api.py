@@ -242,7 +242,7 @@ class API(object):
         if resource.Meta.authenticators:
             user = resource.authenticate(request)
             if user is None or not user.is_authenticated():
-                return HttpResponse("Not Authenticated", status=404)
+                return HttpResponse("Not Authenticated", status=401)
 
         kwargs = dict(request=request)
         if ids is not None:
