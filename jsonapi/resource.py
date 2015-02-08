@@ -265,7 +265,7 @@ class Resource(Serializer, Authenticator):
         meta = {}
         if cls.Meta.page_size is not None:
             paginator = Paginator(queryset, cls.Meta.page_size)
-            page = int(kwargs.get('page', 1))
+            page = int(queryargs.get('page') or 1)
             meta["count"] = paginator.count
             meta["num_pages"] = paginator.num_pages
             meta["page_size"] = cls.Meta.page_size
