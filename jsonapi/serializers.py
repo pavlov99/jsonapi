@@ -77,7 +77,6 @@ class Serializer(object):
         fields_to_many = fields_to_many or []
 
         document = {}
-        # apply rules for field serialization
         for field in fields_own:
             value = getattr(model_instance, field.name)
 
@@ -116,15 +115,30 @@ class Serializer(object):
         return document
 
     @classmethod
-    def dump_documents(cls, model_instances, fields_own=None,
+    def dump_documents(cls, resource, model_instances, fields_own=None,
                        fields_to_one=None, fields_to_many=None):
-        data = [
-            cls.dump_document(
-                m,
-                fields_own=fields_own,
-                fields_to_one=fields_to_one,
-                # fields_to_many=fields_to_many
-            )
-            for m in model_instances
-        ]
+        data = {
+            resource.Meta.name_plural: [
+                cls.dump_document(
+                    m,
+                    fields_own=fields_own,
+                    fields_to_one=fields_to_one,
+                    fields_to_many=fields_to_many
+                )
+                for m in model_instances
+            ]
+        }
+
+        model_info = resource.Meta.api.model_inspector.models[
+            resource.Meta.model]
+
+        if model_info.fields_to_one or fields_to_many:
+            data["links"] = {}
+            for field in model_info.fields_to_one:
+                linkname = "{}.{}".format(resource.Meta.name_plural, field.name)
+                data["links"].update({
+                    linkname: resource.Meta.api.api_url + "/" + field.name +
+                    "/{" + linkname + "}"
+                })
+
         return data

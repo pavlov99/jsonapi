@@ -153,6 +153,28 @@ class TestApi(TestCase):
 
 
 class TestApiClient(TestCase):
+    def test_resource_get_empty(self):
+        response = self.client.get(
+            '/api/author',
+            content_type='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode('utf8'))
+        data_expected = {
+            "authors": []
+        }
+        self.assertEqual(data, data_expected)
+
+    def test_resource_own_fields_serialization(self):
+        mixer.blend('testapp.author')
+        response = self.client.get(
+            '/api/author',
+            content_type='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode('utf8'))
+        self.assertEqual(len(data["authors"]), 1)
+
     def test_create_model(self):
         self.assertEqual(Author.objects.count(), 0)
         # NOTE: send individual resource
@@ -305,3 +327,46 @@ class TestApiClient(TestCase):
         self.assertEqual(
             response.content.decode("utf-8"),
             "Request SHOULD have resource ids")
+
+    def test_get_top_level_links(self):
+        post = mixer.blend("testapp.post")
+        response = self.client.get(
+            '/api/post',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 200)
+        expected_data = {
+            "posts": [{
+                "id": post.id,
+                "title": post.title,
+                "links": {
+                    "user": post.user_id,
+                    "author": post.author_id,
+                }
+            }],
+            "links": {
+                "posts.author": "http://testserver/api/author/{posts.author}",
+                "posts.user": "http://testserver/api/user/{posts.user}",
+            }
+        }
+
+        self.maxDiff = None
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_get_include(self):
+        post = mixer.blend("testapp.post")
+        response = self.client.get(
+            '/api/post?include=author',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))["linked"]
+        expected_data = {
+            "author": {
+                "id": post.author_id,
+                "name": post.author.name
+            }
+        }
+        self.assertEqual(data, expected_data)
