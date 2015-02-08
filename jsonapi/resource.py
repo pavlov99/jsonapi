@@ -265,7 +265,7 @@ class Resource(Serializer, Authenticator):
         meta = {}
         if cls.Meta.page_size is not None:
             paginator = Paginator(queryset, cls.Meta.page_size)
-            page = int(kwargs.get('page', 1))
+            page = int(queryargs.get('page') or 1)
             meta["count"] = paginator.count
             meta["num_pages"] = paginator.num_pages
             meta["page_size"] = cls.Meta.page_size
@@ -277,16 +277,20 @@ class Resource(Serializer, Authenticator):
             meta["page_prev"] = objects.previous_page_number() \
                 if objects.has_previous() else None
 
-        data = [
-            cls.dump_document(
-                m,
-                fields_own=fields_own,
-                fields_to_one=model_info.fields_to_one,
-                # fields_to_many=model_info.fields_to_many
-            )
-            for m in objects
-        ]
-        response = {cls.Meta.name_plural: data}
+        fields_include = set(queryargs.get("include", []))
+        fields_to_one = [f for f in model_info.fields_to_one
+                         if f.name in fields_include]
+        fields_to_many = [f for f in model_info.fields_to_many
+                          if f.name in fields_include]
+
+
+        response = cls.dump_documents(
+            cls,
+            objects,
+            fields_own=fields_own,
+            fields_to_one=fields_to_one,
+            fields_to_many=fields_to_many
+        )
         if meta:
             response["meta"] = meta
         return response
