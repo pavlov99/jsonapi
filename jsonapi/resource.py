@@ -277,16 +277,14 @@ class Resource(Serializer, Authenticator):
             meta["page_prev"] = objects.previous_page_number() \
                 if objects.has_previous() else None
 
-        data = [
-            cls.dump_document(
-                m,
+        response = {
+            cls.Meta.name_plural: cls.dump_documents(
+                objects,
                 fields_own=fields_own,
                 fields_to_one=model_info.fields_to_one,
                 # fields_to_many=model_info.fields_to_many
             )
-            for m in objects
-        ]
-        response = {cls.Meta.name_plural: data}
+        }
         if meta:
             response["meta"] = meta
         return response

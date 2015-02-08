@@ -114,3 +114,17 @@ class Serializer(object):
             )
 
         return document
+
+    @classmethod
+    def dump_documents(cls, model_instances, fields_own=None,
+                       fields_to_one=None, fields_to_many=None):
+        data = [
+            cls.dump_document(
+                m,
+                fields_own=fields_own,
+                fields_to_one=fields_to_one,
+                # fields_to_many=fields_to_many
+            )
+            for m in model_instances
+        ]
+        return data
