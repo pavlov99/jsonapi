@@ -77,7 +77,6 @@ class Serializer(object):
         fields_to_many = fields_to_many or []
 
         document = {}
-        # apply rules for field serialization
         for field in fields_own:
             value = getattr(model_instance, field.name)
 
@@ -100,12 +99,11 @@ class Serializer(object):
 
             document[field.name] = value
 
-        if fields_to_one or fields_to_many:
-            document["links"] = {}
-
-        for field in fields_to_one:
-            document["links"][field.name] = getattr(
-                model_instance, "{}_id".format(field.name))
+        for field in model_instance._meta.fields:
+            if field.rel:
+                document["links"] = document.get("links") or {}
+                document["links"][field.name] = getattr(
+                    model_instance, "{}_id".format(field.name))
 
         for field in fields_to_many:
             document["links"][field.name] = list(
@@ -116,15 +114,59 @@ class Serializer(object):
         return document
 
     @classmethod
-    def dump_documents(cls, model_instances, fields_own=None,
+    def dump_documents(cls, resource, model_instances, fields_own=None,
                        fields_to_one=None, fields_to_many=None):
-        data = [
-            cls.dump_document(
-                m,
-                fields_own=fields_own,
-                fields_to_one=fields_to_one,
-                # fields_to_many=fields_to_many
-            )
-            for m in model_instances
-        ]
+        data = {
+            resource.Meta.name_plural: [
+                cls.dump_document(
+                    m,
+                    fields_own=fields_own,
+                    fields_to_one=fields_to_one,
+                    fields_to_many=fields_to_many
+                )
+                for m in model_instances
+            ]
+        }
+
+        model_info = resource.Meta.api.model_inspector.models[
+            resource.Meta.model]
+
+        if model_info.fields_to_one or fields_to_many:
+            data["links"] = {}
+            for field in model_info.fields_to_one:
+                linkname = "{}.{}".format(resource.Meta.name_plural, field.name)
+                data["links"].update({
+                    linkname: resource.Meta.api.api_url + "/" + field.name +
+                    "/{" + linkname + "}"
+                })
+
+        fields_to_one = fields_to_one or []
+        fields_to_many = fields_to_many or []
+
+        if fields_to_one or fields_to_many:
+            data["linked"] = {}
+
+        for field in fields_to_one:
+            related_model_info = resource.Meta.api.model_inspector.models[
+                field.related_model]
+            related_resource = cls.Meta.api.resource_map[related_model_info.name]
+            data["linked"][related_resource.Meta.name_plural] = [
+                related_resource.dump_document(
+                    getattr(m, field.name),
+                    related_model_info.fields_own
+                ) for m in model_instances
+            ]
+
+        for field in fields_to_many:
+            related_model_info = resource.Meta.api.model_inspector.models[
+                field.related_model]
+            related_resource = cls.Meta.api.resource_map[related_model_info.name]
+            data["linked"][related_resource.Meta.name_plural] = [
+                related_resource.dump_document(
+                    x,
+                    related_model_info.fields_own
+                ) for m in model_instances
+                for x in getattr(getattr(m, field.name), "all").__call__()
+            ]
+
         return data

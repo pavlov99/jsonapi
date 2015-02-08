@@ -30,19 +30,21 @@ from .model_inspector import ModelInspector
 
 logger = logging.getLogger(__name__)
 
+model_inspector = ModelInspector()
+model_inspector.inspect()
+
 
 class API(object):
 
     """ API handler."""
 
     CONTENT_TYPE = "application/vnd.api+json"
+    model_inspector = model_inspector
 
     def __init__(self):
         self._resources = []
         self.base_url = None  # base server url
         self.api_url = None  # api root url
-        self.model_inspector = ModelInspector()
-        self.model_inspector.inspect()
 
     @property
     def resource_map(self):

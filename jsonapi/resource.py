@@ -277,14 +277,20 @@ class Resource(Serializer, Authenticator):
             meta["page_prev"] = objects.previous_page_number() \
                 if objects.has_previous() else None
 
-        response = {
-            cls.Meta.name_plural: cls.dump_documents(
-                objects,
-                fields_own=fields_own,
-                fields_to_one=model_info.fields_to_one,
-                # fields_to_many=model_info.fields_to_many
-            )
-        }
+        fields_include = set(queryargs.get("include", []))
+        fields_to_one = [f for f in model_info.fields_to_one
+                         if f.name in fields_include]
+        fields_to_many = [f for f in model_info.fields_to_many
+                          if f.name in fields_include]
+
+
+        response = cls.dump_documents(
+            cls,
+            objects,
+            fields_own=fields_own,
+            fields_to_one=fields_to_one,
+            fields_to_many=fields_to_many
+        )
         if meta:
             response["meta"] = meta
         return response
