@@ -364,9 +364,9 @@ class TestApiClient(TestCase):
         )
         data = json.loads(response.content.decode("utf-8"))["linked"]
         expected_data = {
-            "author": {
+            "authors": [{
                 "id": post.author_id,
                 "name": post.author.name
-            }
+            }]
         }
         self.assertEqual(data, expected_data)

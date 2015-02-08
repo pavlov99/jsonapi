@@ -140,4 +140,21 @@ class Serializer(object):
                     "/{" + linkname + "}"
                 })
 
+        fields_to_one = fields_to_one or []
+        fields_to_many = fields_to_many or []
+
+        if fields_to_one or fields_to_many:
+            data["linked"] = {}
+
+        for field in fields_to_one:
+            related_model_info = resource.Meta.api.model_inspector.models[
+                field.related_model]
+            related_resource = cls.Meta.api.resource_map[related_model_info.name]
+            data["linked"][related_resource.Meta.name_plural] = [
+                related_resource.dump_document(
+                    getattr(m, field.name),
+                    related_model_info.fields_own
+                ) for m in model_instances
+            ]
+
         return data
