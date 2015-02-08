@@ -288,8 +288,8 @@ class Resource(Serializer, Authenticator):
             cls,
             objects,
             fields_own=fields_own,
-            fields_to_one=model_info.fields_to_one,
-            # fields_to_many=model_info.fields_to_many
+            fields_to_one=fields_to_one,
+            fields_to_many=fields_to_many
         )
         if meta:
             response["meta"] = meta

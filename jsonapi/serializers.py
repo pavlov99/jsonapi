@@ -99,12 +99,11 @@ class Serializer(object):
 
             document[field.name] = value
 
-        if fields_to_one or fields_to_many:
-            document["links"] = {}
-
-        for field in fields_to_one:
-            document["links"][field.name] = getattr(
-                model_instance, "{}_id".format(field.name))
+        for field in model_instance._meta.fields:
+            if field.rel:
+                document["links"] = document.get("links") or {}
+                document["links"][field.name] = getattr(
+                    model_instance, "{}_id".format(field.name))
 
         for field in fields_to_many:
             document["links"][field.name] = list(
