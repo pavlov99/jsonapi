@@ -157,4 +157,16 @@ class Serializer(object):
                 ) for m in model_instances
             ]
 
+        for field in fields_to_many:
+            related_model_info = resource.Meta.api.model_inspector.models[
+                field.related_model]
+            related_resource = cls.Meta.api.resource_map[related_model_info.name]
+            data["linked"][related_resource.Meta.name_plural] = [
+                related_resource.dump_document(
+                    x,
+                    related_model_info.fields_own
+                ) for m in model_instances
+                for x in getattr(getattr(m, field.name), "all").__call__()
+            ]
+
         return data

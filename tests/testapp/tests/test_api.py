@@ -370,3 +370,23 @@ class TestApiClient(TestCase):
             }]
         }
         self.assertEqual(data, expected_data)
+
+    def test_get_include_many(self):
+        comment = mixer.blend("testapp.comment")
+        post = comment.post
+        response = self.client.get(
+            '/api/post?include=comments',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))["linked"]
+        expected_data = {
+            "comments": [{
+                "id": comment.id,
+                "links": {
+                    "author": comment.author_id,
+                    "post": comment.post_id,
+                },
+            }]
+        }
+        self.assertEqual(data, expected_data)
