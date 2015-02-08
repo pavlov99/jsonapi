@@ -136,7 +136,8 @@ class TestApi(TestCase):
         response = self.client.get('/api', content_type='application/json')
         self.assertEqual(response.status_code, 415)
         self.assertEqual(
-            str(response.content), "Content-Type SHOULD be application/vnd.api+json")
+            str(response.content),
+            "Content-Type SHOULD be application/vnd.api+json")
 
     @unittest.skipIf(django.VERSION[:2] == (1, 5),
                      "FIXME: For some reason does not work. Tested manually")
@@ -177,7 +178,7 @@ class TestApiClient(TestCase):
         }
         self.assertEqual(response.status_code, 201)
         self.assertEqual(author.name, "author")
-        data = json.loads(response.content)
+        data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
         self.assertTrue(response.has_header("Location"))
 
@@ -214,7 +215,7 @@ class TestApiClient(TestCase):
             } for author in authors]
         }
 
-        data = json.loads(response.content)
+        data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
         self.assertTrue(response.has_header("Location"))
 
@@ -258,7 +259,7 @@ class TestApiClient(TestCase):
             self.assertEqual(author.name, "author")
 
     def test_update_model_missing_ids(self):
-        author = mixer.blend("testapp.author")
+        mixer.blend("testapp.author")
         response = self.client.put(
             '/api/author',
             {
@@ -270,7 +271,9 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Request SHOULD have resource ids")
+        self.assertEqual(
+            response.content.decode("utf-8"),
+            "Request SHOULD have resource ids")
 
     def test_delete_model(self):
         author = mixer.blend("testapp.author")
@@ -299,4 +302,6 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.content, "Request SHOULD have resource ids")
+        self.assertEqual(
+            response.content.decode("utf-8"),
+            "Request SHOULD have resource ids")
