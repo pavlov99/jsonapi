@@ -6,8 +6,9 @@ from .django_utils import get_model_name
 
 class ModelInfo(object):
 
-    def __init__(self, fields_own=None, fields_to_one=None, fields_to_many=None,
-                 auth_user_paths=None, is_user=None):
+    def __init__(self, name, fields_own=None, fields_to_one=None,
+                 fields_to_many=None, auth_user_paths=None, is_user=None):
+        self.name = name
         self.fields_own = fields_own or []
         self.fields_to_one = fields_to_one or []
         self.fields_to_many = fields_to_many or []
@@ -79,6 +80,7 @@ class ModelInspector(object):
 
         self.models = {
             model: ModelInfo(
+                get_model_name(model),
                 fields_own=self._get_fields_own(model),
                 fields_to_one=self._get_fields_self_foreign_key(model),
                 fields_to_many=self._get_fields_others_foreign_key(model) +
