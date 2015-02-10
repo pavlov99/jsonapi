@@ -25,6 +25,7 @@ class PostWithPictureResource(Resource):
     class Meta:
         model = 'testapp.PostWithPicture'
         fieldnames_include = 'title_uppercased',
+        fieldnames_exclude = 'title',
 
 
 @api.register
