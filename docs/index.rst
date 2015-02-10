@@ -10,10 +10,11 @@ Welcome to json:api's documentation!
    :maxdepth: 3
 
    modules.rst
+   pages/resource.rst
 
 Installation
 ============
-Requires: Django (1.5, 1.6); python (2.7, 3.3).
+Requires: Django (1.5, 1.6, 1.7); python (2.7, 3.3).
 
 .. code-block:: python
 
@@ -56,7 +57,7 @@ Features
 What makes a decent API Framework? These features:
 
     + \+ Pagination
-    + Posting of data with validation
+    + \+ Posting of data with validation
     + \+ Publishing of metadata along with querysets
     + \+ API discovery
     + Proper HTTP response handling
@@ -77,7 +78,7 @@ Proper API frameworks also need:
 Docs
 ====
 
-    - Resource definition
+    - Resource definition pages/resource.rst
     - Resource and Models discovery
     - Authentication
     - Authorization
@@ -86,10 +87,11 @@ Examples
 ========
 curl -v -H "Content-Type: application/vnd.api+json" 127.0.0.1:8000/api/author
 
+pages/examples.rst
+
 Indices and tables
 ==================
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
