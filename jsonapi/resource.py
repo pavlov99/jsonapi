@@ -50,42 +50,36 @@ __all__ = 'Resource',
 logger = logging.getLogger(__name__)
 
 
-class ResourceManager(object):
+def get_concrete_model(model):
+    """ Get model defined in Meta.
 
-    """ Resource utils functionality."""
+    :param str or django.db.models.Model model:
+    :return: model or None
+    :rtype django.db.models.Model or None:
+    :raise ValueError: model is not found or abstract
 
-    @staticmethod
-    def get_concrete_model(model):
-        """ Get model defined in Meta.
+    """
+    if not(inspect.isclass(model) and issubclass(model, models.Model)):
+        model = get_model_by_name(model)
 
-        :param str or django.db.models.Model model:
-        :return: model or None
-        :rtype django.db.models.Model or None:
-        :raise ValueError: model is not found or abstract
+    return model
 
-        """
-        if not(inspect.isclass(model) and issubclass(model, models.Model)):
-            model = get_model_by_name(model)
 
-        return model
+def get_resource_name(meta):
+    """ Define resource name based on Meta information.
 
-    @staticmethod
-    def get_resource_name(meta):
-        """ Define resource name based on Meta information.
+    :param Resource.Meta meta: resource meta information
+    :return: name of resource
+    :rtype: str
+    :raises ValueError:
 
-        :param Resource.Meta meta: resource meta information
-        :return: name of resource
-        :rtype: str
-        :raises ValueError:
+    """
+    if meta.name is None and not meta.is_model:
+        msg = "Either name or model for resource.Meta shoud be provided"
+        raise ValueError(msg)
 
-        """
-        if meta.name is None and not meta.is_model:
-            msg = "Either name or model for resource.Meta shoud be provided"
-            raise ValueError(msg)
-
-        name = meta.name or get_model_name(
-            ResourceManager.get_concrete_model(meta.model))
-        return name
+    name = meta.name or get_model_name(get_concrete_model(meta.model))
+    return name
 
 
 def merge_metas(*metas):
@@ -133,10 +127,10 @@ class ResourceMetaClass(type):
             return cls
 
         cls.Meta.is_model = bool(getattr(cls.Meta, 'model', False))
-        cls.Meta.name = ResourceManager.get_resource_name(cls.Meta)
+        cls.Meta.name = get_resource_name(cls.Meta)
 
         if cls.Meta.is_model:
-            model = ResourceManager.get_concrete_model(cls.Meta.model)
+            model = get_concrete_model(cls.Meta.model)
             cls.Meta.model = model
             if model._meta.abstract:
                 raise ValueError(
@@ -282,7 +276,6 @@ class Resource(Serializer, Authenticator):
                          if f.name in fields_include]
         fields_to_many = [f for f in model_info.fields_to_many
                           if f.name in fields_include]
-
 
         response = cls.dump_documents(
             cls,
