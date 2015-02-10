@@ -31,6 +31,8 @@ class DatetimeDecimalEncoder(json.JSONEncoder):
 
 class SerializerMeta:
     encoder = DatetimeDecimalEncoder
+    fieldnames_include = []
+    fieldnames_exclude = []
 
 
 class Serializer(object):
@@ -68,46 +70,60 @@ class Serializer(object):
         redefine dump rule for field x: def dump_document_x
 
         :param django.db.models.Model model_instance: model instance
-        :param list of None fields: model_instance field to dump
+        :param list<str> or None fields: model_instance field to dump
         :return dict: document
 
+        Related documents are not included to current one. In case of to-many
+        field serialization ensure that models_instance has been select_related
+        so, no database calls would be executed.
+
+        Method ensures that document has cls.Meta.fieldnames_include and does
+        not have cls.Meta.fieldnames_exclude
+
+        Steps:
+        1) fieldnames_include could be properties, but not related models.
+        Add them to fields_own.
+
         """
-        fields_own = fields_own or []
-        fields_to_one = fields_to_one or []
-        fields_to_many = fields_to_many or []
+        default_fields_own = [
+            f.name for f in model_instance._meta.fields if not f.rel]
+        fields_own = fields_own or default_fields_own
+        fields_own = (set(fields_own) | set(cls.Meta.fieldnames_include))\
+            - set(cls.Meta.fieldnames_exclude)
 
         document = {}
-        for field in fields_own:
-            value = getattr(model_instance, field.name)
-
+        for fieldname in fields_own:
+            value = getattr(model_instance, fieldname)
             field_serializer = getattr(
-                cls, "dump_document_{}".format(field.name), None)
+                cls, "dump_document_{}".format(fieldname), None)
 
             if field_serializer is not None:
                 value = field_serializer(model_instance)
             else:
                 try:
-                    field = model_instance._meta.get_field(field.name)
+                    field = model_instance._meta.get_field(fieldname)
                 except models.fields.FieldDoesNotExist:
                     # Field is property
-                    pass
+                    value = getattr(model_instance, fieldname)
                 else:
                     if isinstance(field, models.fields.files.FileField):
+                        # TODO: Serializer depends on API here.
                         value = cls.Meta.api.base_url + value.url
                     elif isinstance(field, models.CommaSeparatedIntegerField):
                         value = [v for v in value]
 
-            document[field.name] = value
+            document[fieldname] = value
 
+        fields_to_many = fields_to_many or []
         for field in model_instance._meta.fields:
             if field.rel:
                 document["links"] = document.get("links") or {}
                 document["links"][field.name] = getattr(
                     model_instance, "{}_id".format(field.name))
 
-        for field in fields_to_many:
-            document["links"][field.name] = list(
-                getattr(model_instance, field.name).
+        for fieldname in fields_to_many:
+            document["links"][fieldname] = list(
+                getattr(model_instance, fieldname).
                 values_list("id", flat=True)
             )
 
@@ -120,9 +136,9 @@ class Serializer(object):
             resource.Meta.name_plural: [
                 cls.dump_document(
                     m,
-                    fields_own=fields_own,
-                    fields_to_one=fields_to_one,
-                    fields_to_many=fields_to_many
+                    fields_own=[f.name for f in fields_own],
+                    fields_to_one=[f.name for f in fields_to_one],
+                    fields_to_many=[f.name for f in fields_to_many]
                 )
                 for m in model_instances
             ]
@@ -154,7 +170,7 @@ class Serializer(object):
             data["linked"][related_resource.Meta.name_plural] = [
                 related_resource.dump_document(
                     getattr(m, field.name),
-                    related_model_info.fields_own
+                    [f.name for f in related_model_info.fields_own]
                 ) for m in model_instances
                 if getattr(m, field.name) is not None
             ]
@@ -167,7 +183,7 @@ class Serializer(object):
             data["linked"][related_resource.Meta.name_plural] = [
                 related_resource.dump_document(
                     x,
-                    related_model_info.fields_own
+                    [f.name for f in related_model_info.fields_own]
                 ) for m in model_instances
                 for x in getattr(getattr(m, field.name), "all").__call__()
             ]

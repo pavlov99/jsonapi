@@ -403,7 +403,6 @@ class TestApiClient(TestCase):
                     'is_superuser': user.is_superuser,
                     'last_login': user.last_login.isoformat(),
                     'last_name': user.last_name,
-                    'password': user.password,
                     'username': user.username,
                 }]
             },
@@ -433,3 +432,31 @@ class TestApiClient(TestCase):
             }]
         }
         self.assertEqual(data, expected_data)
+
+    def test_get_include_fields(self):
+        mixer.blend("testapp.postwithpicture")
+        response = self.client.get(
+            '/api/postwithpicture',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertIn("title_uppercased", data["postwithpictures"][0])
+
+        response = self.client.get(
+            '/api/post',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertNotIn("title_uppercased", data["posts"][0])
+
+    def test_get_exclude_fields(self):
+        mixer.blend("testapp.postwithpicture")
+        response = self.client.get(
+            '/api/postwithpicture',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertNotIn("title", data["postwithpictures"][0])

@@ -1,11 +1,10 @@
 from django.test import TestCase
+from mixer.backend.django import mixer
 import datetime
 import decimal
 import json
-from mixer.backend.django import mixer
 
 from jsonapi.serializers import Serializer, DatetimeDecimalEncoder
-from jsonapi.model_inspector import Field
 
 from ..models import TestSerializerAllFields
 
@@ -18,8 +17,7 @@ class TestSerializers(TestCase):
 
     def test_django_fields_serialization(self):
         fields_own = [
-            Field(f.name, Field.CATEGORIES.OWN)
-            for f in self.obj._meta.fields if f.serialize
+            f.name for f in self.obj._meta.fields if f.serialize
         ]
         obj = Serializer.dump_document(self.obj, fields_own=fields_own)
 
@@ -52,8 +50,7 @@ class TestSerializers(TestCase):
         self.assertEqual(obj['url'], self.obj.url)
 
     def test_dump_document_field_redefinition(self):
-        fields_own = [
-            Field(name, Field.CATEGORIES.OWN) for name in ["id", "char"]]
+        fields_own = [name for name in ["id", "char"]]
         obj_dump = Serializer.dump_document(self.obj, fields_own)
         expected_dump = {
             "id": self.obj.id,
