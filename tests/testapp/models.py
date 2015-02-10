@@ -42,7 +42,7 @@ class Author(models.Model):
 class Post(models.Model):
     title = models.CharField(max_length=100)
     author = models.ForeignKey(Author)
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(User, null=True, blank=True)
 
     @property
     def title_uppercased(self):

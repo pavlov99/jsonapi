@@ -371,9 +371,52 @@ class TestApiClient(TestCase):
         }
         self.assertEqual(data, expected_data)
 
+    def test_get_include_null(self):
+        """ Test include optional foreign key field."""
+        post1 = mixer.blend("testapp.post")
+        post2 = mixer.blend("testapp.post", user__username="username")
+        user = post2.user
+        response = self.client.get(
+            '/api/post?include=user',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        expected_data = {
+            "posts": [{
+                "id": post.id,
+                "title": post.title,
+                "links": {
+                    "author": post.author_id,
+                    "user": post.user_id,
+                }
+            } for post in [post1, post2]],
+            "linked": {
+                "users": [{
+                    "id": user.id,
+                    "date_joined": user.date_joined.isoformat(),
+                    "email": user.email,
+                    'first_name': user.first_name,
+                    'is_active': user.is_active,
+                    'is_staff': user.is_staff,
+                    'is_superuser': user.is_superuser,
+                    'last_login': user.last_login.isoformat(),
+                    'last_name': user.last_name,
+                    'password': user.password,
+                    'username': user.username,
+                }]
+            },
+            'links': {
+                'posts.author': 'http://testserver/api/author/{posts.author}',
+                'posts.user': 'http://testserver/api/user/{posts.user}'
+            },
+        }
+        self.maxDiff = None
+        self.assertEqual(data, expected_data)
+
     def test_get_include_many(self):
         comment = mixer.blend("testapp.comment")
-        post = comment.post
         response = self.client.get(
             '/api/post?include=comments',
             content_type='application/vnd.api+json',

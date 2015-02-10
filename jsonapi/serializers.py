@@ -149,18 +149,21 @@ class Serializer(object):
         for field in fields_to_one:
             related_model_info = resource.Meta.api.model_inspector.models[
                 field.related_model]
-            related_resource = cls.Meta.api.resource_map[related_model_info.name]
+            related_resource = cls.Meta.api.resource_map[
+                related_model_info.name]
             data["linked"][related_resource.Meta.name_plural] = [
                 related_resource.dump_document(
                     getattr(m, field.name),
                     related_model_info.fields_own
                 ) for m in model_instances
+                if getattr(m, field.name) is not None
             ]
 
         for field in fields_to_many:
             related_model_info = resource.Meta.api.model_inspector.models[
                 field.related_model]
-            related_resource = cls.Meta.api.resource_map[related_model_info.name]
+            related_resource = cls.Meta.api.resource_map[
+                related_model_info.name]
             data["linked"][related_resource.Meta.name_plural] = [
                 related_resource.dump_document(
                     x,
