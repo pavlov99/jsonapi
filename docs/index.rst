@@ -78,7 +78,7 @@ Proper API frameworks also need:
 Docs
 ====
 
-    - Resource definition pages/resource.rst
+    - Resource definition
     - Resource and Models discovery
     - Authentication
     - Authorization
@@ -87,7 +87,10 @@ Examples
 ========
 curl -v -H "Content-Type: application/vnd.api+json" 127.0.0.1:8000/api/author
 
-pages/examples.rst
+Test Application Models
+=======================
+.. image:: models.png
+
 
 Indices and tables
 ==================
