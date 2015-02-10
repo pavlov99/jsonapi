@@ -150,6 +150,7 @@ class Resource(Serializer, Authenticator):
         fieldnames_exclude = None
         page_size = None
         allowed_methods = 'GET',
+        form = None
 
         @classproperty
         def name_plural(cls):
@@ -299,7 +300,7 @@ class Resource(Serializer, Authenticator):
             items = [items]
 
         objects = []
-        Form = cls.get_form()
+        Form = cls.Meta.form or cls.get_form()
         for item in items:
             form = Form(item)
             objects.append(form.save())
@@ -336,7 +337,7 @@ class Resource(Serializer, Authenticator):
         objects_map = cls.Meta.model.objects.in_bulk(kwargs["ids"])
 
         objects = []
-        Form = cls.get_form()
+        Form = cls.Meta.form or cls.get_form()
         for item in items:
             instance = objects_map[item["id"]]
             form = Form(item, instance=instance)
