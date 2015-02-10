@@ -146,8 +146,8 @@ class Resource(Serializer, Authenticator):
 
     class Meta:
         name = None
-        fieldnames_include = None
-        fieldnames_exclude = None
+        # fieldnames_include = None  # NOTE: moved to Serializer.
+        # fieldnames_exclude = None
         page_size = None
         allowed_methods = 'GET',
         form = None
@@ -305,15 +305,7 @@ class Resource(Serializer, Authenticator):
             form = Form(item)
             objects.append(form.save())
 
-        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
-        data = [
-            cls.dump_document(
-                m,
-                fields_own=model_info.fields_own,
-                fields_to_one=model_info.fields_to_one,
-            )
-            for m in objects
-        ]
+        data = [cls.dump_document(o) for o in objects]
 
         if not is_collection:
             data = data[0]
@@ -343,15 +335,7 @@ class Resource(Serializer, Authenticator):
             form = Form(item, instance=instance)
             objects.append(form.save())
 
-        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
-        data = [
-            cls.dump_document(
-                m,
-                fields_own=model_info.fields_own,
-                fields_to_one=model_info.fields_to_one,
-            )
-            for m in objects
-        ]
+        data = [cls.dump_document(o) for o in objects]
 
         if not is_collection:
             data = data[0]
