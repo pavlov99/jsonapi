@@ -5,6 +5,7 @@ DJANGO_ADMIN=$(shell which django-admin.py)
 SETTINGS_TEST=tests.testapp.settings.test
 SETTINGS_DEV=tests.testapp.settings.dev
 PARAMS_DEV=--settings=$(SETTINGS_DEV) --pythonpath=$(CURDIR)
+SPHINXBUILD=sphinx-build
 
 all: $(ENV)
 	@echo "Virtualenv is installed"
@@ -66,9 +67,9 @@ install:
 .PHONY: graph_models
 # target: graph_models - graph models
 graph_models: $(ENV)
-	$(DJANGO_ADMIN) graph_models --output=models.png $(PARAMS_DEV) testapp
+	$(DJANGO_ADMIN) graph_models --output=docs/models.png $(PARAMS_DEV) testapp
 
 .PHONY: docs
 # target: docs - build documentation
 docs:
-	echo "Build docs"
+	$(SPHINXBUILD) -b html docs docs/_build
