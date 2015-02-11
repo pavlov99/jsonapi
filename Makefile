@@ -37,6 +37,7 @@ register:
 .PHONY: upload
 # target: upload - Upload module on PyPi
 upload:
+	@git push && git push --tags
 	@python setup.py sdist upload || echo 'Upload already'
 
 .PHONY: test
