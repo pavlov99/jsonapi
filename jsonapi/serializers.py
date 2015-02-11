@@ -122,6 +122,7 @@ class Serializer(object):
                     model_instance, "{}_id".format(field.name))
 
         for fieldname in fields_to_many:
+            document["links"] = document.get("links") or {}
             document["links"][fieldname] = list(
                 getattr(model_instance, fieldname).
                 values_list("id", flat=True)
