@@ -1,5 +1,6 @@
 import base64
 from django.contrib.auth import authenticate
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 
 from .utils import Choices
 
@@ -23,11 +24,37 @@ class HTTPBasicAuthenticator(object):
                 return user
 
 
+class DjangoToolkitOAuthAuthenticator(object):
+
+    """ Authentication for django-oauth-toolkit library.
+
+    NOTE: Authrntication requires django-oauth-toolkit to be installed.
+    Usage:
+        Use header "Authorization: Bearer <access_token>" with request.
+
+    """
+
+    @classmethod
+    def authenticate(cls, request):
+        from oauth2_provider.models import AccessToken
+        if 'Authorization' in request.META:
+            auth = request.META['Authorization'].split()
+            if len(auth) == 2 and auth[0].lower() == "bearer":
+                token = auth[1].decode('utf8')
+                queryset = AccessToken.objects.filter(token=token)
+                try:
+                    user = queryset.get().user
+                    return user
+                except (ObjectDoesNotExist, MultipleObjectsReturned):
+                    pass
+
+
 class Authenticator(object):
 
     AUTHENTICATORS = Choices(
         (SessionAuthenticator, 'SESSION'),
         (HTTPBasicAuthenticator, 'HTTP_BASIC'),
+        (DjangoToolkitOAuthAuthenticator, 'DJANGO_TOOLKIT_OAUTH'),
     )
 
     class Meta:
