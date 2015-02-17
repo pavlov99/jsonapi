@@ -64,5 +64,8 @@ class Authenticator(object):
     def authenticate(cls, request):
         for authenticator in cls.Meta.authenticators:
             user = authenticator.authenticate(request)
-            if user:
+            # if authenticater returns user with valid id, return it. NOTE:
+            # request.user returns SimpleLazy object with is not False, but
+            # might be AnonymousUser.
+            if user and user.id:
                 return user
