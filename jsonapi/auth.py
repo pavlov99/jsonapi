@@ -37,10 +37,10 @@ class DjangoToolkitOAuthAuthenticator(object):
     @classmethod
     def authenticate(cls, request):
         from oauth2_provider.models import AccessToken
-        if 'Authorization' in request.META:
-            auth = request.META['Authorization'].split()
+        if 'HTTP_AUTHORIZATION' in request.META:
+            auth = request.META['HTTP_AUTHORIZATION'].split()
             if len(auth) == 2 and auth[0].lower() == "bearer":
-                token = auth[1].decode('utf8')
+                token = auth[1]
                 queryset = AccessToken.objects.filter(token=token)
                 try:
                     user = queryset.get().user
