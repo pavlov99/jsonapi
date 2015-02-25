@@ -346,8 +346,8 @@ class Resource(Serializer, Authenticator):
         objects_map = cls.Meta.model.objects.in_bulk(kwargs["ids"])
 
         objects = []
-        Form = cls.Meta.form or cls.get_form()
         for item in items:
+            Form = cls.Meta.form or cls.get_form(item.keys())
             instance = objects_map[item["id"]]
             form = Form(item, instance=instance)
             objects.append(form.save())
