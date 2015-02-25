@@ -307,19 +307,50 @@ class TestApiClient(TestCase):
             "Request SHOULD have resource ids")
 
     def test_update_model_authentication(self):
+        # could not update resources withour permission.
         other_user = mixer.blend(User)
+        response = self.client.put(
+            '/api/user/{}'.format(other_user.id),
+            {
+                "users": {"id": other_user.id, "email": "email@example.com"},
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 403)
+
         response = self.client.put(
             '/api/user/{}'.format(self.user.id),
             {
-                "users": {
-                    "id": self.user.id,
-                    "email": "email@example.com",
-                },
+                "users": {"id": other_user.id, "email": "email@example.com"},
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.put(
+            '/api/user/{}'.format(other_user.id),
+            {
+                "users": {"id": self.user.id, "email": "email@example.com"},
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        self.assertNotEqual(self.user.email, "email@example.com")
+        response = self.client.put(
+            '/api/user/{}'.format(self.user.id),
+            {
+                "users": {"id": self.user.id, "email": "email@example.com"},
             },
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
         self.assertEqual(response.status_code, 200)
+        user = User.objects.get(id=self.user.id)
+        self.assertEqual(user.email, "email@example.com")
 
     def test_delete_model(self):
         author = mixer.blend("testapp.author")

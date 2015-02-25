@@ -25,6 +25,7 @@ Responsible for routing and resource registration.
 from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
+from .exceptions import JSONAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -206,9 +207,13 @@ class API(object):
         if 'ids' not in kwargs:
             return HttpResponse("Request SHOULD have resource ids", status=400)
 
-        response = resource.put(**kwargs)
-        return HttpResponse(
-            response, content_type=self.CONTENT_TYPE, status=200)
+        try:
+            response = resource.put(**kwargs)
+            return HttpResponse(
+                response, content_type=self.CONTENT_TYPE, status=200)
+        except JSONAPIError as e:
+            return HttpResponse(
+                e.message, content_type=self.CONTENT_TYPE, status=e.status_code)
 
     def handler_view_delete(self, resource, **kwargs):
         if 'ids' not in kwargs:

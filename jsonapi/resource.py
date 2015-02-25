@@ -45,6 +45,8 @@ from .serializers import Serializer
 from .auth import Authenticator
 from .request_parser import RequestParser
 from .model_inspector import ModelInspector
+from .exceptions import JSONAPIError
+from .import statuses
 
 __all__ = 'Resource',
 
@@ -334,7 +336,6 @@ class Resource(Serializer, Authenticator):
     def put(cls, request=None, **kwargs):
         # TODO: check ids for elements.
         # TODO: check form is valid for elements.
-        # TODO: check kwargs has ids.
         jdata = request.body.decode('utf8')
         data = ast.literal_eval(jdata)
         items = data[cls.Meta.name_plural]
@@ -343,7 +344,22 @@ class Resource(Serializer, Authenticator):
         if not is_collection:
             items = [items]
 
-        objects_map = cls.Meta.model.objects.in_bulk(kwargs["ids"])
+        ids_set = set([int(_id) for _id in kwargs['ids']])
+        item_ids_set = {item["id"] for item in items}
+        if ids_set != item_ids_set:
+            msg = "ids set in url and request body are not matched"
+            raise JSONAPIError(statuses.HTTP_400_BAD_REQUEST, msg)
+
+        user = cls.authenticate(request)
+        queryset = cls.get_queryset(user=user, **kwargs)
+        queryset = cls.update_put_queryset(queryset, **kwargs)
+        objects_map = queryset.in_bulk(kwargs["ids"])
+
+        if len(objects_map) < len(kwargs["ids"]):
+            msg = "You do not have access to objects {}".format(
+                list(ids_set - set(objects_map.keys()))
+            )
+            raise JSONAPIError(statuses.HTTP_403_FORBIDDEN, msg)
 
         objects = []
         for item in items:
