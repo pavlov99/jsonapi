@@ -173,7 +173,18 @@ class Resource(Serializer, Authenticator):
 
         """
         queryset = cls.Meta.model.objects
+        queryset = cls.update_user_queryset(queryset, user=user, **kwargs)
+        return queryset
 
+    @classmethod
+    def update_user_queryset(cls, queryset, user=None, **kwargs):
+        """ Update queryset based on given user.
+
+        .. versionadded:: 0.6.9
+
+        Method is used to control permissions during resource management.
+
+        """
         if cls.Meta.authenticators:
             model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
             user_filter = models.Q()
