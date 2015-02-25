@@ -271,6 +271,15 @@ class TestApiClient(TestCase):
         author = Author.objects.get()
         self.assertEqual(author.name, "author")
 
+        expected_data = {
+            "authors": {
+                "id": author.id,
+                "name": "author"
+            }
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
     def test_update_models(self):
         authors = mixer.cycle(2).blend("testapp.author", name="")
         response = self.client.put(
@@ -288,6 +297,15 @@ class TestApiClient(TestCase):
         self.assertEqual(Author.objects.count(), 2)
         for author in Author.objects.all():
             self.assertEqual(author.name, "author")
+
+        expected_data = {
+            "authors": [{
+                "id": a.id,
+                "name": "author",
+            } for a in authors],
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
 
     def test_update_model_missing_ids(self):
         mixer.blend("testapp.author")

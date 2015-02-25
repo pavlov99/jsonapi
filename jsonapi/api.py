@@ -208,9 +208,10 @@ class API(object):
             return HttpResponse("Request SHOULD have resource ids", status=400)
 
         try:
-            response = resource.put(**kwargs)
-            return HttpResponse(
-                response, content_type=self.CONTENT_TYPE, status=200)
+            data = resource.put(**kwargs)
+            response = HttpResponse(
+                json.dumps(data), content_type=self.CONTENT_TYPE, status=200)
+            return response
         except JSONAPIError as e:
             return HttpResponse(
                 e.message, content_type=self.CONTENT_TYPE, status=e.status_code)
