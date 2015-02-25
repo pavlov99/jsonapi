@@ -26,6 +26,7 @@ from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
 from .exceptions import JSONAPIError
+from .serializers import DatetimeDecimalEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -192,7 +193,8 @@ class API(object):
     def handler_view_post(self, resource, **kwargs):
         data = resource.post(**kwargs)
         response = HttpResponse(
-            json.dumps(data), content_type=self.CONTENT_TYPE, status=201)
+            json.dumps(data, cls=DatetimeDecimalEncoder),
+            content_type=self.CONTENT_TYPE, status=201)
 
         items = data[resource.Meta.name_plural]
         items = items if isinstance(items, list) else [items]
@@ -210,7 +212,8 @@ class API(object):
         try:
             data = resource.put(**kwargs)
             response = HttpResponse(
-                json.dumps(data), content_type=self.CONTENT_TYPE, status=200)
+                json.dumps(data, cls=DatetimeDecimalEncoder),
+                content_type=self.CONTENT_TYPE, status=200)
             return response
         except JSONAPIError as e:
             return HttpResponse(
