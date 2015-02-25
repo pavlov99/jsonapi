@@ -44,10 +44,15 @@ from .django_utils import get_model_name, get_model_by_name
 from .serializers import Serializer
 from .auth import Authenticator
 from .request_parser import RequestParser
+from .model_inspector import ModelInspector
 
 __all__ = 'Resource',
 
 logger = logging.getLogger(__name__)
+
+
+model_inspector = ModelInspector()
+model_inspector.inspect()
 
 
 def get_concrete_model(model):
@@ -136,6 +141,8 @@ class ResourceMetaClass(type):
                 raise ValueError(
                     "Abstract model {} could not be resource".format(model))
 
+            cls.Meta.model_info = model_inspector.models[cls.Meta.model]
+
         return cls
 
 
@@ -186,9 +193,8 @@ class Resource(Serializer, Authenticator):
 
         """
         if cls.Meta.authenticators:
-            model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
             user_filter = models.Q()
-            for path in model_info.auth_user_paths:
+            for path in cls.Meta.model_info.auth_user_paths:
                 querydict = {path: user} if path else {"id": user.id}
                 user_filter = user_filter | models.Q(**querydict)
 
@@ -260,7 +266,7 @@ class Resource(Serializer, Authenticator):
 
         # Fields serialisation
         # NOTE: currently filter only own fields
-        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        model_info = cls.Meta.model_info
         fields_own = model_info.fields_own
         if queryargs['fields']:
             fieldnames = queryargs['fields']

@@ -26,12 +26,7 @@ from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
 
-from .model_inspector import ModelInspector
-
 logger = logging.getLogger(__name__)
-
-model_inspector = ModelInspector()
-model_inspector.inspect()
 
 
 class API(object):
@@ -39,7 +34,6 @@ class API(object):
     """ API handler."""
 
     CONTENT_TYPE = "application/vnd.api+json"
-    model_inspector = model_inspector
 
     def __init__(self):
         self._resources = []
@@ -105,8 +99,6 @@ class API(object):
             )
 
         resource.Meta.api = self
-        resource.Meta.model_info = None if not resource.Meta.is_model else \
-            model_inspector.models[resource.Meta.model]
         self._resources.append(resource)
         return resource
 
