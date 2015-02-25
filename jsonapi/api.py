@@ -105,6 +105,8 @@ class API(object):
             )
 
         resource.Meta.api = self
+        resource.Meta.model_info = None if not resource.Meta.is_model else \
+            model_inspector.models[resource.Meta.model]
         self._resources.append(resource)
         return resource
 
