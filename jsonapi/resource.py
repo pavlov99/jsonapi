@@ -46,7 +46,7 @@ from .auth import Authenticator
 from .request_parser import RequestParser
 from .model_inspector import ModelInspector
 from .exceptions import JSONAPIError
-from .import statuses
+from . import statuses
 
 __all__ = 'Resource',
 
@@ -334,8 +334,6 @@ class Resource(Serializer, Authenticator):
 
     @classmethod
     def put(cls, request=None, **kwargs):
-        # TODO: check ids for elements.
-        # TODO: check form is valid for elements.
         jdata = request.body.decode('utf8')
         data = ast.literal_eval(jdata)
         items = data[cls.Meta.name_plural]
@@ -378,7 +376,6 @@ class Resource(Serializer, Authenticator):
 
     @classmethod
     def delete(cls, request=None, **kwargs):
-        # TODO: raise Error if there are no ids.
         user = cls.authenticate(request)
         queryset = cls.get_queryset(user=user, **kwargs)
         queryset.filter(id__in=kwargs['ids']).delete()
