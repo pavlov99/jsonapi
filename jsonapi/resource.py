@@ -44,10 +44,17 @@ from .django_utils import get_model_name, get_model_by_name
 from .serializers import Serializer
 from .auth import Authenticator
 from .request_parser import RequestParser
+from .model_inspector import ModelInspector
+from .exceptions import JSONAPIError
+from .import statuses
 
 __all__ = 'Resource',
 
 logger = logging.getLogger(__name__)
+
+
+model_inspector = ModelInspector()
+model_inspector.inspect()
 
 
 def get_concrete_model(model):
@@ -136,6 +143,8 @@ class ResourceMetaClass(type):
                 raise ValueError(
                     "Abstract model {} could not be resource".format(model))
 
+            cls.Meta.model_info = model_inspector.models[cls.Meta.model]
+
         return cls
 
 
@@ -173,11 +182,21 @@ class Resource(Serializer, Authenticator):
 
         """
         queryset = cls.Meta.model.objects
+        queryset = cls.update_user_queryset(queryset, user=user, **kwargs)
+        return queryset
 
+    @classmethod
+    def update_user_queryset(cls, queryset, user=None, **kwargs):
+        """ Update queryset based on given user.
+
+        .. versionadded:: 0.6.9
+
+        Method is used to control permissions during resource management.
+
+        """
         if cls.Meta.authenticators:
-            model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
             user_filter = models.Q()
-            for path in model_info.auth_user_paths:
+            for path in cls.Meta.model_info.auth_user_paths:
                 querydict = {path: user} if path else {"id": user.id}
                 user_filter = user_filter | models.Q(**querydict)
 
@@ -249,7 +268,7 @@ class Resource(Serializer, Authenticator):
 
         # Fields serialisation
         # NOTE: currently filter only own fields
-        model_info = cls.Meta.api.model_inspector.models[cls.Meta.model]
+        model_info = cls.Meta.model_info
         fields_own = model_info.fields_own
         if queryargs['fields']:
             fieldnames = queryargs['fields']
@@ -317,7 +336,6 @@ class Resource(Serializer, Authenticator):
     def put(cls, request=None, **kwargs):
         # TODO: check ids for elements.
         # TODO: check form is valid for elements.
-        # TODO: check kwargs has ids.
         jdata = request.body.decode('utf8')
         data = ast.literal_eval(jdata)
         items = data[cls.Meta.name_plural]
@@ -326,11 +344,26 @@ class Resource(Serializer, Authenticator):
         if not is_collection:
             items = [items]
 
-        objects_map = cls.Meta.model.objects.in_bulk(kwargs["ids"])
+        ids_set = set([int(_id) for _id in kwargs['ids']])
+        item_ids_set = {item["id"] for item in items}
+        if ids_set != item_ids_set:
+            msg = "ids set in url and request body are not matched"
+            raise JSONAPIError(statuses.HTTP_400_BAD_REQUEST, msg)
+
+        user = cls.authenticate(request)
+        queryset = cls.get_queryset(user=user, **kwargs)
+        queryset = cls.update_put_queryset(queryset, **kwargs)
+        objects_map = queryset.in_bulk(kwargs["ids"])
+
+        if len(objects_map) < len(kwargs["ids"]):
+            msg = "You do not have access to objects {}".format(
+                list(ids_set - set(objects_map.keys()))
+            )
+            raise JSONAPIError(statuses.HTTP_403_FORBIDDEN, msg)
 
         objects = []
-        Form = cls.Meta.form or cls.get_form()
         for item in items:
+            Form = cls.Meta.form or cls.get_form(item.keys())
             instance = objects_map[item["id"]]
             form = Form(item, instance=instance)
             objects.append(form.save())

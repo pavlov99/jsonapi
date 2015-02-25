@@ -145,8 +145,7 @@ class Serializer(object):
             ]
         }
 
-        model_info = resource.Meta.api.model_inspector.models[
-            resource.Meta.model]
+        model_info = resource.Meta.model_info
 
         if model_info.fields_to_one or fields_to_many:
             data["links"] = {}
@@ -164,10 +163,10 @@ class Serializer(object):
             data["linked"] = {}
 
         for field in fields_to_one:
-            related_model_info = resource.Meta.api.model_inspector.models[
+            related_resource = cls.Meta.api.model_resource_map[
                 field.related_model]
-            related_resource = cls.Meta.api.resource_map[
-                related_model_info.name]
+            related_model_info = related_resource.Meta.model_info
+
             data["linked"][related_resource.Meta.name_plural] = [
                 related_resource.dump_document(
                     getattr(m, field.name),
@@ -177,10 +176,9 @@ class Serializer(object):
             ]
 
         for field in fields_to_many:
-            related_model_info = resource.Meta.api.model_inspector.models[
+            related_resource = cls.Meta.api.model_resource_map[
                 field.related_model]
-            related_resource = cls.Meta.api.resource_map[
-                related_model_info.name]
+            related_model_info = related_resource.Meta.model_info
             data["linked"][related_resource.Meta.name_plural] = [
                 related_resource.dump_document(
                     x,

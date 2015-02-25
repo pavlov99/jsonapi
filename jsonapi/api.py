@@ -25,13 +25,9 @@ Responsible for routing and resource registration.
 from django.http import HttpResponse, HttpResponseNotAllowed
 import logging
 import json
-
-from .model_inspector import ModelInspector
+from .exceptions import JSONAPIError
 
 logger = logging.getLogger(__name__)
-
-model_inspector = ModelInspector()
-model_inspector.inspect()
 
 
 class API(object):
@@ -39,7 +35,6 @@ class API(object):
     """ API handler."""
 
     CONTENT_TYPE = "application/vnd.api+json"
-    model_inspector = model_inspector
 
     def __init__(self):
         self._resources = []
@@ -212,9 +207,13 @@ class API(object):
         if 'ids' not in kwargs:
             return HttpResponse("Request SHOULD have resource ids", status=400)
 
-        response = resource.put(**kwargs)
-        return HttpResponse(
-            response, content_type=self.CONTENT_TYPE, status=200)
+        try:
+            response = resource.put(**kwargs)
+            return HttpResponse(
+                response, content_type=self.CONTENT_TYPE, status=200)
+        except JSONAPIError as e:
+            return HttpResponse(
+                e.message, content_type=self.CONTENT_TYPE, status=e.status_code)
 
     def handler_view_delete(self, resource, **kwargs):
         if 'ids' not in kwargs:

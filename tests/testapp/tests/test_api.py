@@ -1,13 +1,16 @@
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from jsonapi.api import API
 from jsonapi.resource import Resource
 from mixer.backend.django import mixer
 import django
-import unittest
 import json
+import unittest
 
 from ..models import Author
 from ..urls import api
+
+User = get_user_model()
 
 
 class TestApi(TestCase):
@@ -153,6 +156,12 @@ class TestApi(TestCase):
 
 
 class TestApiClient(TestCase):
+    def setUp(self):
+        self.user = mixer.blend(User)
+        self.user.set_password('password')
+        self.user.save()
+        self.client.login(username=self.user.username, password='password')
+
     def test_resource_get_empty(self):
         response = self.client.get(
             '/api/author',
@@ -296,6 +305,52 @@ class TestApiClient(TestCase):
         self.assertEqual(
             response.content.decode("utf-8"),
             "Request SHOULD have resource ids")
+
+    def test_update_model_authentication(self):
+        # could not update resources withour permission.
+        other_user = mixer.blend(User)
+        response = self.client.put(
+            '/api/user/{}'.format(other_user.id),
+            {
+                "users": {"id": other_user.id, "email": "email@example.com"},
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.put(
+            '/api/user/{}'.format(self.user.id),
+            {
+                "users": {"id": other_user.id, "email": "email@example.com"},
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        response = self.client.put(
+            '/api/user/{}'.format(other_user.id),
+            {
+                "users": {"id": self.user.id, "email": "email@example.com"},
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        self.assertNotEqual(self.user.email, "email@example.com")
+        response = self.client.put(
+            '/api/user/{}'.format(self.user.id),
+            {
+                "users": {"id": self.user.id, "email": "email@example.com"},
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 200)
+        user = User.objects.get(id=self.user.id)
+        self.assertEqual(user.email, "email@example.com")
 
     def test_delete_model(self):
         author = mixer.blend("testapp.author")
