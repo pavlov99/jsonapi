@@ -320,6 +320,8 @@ class Resource(Serializer, Authenticator):
 
         objects = []
         for item in items:
+            if 'links' in item:
+                item.update(item.pop('links'))
             Form = cls.Meta.form or cls.get_form(item.keys())
             form = Form(item)
             objects.append(form.save())
@@ -361,6 +363,8 @@ class Resource(Serializer, Authenticator):
 
         objects = []
         for item in items:
+            if 'links' in item:
+                item.update(item.pop('links'))
             Form = cls.Meta.form or cls.get_form(item.keys())
             instance = objects_map[item["id"]]
             form = Form(item, instance=instance)
