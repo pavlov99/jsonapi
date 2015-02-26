@@ -462,7 +462,8 @@ class TestApiClient(TestCase):
         self.assertEqual(data, expected_data)
 
     def test_get_include(self):
-        post = mixer.blend("testapp.post")
+        author = mixer.blend("testapp.author")
+        mixer.cycle(2).blend("testapp.post", author=author)
         response = self.client.get(
             '/api/post?include=author',
             content_type='application/vnd.api+json',
@@ -471,8 +472,8 @@ class TestApiClient(TestCase):
         data = json.loads(response.content.decode("utf-8"))["linked"]
         expected_data = {
             "authors": [{
-                "id": post.author_id,
-                "name": post.author.name
+                "id": author.id,
+                "name": author.name
             }]
         }
         self.assertEqual(data, expected_data)
