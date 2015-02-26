@@ -167,13 +167,21 @@ class Serializer(object):
                 field.related_model]
             related_model_info = related_resource.Meta.model_info
 
-            data["linked"][related_resource.Meta.name_plural] = [
-                related_resource.dump_document(
-                    getattr(m, field.name),
-                    [f.name for f in related_model_info.fields_own]
-                ) for m in model_instances
-                if getattr(m, field.name) is not None
-            ]
+            # NOTE: could not use select+distinct because objects are prefetched
+            # from the database and queryset is evaluated only once.
+            linked_ids = set()
+            linked_objs = []
+            for m in model_instances:
+                rel_model = getattr(m, field.name)
+                if rel_model is not None and rel_model.id not in linked_ids:
+                    linked_objs.append(related_resource.dump_document(
+                        rel_model,
+                        [f.name for f in related_model_info.fields_own]
+                    ))
+                    linked_ids.add(rel_model.id)
+
+            if linked_objs:
+                data["linked"][related_resource.Meta.name_plural] = linked_objs
 
         for field in fields_to_many:
             related_resource = cls.Meta.api.model_resource_map[
