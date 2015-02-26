@@ -319,8 +319,8 @@ class Resource(Serializer, Authenticator):
             items = [items]
 
         objects = []
-        Form = cls.Meta.form or cls.get_form()
         for item in items:
+            Form = cls.Meta.form or cls.get_form(item.keys())
             form = Form(item)
             objects.append(form.save())
 
