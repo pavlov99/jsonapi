@@ -160,7 +160,7 @@ class Serializer(object):
         fields_to_many = fields_to_many or []
 
         if fields_to_one or fields_to_many:
-            data["linked"] = {}
+            data["linked"] = []
 
         for field in fields_to_one:
             related_resource = cls.Meta.api.model_resource_map[
@@ -170,29 +170,34 @@ class Serializer(object):
             # NOTE: could not use select+distinct because objects are prefetched
             # from the database and queryset is evaluated only once.
             linked_ids = set()
-            linked_objs = []
             for m in model_instances:
                 rel_model = getattr(m, field.name)
                 if rel_model is not None and rel_model.id not in linked_ids:
-                    linked_objs.append(related_resource.dump_document(
+                    linked_obj = related_resource.dump_document(
                         rel_model,
                         [f.name for f in related_model_info.fields_own]
-                    ))
+                    )
+                    linked_obj["type"] = related_resource.Meta.name
+                    data["linked"].append(linked_obj)
                     linked_ids.add(rel_model.id)
-
-            if linked_objs:
-                data["linked"][related_resource.Meta.name_plural] = linked_objs
 
         for field in fields_to_many:
             related_resource = cls.Meta.api.model_resource_map[
                 field.related_model]
             related_model_info = related_resource.Meta.model_info
-            data["linked"][related_resource.Meta.name_plural] = [
-                related_resource.dump_document(
-                    x,
-                    [f.name for f in related_model_info.fields_own]
-                ) for m in model_instances
-                for x in getattr(getattr(m, field.name), "all").__call__()
-            ]
+
+            # NOTE: could not use select+distinct because objects are prefetched
+            # from the database and queryset is evaluated only once.
+            linked_ids = set()
+            for m in model_instances:
+                for rel_model in getattr(getattr(m, field.name), "all").__call__():
+                    if rel_model.id not in linked_ids:
+                        linked_obj = related_resource.dump_document(
+                            rel_model,
+                            [f.name for f in related_model_info.fields_own]
+                        )
+                        linked_obj["type"] = related_resource.Meta.name_plural
+                        data["linked"].append(linked_obj)
+                        linked_ids.add(rel_model.id)
 
         return data
