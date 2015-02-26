@@ -7,7 +7,7 @@ import django
 import json
 import unittest
 
-from ..models import Author
+from ..models import Author, Post
 from ..urls import api
 
 User = get_user_model()
@@ -252,6 +252,39 @@ class TestApiClient(TestCase):
 
         location = "http://testserver/api/author/1,2,3"
         self.assertEqual(response["Location"], location)
+
+    def test_create_model_partial_generated_form(self):
+        """ Post does not require user, it could be omitted."""
+        author = mixer.blend('testapp.author')
+        response = self.client.post(
+            '/api/post',
+            {
+                "posts": {
+                    "title": "title",
+                    "links": {
+                        "author": author.id
+                    }
+                },
+            },
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 201)
+
+        post = Post.objects.get()
+        expected_data = {
+            "posts": {
+                "id": post.id,
+                "title": "title",
+                "links": {
+                    "author": author.id,
+                    "user": None
+                }
+            }
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
 
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")

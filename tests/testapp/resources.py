@@ -33,6 +33,7 @@ class PostWithPictureResource(Resource):
 class PostResource(Resource):
     class Meta:
         model = 'testapp.Post'
+        allowed_methods = 'GET', 'POST'
 
     @staticmethod
     def dump_document_title(obj):
