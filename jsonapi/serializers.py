@@ -167,6 +167,8 @@ class Serializer(object):
                 field.related_model]
             related_model_info = related_resource.Meta.model_info
 
+            # NOTE: could not use select+distinct because objects are prefetched
+            # from the database and queryset is evaluated only once.
             linked_ids = set()
             linked_objs = []
             for m in model_instances:
