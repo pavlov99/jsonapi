@@ -11,6 +11,8 @@ Model relationship:
        @  @
        Comment
 
+
+
 Also Setup classes with different relationship types for tests.
 
 B is inherited from A
@@ -31,8 +33,9 @@ and BOne classes.
   AAbstractManyToMany AManyToMany BMany
 
 """
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
+import django
 
 
 class Author(models.Model):
@@ -83,6 +86,16 @@ class TestSerializerAllFields(models.Model):
     text = models.TextField()
     time = models.TimeField()
     url = models.URLField()
+
+
+class Group(models.Model):
+    name = models.CharField(max_length=255)
+    members = models.ManyToManyField(Author, through='Membership')
+
+
+class Membership(models.Model):
+    group = models.ForeignKey(Group)
+    author = models.ForeignKey(Author)
 
 
 class AAbstractOne(models.Model):
