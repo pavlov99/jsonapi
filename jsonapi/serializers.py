@@ -85,9 +85,8 @@ class Serializer(object):
         Add them to fields_own.
 
         """
-        default_fields_own = [
-            f.name for f in model_instance._meta.fields if not f.rel]
-        fields_own = fields_own or default_fields_own
+        default_fields_own = cls.Meta.model_info.fields_own
+        fields_own = [f.name for f in fields_own or default_fields_own]
         fields_own = (set(fields_own) | set(cls.Meta.fieldnames_include))\
             - set(cls.Meta.fieldnames_exclude)
 
@@ -114,17 +113,17 @@ class Serializer(object):
 
             document[fieldname] = value
 
-        fields_to_many = fields_to_many or []
         for field in model_instance._meta.fields:
             if field.rel:
                 document["links"] = document.get("links") or {}
                 document["links"][field.name] = getattr(
                     model_instance, "{}_id".format(field.name))
 
-        for fieldname in fields_to_many:
+        fields_to_many = fields_to_many or []
+        for field in fields_to_many:
             document["links"] = document.get("links") or {}
-            document["links"][fieldname] = list(
-                getattr(model_instance, fieldname).
+            document["links"][field.related_resource_name] = list(
+                getattr(model_instance, field.name).
                 values_list("id", flat=True)
             )
 
@@ -137,9 +136,9 @@ class Serializer(object):
             resource.Meta.name_plural: [
                 cls.dump_document(
                     m,
-                    fields_own=[f.name for f in fields_own],
-                    fields_to_one=[f.name for f in fields_to_one],
-                    fields_to_many=[f.name for f in fields_to_many]
+                    fields_own=fields_own,
+                    fields_to_one=fields_to_one,
+                    fields_to_many=fields_to_many
                 )
                 for m in model_instances
             ]
@@ -174,8 +173,7 @@ class Serializer(object):
                 rel_model = getattr(m, field.name)
                 if rel_model is not None and rel_model.id not in linked_ids:
                     linked_obj = related_resource.dump_document(
-                        rel_model,
-                        [f.name for f in related_model_info.fields_own]
+                        rel_model, related_model_info.fields_own
                     )
                     linked_obj["type"] = related_resource.Meta.name
                     data["linked"].append(linked_obj)
@@ -193,8 +191,7 @@ class Serializer(object):
                 for rel_model in getattr(getattr(m, field.name), "all").__call__():
                     if rel_model.id not in linked_ids:
                         linked_obj = related_resource.dump_document(
-                            rel_model,
-                            [f.name for f in related_model_info.fields_own]
+                            rel_model, related_model_info.fields_own
                         )
                         linked_obj["type"] = related_resource.Meta.name_plural
                         data["linked"].append(linked_obj)

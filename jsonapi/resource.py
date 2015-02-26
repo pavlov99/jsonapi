@@ -292,10 +292,14 @@ class Resource(Serializer, Authenticator):
                 if objects.has_previous() else None
 
         fields_include = set(queryargs.get("include", []))
+
+        # for include in set(queryargs.get("include", [])):
+            # fields_path = include.split('.')
+
         fields_to_one = [f for f in model_info.fields_to_one
-                         if f.name in fields_include]
+                         if f.related_resource_name in fields_include]
         fields_to_many = [f for f in model_info.fields_to_many
-                          if f.name in fields_include]
+                          if f.related_resource_name in fields_include]
 
         response = cls.dump_documents(
             cls,

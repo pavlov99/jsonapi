@@ -579,8 +579,14 @@ class TestApiClient(TestCase):
         expected_data = {
             "authors": [{
                 "id": author.id,
-                "name": author.name
+                "name": author.name,
+                "links": {
+                    "memberships": author.membership_set.values_list(
+                        "id", flat=True)
+                }
             } for author in authors],
+            "links": {
+            },
             "linked": [{
                 "type": "memberships",
                 "id": membership.id,
@@ -590,6 +596,8 @@ class TestApiClient(TestCase):
                 }
             } for membership in memberships]
         }
+        self.maxDiff = None
+        import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
         self.assertEqual(data, expected_data)
 
         response = self.client.get(
