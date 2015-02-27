@@ -3,6 +3,7 @@ from django.test import TestCase
 from jsonapi.api import API
 from jsonapi.resource import Resource
 from mixer.backend.django import mixer
+from testfixtures import compare
 import django
 import json
 import unittest
@@ -597,8 +598,7 @@ class TestApiClient(TestCase):
             } for membership in memberships]
         }
         self.maxDiff = None
-        import ipdb; ipdb.set_trace()  # XXX BREAKPOINT
-        self.assertEqual(data, expected_data)
+        compare(data, expected_data)
 
         response = self.client.get(
             '/api/author?include=memberships,memberships.group',
@@ -611,4 +611,4 @@ class TestApiClient(TestCase):
             "id": group.id,
             "name": group.name,
         })
-        self.assertEqual(data, expected_data)
+        compare(data, expected_data)
