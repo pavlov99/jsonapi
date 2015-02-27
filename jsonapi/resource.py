@@ -182,7 +182,8 @@ class Resource(Serializer, Authenticator):
 
         """
         queryset = cls.Meta.model.objects
-        queryset = cls.update_user_queryset(queryset, user=user, **kwargs)
+        if cls.Meta.authenticators:
+            queryset = cls.update_user_queryset(queryset, user, **kwargs)
         return queryset
 
     @classmethod
@@ -194,13 +195,12 @@ class Resource(Serializer, Authenticator):
         Method is used to control permissions during resource management.
 
         """
-        if cls.Meta.authenticators:
-            user_filter = models.Q()
-            for path in cls.Meta.model_info.auth_user_paths:
-                querydict = {path: user} if path else {"id": user.id}
-                user_filter = user_filter | models.Q(**querydict)
+        user_filter = models.Q()
+        for path in cls.Meta.model_info.auth_user_paths:
+            querydict = {path: user} if path else {"id": user.id}
+            user_filter = user_filter | models.Q(**querydict)
 
-            queryset = queryset.filter(user_filter)
+        queryset = queryset.filter(user_filter)
 
         return queryset
 
