@@ -63,14 +63,13 @@ class Serializer(object):
     Meta = SerializerMeta
 
     @classmethod
-    def dump_document(cls, model_instance, fields_own=None, fields_to_one=None,
-                      fields_to_many=None):
+    def dump_document(cls, instance, fields_own=None, fields_to_many=None):
         """ Get document for model_instance.
 
         redefine dump rule for field x: def dump_document_x
 
-        :param django.db.models.Model model_instance: model instance
-        :param list<str> or None fields: model_instance field to dump
+        :param django.db.models.Model instance: model instance
+        :param list<Field> or None fields: model_instance field to dump
         :return dict: document
 
         Related documents are not included to current one. In case of to-many
@@ -86,27 +85,32 @@ class Serializer(object):
 
         """
         if fields_own is not None:
-            fields_own = [f.name for f in fields_own]
+            fields_own = {f.name for f in fields_own}
         else:
-            fields_own = [f.name for f in cls.Meta.model_info.fields_own]
+            fields_own = {
+                f.name for f in instance._meta.fields
+                if f.rel is None and f.serialize
+            }
+        fields_own.add('id')
 
-        fields_own = (set(fields_own) | set(cls.Meta.fieldnames_include))\
+        fields_own = (fields_own | set(cls.Meta.fieldnames_include))\
             - set(cls.Meta.fieldnames_exclude)
 
         document = {}
+        # Include own fields
         for fieldname in fields_own:
-            value = getattr(model_instance, fieldname)
+            value = getattr(instance, fieldname)
             field_serializer = getattr(
                 cls, "dump_document_{}".format(fieldname), None)
 
             if field_serializer is not None:
-                value = field_serializer(model_instance)
+                value = field_serializer(instance)
             else:
                 try:
-                    field = model_instance._meta.get_field(fieldname)
+                    field = instance._meta.get_field(fieldname)
                 except models.fields.FieldDoesNotExist:
                     # Field is property
-                    value = getattr(model_instance, fieldname)
+                    value = getattr(instance, fieldname)
                 else:
                     if isinstance(field, models.fields.files.FileField):
                         # TODO: Serializer depends on API here.
@@ -116,39 +120,51 @@ class Serializer(object):
 
             document[fieldname] = value
 
-        for field in model_instance._meta.fields:
-            if field.rel:
+        # Include to-one fields. It does not require database calls
+        for field in instance._meta.fields:
+            fieldname = "{}_id".format(field.name)
+            if field.rel and fieldname not in cls.Meta.fieldnames_exclude:
                 document["links"] = document.get("links") or {}
-                document["links"][field.name] = getattr(
-                    model_instance, "{}_id".format(field.name))
+                document["links"][field.name] = getattr(instance, fieldname)
 
+        # Include to-many fields. It requires database calls. At this point we
+        # assume that model was prefetch_related with child objects, which would
+        # be included into 'linked' attribute. Here we need to add ids of linked
+        # objects. To avoid database calls, iterate over objects manually and
+        # get ids.
         fields_to_many = fields_to_many or []
         for field in fields_to_many:
             document["links"] = document.get("links") or {}
-            document["links"][field.related_resource_name] = list(
-                getattr(model_instance, field.name).
-                values_list("id", flat=True)
-            )
+            document["links"][field.related_resource_name] = [
+                obj.id for obj in getattr(instance, field.name).all()]
 
         return document
 
     @classmethod
     def dump_documents(cls, resource, model_instances, fields_own=None,
-                       fields_to_one=None, fields_to_many=None):
+                       include_structure=None):
+        model_instances = list(model_instances)
+        model_info = resource.Meta.model_info
+        include_structure = include_structure or []
+
+        fields_to_many = set()
+        for include_object in include_structure:
+            f = include_object["field_path"][0]
+            if f.category == f.CATEGORIES.TO_MANY:
+                fields_to_many.add(f)
+
         data = {
             resource.Meta.name_plural: [
                 cls.dump_document(
                     m,
                     fields_own=fields_own,
-                    fields_to_one=fields_to_one,
                     fields_to_many=fields_to_many
                 )
                 for m in model_instances
             ]
         }
 
-        model_info = resource.Meta.model_info
-
+        # TODO: move links generation to other method.
         if model_info.fields_to_one or fields_to_many:
             data["links"] = {}
             for field in model_info.fields_to_one:
@@ -158,46 +174,30 @@ class Serializer(object):
                     "/{" + linkname + "}"
                 })
 
-        fields_to_one = fields_to_one or []
-        fields_to_many = fields_to_many or []
-
-        if fields_to_one or fields_to_many:
+        if include_structure:
             data["linked"] = []
 
-        for field in fields_to_one:
-            related_resource = cls.Meta.api.model_resource_map[
-                field.related_model]
-            related_model_info = related_resource.Meta.model_info
+        for include_object in include_structure:
+            current_models = set(model_instances)
+            for field in include_object["field_path"]:
+                related_models = set()
+                for m in current_models:
+                    if field.category == field.CATEGORIES.TO_MANY:
+                        related_models |= set(getattr(m, field.name).all())
+                    if field.category == field.CATEGORIES.TO_ONE:
+                        related_model = getattr(m, field.name)
+                        if related_model is not None:
+                            related_models.add(related_model)
 
-            # NOTE: could not use select+distinct because objects are prefetched
-            # from the database and queryset is evaluated only once.
-            linked_ids = set()
-            for m in model_instances:
-                rel_model = getattr(m, field.name)
-                if rel_model is not None and rel_model.id not in linked_ids:
-                    linked_obj = related_resource.dump_document(
-                        rel_model, related_model_info.fields_own
-                    )
-                    linked_obj["type"] = related_resource.Meta.name
-                    data["linked"].append(linked_obj)
-                    linked_ids.add(rel_model.id)
+                current_models = related_models
 
-        for field in fields_to_many:
-            related_resource = cls.Meta.api.model_resource_map[
-                field.related_model]
-            related_model_info = related_resource.Meta.model_info
-
-            # NOTE: could not use select+distinct because objects are prefetched
-            # from the database and queryset is evaluated only once.
-            linked_ids = set()
-            for m in model_instances:
-                for rel_model in getattr(getattr(m, field.name), "all").__call__():
-                    if rel_model.id not in linked_ids:
-                        linked_obj = related_resource.dump_document(
-                            rel_model, related_model_info.fields_own
-                        )
-                        linked_obj["type"] = related_resource.Meta.name_plural
-                        data["linked"].append(linked_obj)
-                        linked_ids.add(rel_model.id)
+            related_model_info = include_object["model_info"]
+            related_resource = include_object["resource"]
+            for rel_model in current_models:
+                linked_obj = related_resource.dump_document(
+                    rel_model, related_model_info.fields_own
+                )
+                linked_obj["type"] = include_object["type"]
+                data["linked"].append(linked_obj)
 
         return data

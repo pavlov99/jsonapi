@@ -244,6 +244,31 @@ class Resource(Serializer, Authenticator):
         return Form
 
     @classmethod
+    def _get_include_structure(cls, include=None):
+        result = []
+        include = include or []
+
+        for include_path in include:
+            current_model = cls.Meta.model
+            field_path = []
+
+            for include_name in include_path.split('.'):
+                model_info = model_inspector.models[current_model]
+                field = model_info.field_resource_map[include_name]
+                field_path.append(field)
+                current_model = field.related_model
+
+            result.append({
+                "field_path": field_path,
+                "model_info": model_inspector.models[current_model],
+                "resource": cls.Meta.api.model_resource_map[current_model],
+                "type": field_path[-1].related_resource_name,
+                "query": "__".join([f.query_name for f in field_path])
+            })
+
+        return result
+
+    @classmethod
     def get(cls, request=None, **kwargs):
         """ Get resource http response.
 
@@ -266,13 +291,16 @@ class Resource(Serializer, Authenticator):
         if 'sort' in kwargs:
             queryset = queryset.order_by(*kwargs['sort'])
 
+        include = queryargs.get("include", [])
+        include_structure = cls._get_include_structure(include)
+        # TODO: update queryset based on include parameters.
+
         # Fields serialisation
         # NOTE: currently filter only own fields
         model_info = cls.Meta.model_info
         fields_own = model_info.fields_own
         if queryargs['fields']:
             fieldnames = queryargs['fields']
-            fieldnames.append("id")  # add id to fieldset
             fields_own = [f for f in fields_own if f.name in fieldnames]
 
         objects = queryset
@@ -291,22 +319,11 @@ class Resource(Serializer, Authenticator):
             meta["page_prev"] = objects.previous_page_number() \
                 if objects.has_previous() else None
 
-        fields_include = set(queryargs.get("include", []))
-
-        # for include in set(queryargs.get("include", [])):
-            # fields_path = include.split('.')
-
-        fields_to_one = [f for f in model_info.fields_to_one
-                         if f.related_resource_name in fields_include]
-        fields_to_many = [f for f in model_info.fields_to_many
-                          if f.related_resource_name in fields_include]
-
         response = cls.dump_documents(
             cls,
             objects,
             fields_own=fields_own,
-            fields_to_one=fields_to_one,
-            fields_to_many=fields_to_many
+            include_structure=include_structure
         )
         if meta:
             response["meta"] = meta
