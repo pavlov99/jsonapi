@@ -85,8 +85,11 @@ class Serializer(object):
         Add them to fields_own.
 
         """
-        default_fields_own = cls.Meta.model_info.fields_own
-        fields_own = [f.name for f in fields_own or default_fields_own]
+        if fields_own is not None:
+            fields_own = [f.name for f in fields_own]
+        else:
+            fields_own = [f.name for f in cls.Meta.model_info.fields_own]
+
         fields_own = (set(fields_own) | set(cls.Meta.fieldnames_include))\
             - set(cls.Meta.fieldnames_exclude)
 
