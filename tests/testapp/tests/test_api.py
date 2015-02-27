@@ -458,9 +458,8 @@ class TestApiClient(TestCase):
             }
         }
 
-        self.maxDiff = None
         data = json.loads(response.content.decode("utf-8"))
-        self.assertEqual(data, expected_data)
+        compare(data, expected_data)
 
     def test_get_include(self):
         author = mixer.blend("testapp.author")
@@ -597,7 +596,6 @@ class TestApiClient(TestCase):
                 }
             } for membership in memberships]
         }
-        self.maxDiff = None
         compare(data, expected_data)
 
         response = self.client.get(
