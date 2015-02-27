@@ -7,5 +7,6 @@ django-debug-toolbar==1.2.1
 django-nose==1.2
 coverage==3.7.1
 mock==1.0.1
+testfixtures==4.1.2
 ipython==2.1.0
 ipdb==0.8

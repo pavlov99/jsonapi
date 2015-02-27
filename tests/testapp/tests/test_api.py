@@ -3,6 +3,7 @@ from django.test import TestCase
 from jsonapi.api import API
 from jsonapi.resource import Resource
 from mixer.backend.django import mixer
+from testfixtures import compare
 import django
 import json
 import unittest
@@ -457,9 +458,8 @@ class TestApiClient(TestCase):
             }
         }
 
-        self.maxDiff = None
         data = json.loads(response.content.decode("utf-8"))
-        self.assertEqual(data, expected_data)
+        compare(data, expected_data)
 
     def test_get_include(self):
         author = mixer.blend("testapp.author")
@@ -470,12 +470,11 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         data = json.loads(response.content.decode("utf-8"))["linked"]
-        expected_data = {
-            "authors": [{
-                "id": author.id,
-                "name": author.name
-            }]
-        }
+        expected_data = [{
+            "type": "author",
+            "id": author.id,
+            "name": author.name
+        }]
         self.assertEqual(data, expected_data)
 
     def test_get_include_null(self):
@@ -499,20 +498,19 @@ class TestApiClient(TestCase):
                     "user": post.user_id,
                 }
             } for post in [post1, post2]],
-            "linked": {
-                "users": [{
-                    "id": user.id,
-                    "date_joined": user.date_joined.isoformat(),
-                    "email": user.email,
-                    'first_name': user.first_name,
-                    'is_active': user.is_active,
-                    'is_staff': user.is_staff,
-                    'is_superuser': user.is_superuser,
-                    'last_login': user.last_login.isoformat(),
-                    'last_name': user.last_name,
-                    'username': user.username,
-                }]
-            },
+            "linked": [{
+                "type": "user",
+                "id": user.id,
+                "date_joined": user.date_joined.isoformat(),
+                "email": user.email,
+                'first_name': user.first_name,
+                'is_active': user.is_active,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+                'last_login': user.last_login.isoformat(),
+                'last_name': user.last_name,
+                'username': user.username,
+            }],
             'links': {
                 'posts.author': 'http://testserver/api/author/{posts.author}',
                 'posts.user': 'http://testserver/api/user/{posts.user}'
@@ -529,15 +527,14 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         data = json.loads(response.content.decode("utf-8"))["linked"]
-        expected_data = {
-            "comments": [{
-                "id": comment.id,
-                "links": {
-                    "author": comment.author_id,
-                    "post": comment.post_id,
-                },
-            }]
-        }
+        expected_data = [{
+            "type": "comments",
+            "id": comment.id,
+            "links": {
+                "author": comment.author_id,
+                "post": comment.post_id,
+            },
+        }]
         self.assertEqual(data, expected_data)
 
     def test_get_include_fields(self):
@@ -567,3 +564,49 @@ class TestApiClient(TestCase):
         )
         data = json.loads(response.content.decode("utf-8"))
         self.assertNotIn("title", data["postwithpictures"][0])
+
+    def test_get_include_many_to_many(self):
+        group = mixer.blend('testapp.group')
+        authors = mixer.cycle(2).blend('testapp.author')
+        memberships = mixer.cycle(2).blend('testapp.membership', group=group,
+                                           author=(a for a in authors))
+        response = self.client.get(
+            '/api/author?include=memberships',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        expected_data = {
+            "authors": [{
+                "id": author.id,
+                "name": author.name,
+                "links": {
+                    "memberships": author.membership_set.values_list(
+                        "id", flat=True)
+                }
+            } for author in authors],
+            "links": {
+            },
+            "linked": [{
+                "type": "memberships",
+                "id": membership.id,
+                "links": {
+                    "group": membership.group_id,
+                    "author": membership.author_id,
+                }
+            } for membership in memberships]
+        }
+        compare(data, expected_data)
+
+        response = self.client.get(
+            '/api/author?include=memberships,memberships.group',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        expected_data["linked"].append({
+            "type": "group",
+            "id": group.id,
+            "name": group.name,
+        })
+        compare(data, expected_data)

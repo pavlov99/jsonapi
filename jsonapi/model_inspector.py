@@ -48,9 +48,16 @@ class Field(object):
         self.category = category
         self.is_bidirectional = None
 
+    @property
     def query_name(self):
         """ Get field name used in queries."""
         return get_model_name(get_parent(self.related_model))
+
+    @property
+    def related_resource_name(self):
+        name = self.query_name
+        name += "s" if self.category == self.CATEGORIES.TO_MANY else ""
+        return name
 
     def __repr__(self):
         suffix = "({})".format(get_model_name(self.related_model))\
@@ -95,6 +102,11 @@ class ModelInspector(object):
                 model_info.auth_user_paths = ['']
             else:
                 self._update_auth_user_paths_model(model)
+
+            model_info.field_resource_map = {
+                f.related_resource_name: f
+                for f in model_info.fields_to_one + model_info.fields_to_many
+            }
 
     @classmethod
     def _filter_child_model_fields(cls, fields):

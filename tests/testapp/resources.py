@@ -45,3 +45,15 @@ class CommentResource(Resource):
     class Meta:
         model = 'testapp.Comment'
         page_size = 3
+
+
+@api.register
+class GroupResource(Resource):
+    class Meta:
+        model = 'testapp.Group'
+
+
+@api.register
+class MembershipResource(Resource):
+    class Meta:
+        model = 'testapp.Membership'
