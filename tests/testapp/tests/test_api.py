@@ -190,11 +190,11 @@ class TestApiClient(TestCase):
         # NOTE: send individual resource
         response = self.client.post(
             '/api/author',
-            {
+            json.dumps({
                 "authors": {
                     "name": "author"
                 },
-            },
+            }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
@@ -224,13 +224,13 @@ class TestApiClient(TestCase):
         with self.assertNumQueries(3):
             response = self.client.post(
                 '/api/author',
-                {
+                json.dumps({
                     "authors": [
                         {"name": "author1"},
                         {"name": "author2"},
                         {"name": "author3"},
                     ]
-                },
+                }),
                 content_type='application/vnd.api+json',
                 HTTP_ACCEPT='application/vnd.api+json'
             )
@@ -259,14 +259,14 @@ class TestApiClient(TestCase):
         author = mixer.blend('testapp.author')
         response = self.client.post(
             '/api/post',
-            {
+            json.dumps({
                 "posts": {
                     "title": "title",
                     "links": {
                         "author": author.id
                     }
                 },
-            },
+            }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
@@ -291,12 +291,12 @@ class TestApiClient(TestCase):
         author = mixer.blend("testapp.author", name="")
         response = self.client.put(
             '/api/author/{}'.format(author.id),
-            {
+            json.dumps({
                 "authors": {
                     "id": author.id,
                     "name": "author",
                 },
-            },
+            }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
@@ -318,12 +318,12 @@ class TestApiClient(TestCase):
         authors = mixer.cycle(2).blend("testapp.author", name="")
         response = self.client.put(
             '/api/author/{}'.format(",".join([str(a.id) for a in authors])),
-            {
+            json.dumps({
                 "authors": [{
                     "id": a.id,
                     "name": "author",
                 } for a in authors],
-            },
+            }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
@@ -363,9 +363,9 @@ class TestApiClient(TestCase):
         other_user = mixer.blend(User)
         response = self.client.put(
             '/api/user/{}'.format(other_user.id),
-            {
+            json.dumps({
                 "users": {"id": other_user.id, "email": "email@example.com"},
-            },
+            }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
@@ -373,9 +373,9 @@ class TestApiClient(TestCase):
 
         response = self.client.put(
             '/api/user/{}'.format(self.user.id),
-            {
+            json.dumps({
                 "users": {"id": other_user.id, "email": "email@example.com"},
-            },
+            }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
@@ -383,9 +383,9 @@ class TestApiClient(TestCase):
 
         response = self.client.put(
             '/api/user/{}'.format(other_user.id),
-            {
+            json.dumps({
                 "users": {"id": self.user.id, "email": "email@example.com"},
-            },
+            }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )
@@ -394,9 +394,9 @@ class TestApiClient(TestCase):
         self.assertNotEqual(self.user.email, "email@example.com")
         response = self.client.put(
             '/api/user/{}'.format(self.user.id),
-            {
+            json.dumps({
                 "users": {"id": self.user.id, "email": "email@example.com"},
-            },
+            }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
         )

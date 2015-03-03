@@ -31,13 +31,13 @@ Properties:
 
 """
 from . import six
-import ast
-import inspect
-import logging
-import django
 from django.core.paginator import Paginator
-from django.forms import ModelForm
 from django.db import models
+from django.forms import ModelForm
+import django
+import inspect
+import json
+import logging
 
 from .utils import classproperty
 from .django_utils import get_model_name, get_model_by_name
@@ -332,7 +332,7 @@ class Resource(Serializer, Authenticator):
     @classmethod
     def post(cls, request=None, **kwargs):
         jdata = request.body.decode('utf8')
-        data = ast.literal_eval(jdata)
+        data = json.loads(jdata)
         items = data[cls.Meta.name_plural]
         is_collection = isinstance(items, list)
 
@@ -358,7 +358,7 @@ class Resource(Serializer, Authenticator):
     @classmethod
     def put(cls, request=None, **kwargs):
         jdata = request.body.decode('utf8')
-        data = ast.literal_eval(jdata)
+        data = json.loads(jdata)
         items = data[cls.Meta.name_plural]
         is_collection = isinstance(items, list)
 
