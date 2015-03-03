@@ -1,6 +1,5 @@
 import base64
 from django.contrib.auth import authenticate
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 
 from .utils import Choices
 
@@ -36,17 +35,13 @@ class DjangoToolkitOAuthAuthenticator(object):
 
     @classmethod
     def authenticate(cls, request):
-        from oauth2_provider.models import AccessToken
-        if 'HTTP_AUTHORIZATION' in request.META:
-            auth = request.META['HTTP_AUTHORIZATION'].split()
-            if len(auth) == 2 and auth[0].lower() == "bearer":
-                token = auth[1]
-                queryset = AccessToken.objects.filter(token=token)
-                try:
-                    user = queryset.get().user
-                    return user
-                except (ObjectDoesNotExist, MultipleObjectsReturned):
-                    pass
+        from oauth2_provider.oauth2_backends import get_oauthlib_core
+        oauthlib_core = get_oauthlib_core()
+        valid, oauthlib_req = oauthlib_core.verify_request(request, scopes=[])
+        if valid:
+            return oauthlib_req.user
+        else:
+            return None
 
 
 class Authenticator(object):
