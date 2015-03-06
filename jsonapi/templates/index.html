@@ -1,0 +1,114 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>API Documentation</title>
+  <link rel="stylesheet" href="{% static 'bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'highlight.min.css' %}">
+  <link rel="stylesheet" href="{% static 'main.css' %}">
+
+  <script src="{% static 'highlight.min.js' %}"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>API Documentation</h1>
+    </header>
+    <div>
+      <aside>
+        <nav class="nav-main">
+          <ul>
+            <li class="nav-header">Authentication</li>
+            <li class="nav-header">Resources</li>
+            {% for resource_name, resource in  resources %}
+            <li>
+              <a href="#{{ resource_name }}">
+                {{ resource_name|capfirst }}
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+        </nav>
+      </aside>
+      <div id="content">
+        <h1>Getting Started</h1>
+        Generated date: {% now 'c' %}
+
+        <h1>Resources</h1>
+        {% for resource_name, resource in resources %}
+        <section id="{{ resource_name }}">
+          <h2 class="bg-primary">{{ resource_name|capfirst }}</h2>
+          {% if resource.Meta.description %}
+          <pre>{{ resource.Meta.description }}</pre>
+          {% endif %}
+          <table class="table table-bordered">
+            <tr>
+              <td>Location</td>
+              <td>{{ resource.Meta.api.api_url }}/{{ resource_name }}</td>
+            </tr>
+            <tr>
+              <td>Document Location</td>
+              <td>{{ resource.Meta.api.api_url }}/{{ resource_name }}/{id}</td>
+            </tr>
+            <tr>
+              <td>Allowed methods</td>
+              <td>{{ resource.Meta.allowed_methods }}</td>
+            </tr>
+            <tr>
+              <td>Authenticators</td>
+              <td>{{ resource.Meta.authenticators }}</td>
+            </tr>
+          </table>
+
+          <h3>Fields</h3>
+          <table class="table table-bordered">
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+            {% for field in resource.Meta.model_info.fields_own %}
+            <tr>
+              <td>{{ field.name }}</td>
+              <td>{{ field.django_field.description }}</td>
+              {% if field.django_field.has_default %}
+              <td>{{ field.django_field.default }}</td>
+              {% else %}
+              <td></td>
+              {% endif %}
+              <td>{{ field.django_field.help_text }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+
+          <h3>Form Fields</h3>
+          <table class="table table-bordered">
+            <tr>
+              <th>Name</th>
+              <th>Required</th>
+              <th>Description</th>
+            </tr>
+            {% for field_name, field in resource.Meta.default_form.base_fields.items %}
+            <tr>
+              <td>{{ field_name }}</td>
+              <td>{{ field.required }}</td>
+              <td>{{ field.help_text }}</td>
+            </tr>
+            {% endfor %}
+          </table>
+          <!-- <h3>Usage Examples</h3> -->
+          <!-- <h4>GET</h4> -->
+          <!-- <h5>Request</h5> -->
+          <!-- <h5>Response</h5> -->
+        </section>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+
+  <script>hljs.initHighlightingOnLoad();</script>
+</body>
+</html>

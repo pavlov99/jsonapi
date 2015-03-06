@@ -23,6 +23,7 @@ Responsible for routing and resource registration.
 
 """
 from django.http import HttpResponse, HttpResponseNotAllowed
+from django.shortcuts import render
 import logging
 import json
 from .exceptions import JSONAPIError
@@ -116,7 +117,8 @@ class API(object):
         """
         from django.conf.urls import url
         urls = [
-            url(r'^$', self.map_view),
+            url(r'^$', self.documentation),
+            url(r'^/map$', self.map_view),
         ]
 
         for resource_name in self.resource_map:
@@ -182,6 +184,21 @@ class API(object):
         }
         response = json.dumps(resource_info)
         return HttpResponse(response, content_type="application/vnd.api+json")
+
+    def documentation(self, request):
+        """ Resource documentation.
+
+        .. versionadded:: 0.7.2
+            Content-Type check
+
+        :return django.http.HttpResponse
+
+        """
+        self.update_urls(request)
+        context = {
+            "resources": sorted(self.resource_map.items())
+        }
+        return render(request, "index.html", context)
 
     def handler_view_get(self, resource, **kwargs):
         items = json.dumps(
