@@ -1,3 +1,4 @@
+import django
 from .base import *
 
 if django.VERSION[:2] < (1, 6):
