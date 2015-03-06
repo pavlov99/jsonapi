@@ -144,7 +144,9 @@ class ResourceMetaClass(type):
                     "Abstract model {} could not be resource".format(model))
 
             cls.Meta.model_info = model_inspector.models[cls.Meta.model]
+            cls.Meta.default_form = cls.Meta.form or cls.get_form()
 
+        cls.Meta.description = cls.__doc__ or ""
         return cls
 
 
