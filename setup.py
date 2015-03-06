@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-from setuptools import setup, find_packages
+from setuptools import setup
 from jsonapi import version
 #
 # Import multiprocessing to prevent test run problem. In case of nosetests
@@ -22,7 +22,8 @@ def read(fname):
 setup(
     name="jsonapi",
     version=version,
-    packages=find_packages(),
+    packages=["jsonapi"],
+    include_package_data=True,
     # metadata for upload to PyPI
     author="Kirill Pavlov",
     author_email="kirill.pavlov@phystech.edu",
