@@ -1,0 +1,13 @@
+aside {
+    float: left;
+    width: 220px;
+    margin-right: 20px;
+    display: block;
+    min-height: 1px;
+}
+
+#content {
+    float: left;
+    display: block;
+    width: 624px;
+}

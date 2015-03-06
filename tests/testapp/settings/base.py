@@ -1,5 +1,4 @@
 import os.path
-import django
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 STATIC_URL = '/static/'
@@ -18,6 +17,7 @@ INSTALLED_APPS = (
     'django.contrib.admin',
     'django.contrib.messages',
     'django.contrib.sessions',
+    'jsonapi',
     'tests.testapp',
 )
 MIDDLEWARE_CLASSES = (

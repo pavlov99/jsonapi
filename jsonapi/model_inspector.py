@@ -42,11 +42,12 @@ class Field(object):
         ('to_many', 'TO_MANY'),
     )
 
-    def __init__(self, name, category, related_model=None):
+    def __init__(self, name, category, related_model=None, django_field=None):
         self.name = name
         self.related_model = related_model
         self.category = category
         self.is_bidirectional = None
+        self.django_field = django_field
 
     @property
     def query_name(self):
@@ -143,6 +144,7 @@ class ModelInspector(object):
             Field(
                 name=field.name,
                 related_model=None,
+                django_field=field,
                 category=Field.CATEGORIES.OWN
             ) for field in model._meta.fields
             if field.rel is None and (field.serialize or field.name == 'id')
@@ -155,6 +157,7 @@ class ModelInspector(object):
             Field(
                 name=field.name,
                 related_model=field.rel.to,
+                django_field=field,
                 category=Field.CATEGORIES.TO_ONE
             ) for field in model._meta.fields
             if field.rel and field.rel.multiple
@@ -174,6 +177,7 @@ class ModelInspector(object):
                 name=field.rel.related_name or "{}_set".format(
                     get_model_name(related_model)),
                 related_model=related_model,
+                django_field=field,
                 category=Field.CATEGORIES.TO_MANY
             ) for related_model in models.get_models()
             if not related_model._meta.proxy
@@ -190,6 +194,7 @@ class ModelInspector(object):
             Field(
                 name=field.name,
                 related_model=field.rel.to,
+                django_field=field,
                 category=Field.CATEGORIES.TO_MANY
             ) for field in model._meta.many_to_many
         ]
@@ -202,6 +207,7 @@ class ModelInspector(object):
                 name=field.rel.related_name or "{}_set".format(
                     get_model_name(related_model)),
                 related_model=related_model,
+                django_field=field,
                 category=Field.CATEGORIES.TO_MANY
             ) for related_model in models.get_models()
             if related_model is not model

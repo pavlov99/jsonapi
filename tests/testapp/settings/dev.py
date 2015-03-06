@@ -1,3 +1,4 @@
+import django
 from .base import *
 
 INSTALLED_APPS += (

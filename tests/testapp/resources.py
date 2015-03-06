@@ -7,6 +7,9 @@ api = API()
 
 @api.register
 class UserResource(Resource):
+
+    """ User Resource."""
+
     class Meta:
         model = settings.AUTH_USER_MODEL
         authenticators = [Resource.AUTHENTICATORS.SESSION]
@@ -16,6 +19,13 @@ class UserResource(Resource):
 
 @api.register
 class AuthorResource(Resource):
+
+    """ Author Resource.
+
+    Description for Author Resource.
+
+    """
+
     class Meta:
         model = 'testapp.Author'
         allowed_methods = 'GET', 'POST', 'PUT', 'DELETE'
