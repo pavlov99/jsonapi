@@ -4,6 +4,7 @@ from jsonapi.api import API
 from jsonapi.resource import Resource
 from mixer.backend.django import mixer
 from testfixtures import compare
+from mock import patch
 import json
 import unittest
 
@@ -299,7 +300,7 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation Error",
+                "title": "Validation error",
                 "data": {'title': ['This field is required.']},
             }]
         }
@@ -322,7 +323,7 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation Error",
+                "title": "Validation error",
                 "data": {'author': ['This field is required.']},
             }]
         }
@@ -332,7 +333,6 @@ class TestApiClient(TestCase):
 
     def test_create_models_validation_error(self):
         """ Ensure models are not created if one of them is not validated."""
-        # """ Ensure models are not created if one of them raises exception."""
         response = self.client.post(
             '/api/author',
             json.dumps({
@@ -350,7 +350,7 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation Error",
+                "title": "Validation error",
                 "data": {'name': ['Ensure this value has at most 100 ' +
                                   'characters (it has 180).']}
             }]
@@ -359,6 +359,40 @@ class TestApiClient(TestCase):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
         self.assertEqual(Post.objects.count(), 0)
+
+    def test_create_models_save_error_atomic(self):
+        """ Ensure models are not created if one of them raises exception."""
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
+                "data": [{
+                    "name": "short name"
+                }, {
+                    "name": "forbidden name"
+                }],
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Post.objects.count(), 0)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "title": "Instance save error",
+                "data": {
+                    "type": "ValueError",
+                    "args": ["Name forbidden name is not allowed"],
+                    "message": 'Name forbidden name is not allowed'
+                },
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Author.objects.count(), 0)
 
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")
@@ -495,7 +529,7 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation Error",
+                "title": "Validation error",
                 "data": {'name': ['Ensure this value has at most 100 ' +
                                   'characters (it has 101).']},
             }]

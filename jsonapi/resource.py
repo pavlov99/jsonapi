@@ -32,7 +32,7 @@ Properties:
 """
 from . import six
 from django.core.paginator import Paginator
-from django.db import models
+from django.db import models, transaction
 from django.forms import ModelForm
 import inspect
 import json
@@ -340,6 +340,7 @@ class Resource(Serializer, Authenticator):
             items = [items]
 
         forms = []
+        data = []
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
@@ -351,13 +352,29 @@ class Resource(Serializer, Authenticator):
                 response = {
                     "errors": [{
                         "status": 400,
-                        "title": "Validation Error",
+                        "title": "Validation error",
                         "data": form.errors
                     }]
                 }
                 return response
 
-        data = [cls.dump_document(f.save()) for f in forms]
+            try:
+                instance = form.save()
+            except Exception as e:
+                response = {
+                    "errors": [{
+                        "status": 400,
+                        "title": "Instance save error",
+                        "data": {
+                            "type": e.__class__.__name__,
+                            "args": e.args,
+                            "message": str(e)
+                        }
+                    }]
+                }
+                return response
+            else:
+                data.append(cls.dump_document(instance))
 
         if not is_collection:
             data = data[0]
@@ -405,7 +422,7 @@ class Resource(Serializer, Authenticator):
                 response = {
                     "errors": [{
                         "status": 400,
-                        "title": "Validation Error",
+                        "title": "Validation error",
                         "data": form.errors
                     }]
                 }

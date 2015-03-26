@@ -41,6 +41,11 @@ import django
 class Author(models.Model):
     name = models.CharField(max_length=100)
 
+    def save(self, *args, **kwargs):
+        if self.name == "forbidden name":
+            raise ValueError("Name {} is not allowed".format(self.name))
+        return super(Author, self).save(*args, **kwargs)
+
 
 class Post(models.Model):
     title = models.CharField(max_length=100)
