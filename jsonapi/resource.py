@@ -34,7 +34,6 @@ from . import six
 from django.core.paginator import Paginator
 from django.db import models
 from django.forms import ModelForm
-import django
 import inspect
 import json
 import logging
@@ -234,8 +233,7 @@ class Resource(Serializer, Authenticator):
 
         """
         meta_attributes = {"model": cls.Meta.model}
-        if django.VERSION[:2] >= (1, 6):
-            meta_attributes["fields"] = '__all__'
+        meta_attributes["fields"] = '__all__'
 
         if fields is not None:
             meta_attributes["fields"] = fields
