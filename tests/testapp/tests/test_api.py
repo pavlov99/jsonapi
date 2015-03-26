@@ -330,6 +330,36 @@ class TestApiClient(TestCase):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
 
+    def test_create_models_validation_error(self):
+        """ Ensure models are not created if one of them is not validated."""
+        # """ Ensure models are not created if one of them raises exception."""
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
+                "data": [{
+                    "name": "short name"
+                }, {
+                    "name": "long name" * 20
+                }],
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "title": "Validation Error",
+                "data": {'name': ['Ensure this value has at most 100 ' +
+                                  'characters (it has 180).']}
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Post.objects.count(), 0)
+
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")
         response = self.client.put(
