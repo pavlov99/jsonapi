@@ -1,0 +1,5 @@
+2015-03-26  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Version 0.8.0, update document primary information key. Use 'data'
+	instead of Resource's plural name. It reflects standard change at
+	2015-03-16 (Release candidate 3).

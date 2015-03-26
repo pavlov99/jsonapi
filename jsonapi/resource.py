@@ -394,16 +394,26 @@ class Resource(Serializer, Authenticator):
             )
             raise JSONAPIError(statuses.HTTP_403_FORBIDDEN, msg)
 
-        objects = []
+        forms = []
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
             Form = cls.Meta.form or cls.get_form(item.keys())
             instance = objects_map[item["id"]]
             form = Form(item, instance=instance)
-            objects.append(form.save())
+            forms.append(form)
 
-        data = [cls.dump_document(o) for o in objects]
+            if not form.is_valid():
+                response = {
+                    "errors": [{
+                        "status": 400,
+                        "title": "Validation Error",
+                        "data": form.errors
+                    }]
+                }
+                return response
+
+        data = [cls.dump_document(f.save()) for f in forms]
 
         if not is_collection:
             data = data[0]
