@@ -14,7 +14,7 @@ Welcome to json:api's documentation!
 
 Installation
 ============
-Requires: Django (1.5, 1.6, 1.7); python (2.7, 3.3).
+Requires: Django (1.6, 1.7); python (2.7, 3.3).
 
 .. code-block:: python
 

@@ -32,9 +32,8 @@ Properties:
 """
 from . import six
 from django.core.paginator import Paginator
-from django.db import models
+from django.db import models, transaction
 from django.forms import ModelForm
-import django
 import inspect
 import json
 import logging
@@ -234,8 +233,7 @@ class Resource(Serializer, Authenticator):
 
         """
         meta_attributes = {"model": cls.Meta.model}
-        if django.VERSION[:2] >= (1, 6):
-            meta_attributes["fields"] = '__all__'
+        meta_attributes["fields"] = '__all__'
 
         if fields is not None:
             meta_attributes["fields"] = fields
@@ -353,13 +351,31 @@ class Resource(Serializer, Authenticator):
                 response = {
                     "errors": [{
                         "status": 400,
-                        "title": "Validation Error",
+                        "title": "Validation error",
                         "data": form.errors
                     }]
                 }
                 return response
 
-        data = [cls.dump_document(f.save()) for f in forms]
+        data = []
+        try:
+            with transaction.atomic():
+                for form in forms:
+                    instance = form.save()
+                    data.append(cls.dump_document(instance))
+        except Exception as e:
+            response = {
+                "errors": [{
+                    "status": 400,
+                    "title": "Instance save error",
+                    "data": {
+                        "type": e.__class__.__name__,
+                        "args": e.args,
+                        "message": str(e)
+                    }
+                }]
+            }
+            return response
 
         if not is_collection:
             data = data[0]
@@ -407,13 +423,31 @@ class Resource(Serializer, Authenticator):
                 response = {
                     "errors": [{
                         "status": 400,
-                        "title": "Validation Error",
+                        "title": "Validation error",
                         "data": form.errors
                     }]
                 }
                 return response
 
-        data = [cls.dump_document(f.save()) for f in forms]
+        data = []
+        try:
+            with transaction.atomic():
+                for form in forms:
+                    instance = form.save()
+                    data.append(cls.dump_document(instance))
+        except Exception as e:
+            response = {
+                "errors": [{
+                    "status": 400,
+                    "title": "Instance save error",
+                    "data": {
+                        "type": e.__class__.__name__,
+                        "args": e.args,
+                        "message": str(e)
+                    }
+                }]
+            }
+            return response
 
         if not is_collection:
             data = data[0]
