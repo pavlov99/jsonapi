@@ -335,33 +335,43 @@ class Resource(Serializer, Authenticator):
     def post(cls, request=None, **kwargs):
         jdata = request.body.decode('utf8')
         data = json.loads(jdata)
-        items = data[cls.Meta.name_plural]
+        items = data["data"]
         is_collection = isinstance(items, list)
 
         if not is_collection:
             items = [items]
 
-        objects = []
+        forms = []
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
-            Form = cls.Meta.form or cls.get_form(item.keys())
+            Form = cls.Meta.form or cls.get_form()
             form = Form(item)
-            objects.append(form.save())
+            forms.append(form)
 
-        data = [cls.dump_document(o) for o in objects]
+            if not form.is_valid():
+                response = {
+                    "errors": [{
+                        "status": 400,
+                        "title": "Validation Error",
+                        "data": form.errors
+                    }]
+                }
+                return response
+
+        data = [cls.dump_document(f.save()) for f in forms]
 
         if not is_collection:
             data = data[0]
 
-        response = {cls.Meta.name_plural: data}
+        response = dict(data=data)
         return response
 
     @classmethod
     def put(cls, request=None, **kwargs):
         jdata = request.body.decode('utf8')
         data = json.loads(jdata)
-        items = data[cls.Meta.name_plural]
+        items = data["data"]
         is_collection = isinstance(items, list)
 
         if not is_collection:
@@ -398,7 +408,7 @@ class Resource(Serializer, Authenticator):
         if not is_collection:
             data = data[0]
 
-        response = {cls.Meta.name_plural: data}
+        response = dict(data=data)
         return response
 
     @classmethod

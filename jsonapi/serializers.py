@@ -154,7 +154,7 @@ class Serializer(object):
                 fields_to_many.add(f)
 
         data = {
-            resource.Meta.name_plural: [
+            "data": [
                 cls.dump_document(
                     m,
                     fields_own=fields_own,

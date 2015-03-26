@@ -171,7 +171,7 @@ class TestApiClient(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf8'))
         data_expected = {
-            "authors": []
+            "data": []
         }
         self.assertEqual(data, data_expected)
 
@@ -183,7 +183,7 @@ class TestApiClient(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(len(data["authors"]), 1)
+        self.assertEqual(len(data["data"]), 1)
 
     def test_create_model(self):
         self.assertEqual(Author.objects.count(), 0)
@@ -191,7 +191,7 @@ class TestApiClient(TestCase):
         response = self.client.post(
             '/api/author',
             json.dumps({
-                "authors": {
+                "data": {
                     "name": "author"
                 },
             }),
@@ -203,7 +203,7 @@ class TestApiClient(TestCase):
         author = Author.objects.get()
 
         expected_data = {
-            "authors": {
+            "data": {
                 "id": author.id,
                 "name": author.name,
             }
@@ -225,7 +225,7 @@ class TestApiClient(TestCase):
             response = self.client.post(
                 '/api/author',
                 json.dumps({
-                    "authors": [
+                    "data": [
                         {"name": "author1"},
                         {"name": "author2"},
                         {"name": "author3"},
@@ -241,7 +241,7 @@ class TestApiClient(TestCase):
         self.assertEqual(set(authors_names), {"author1", "author2", "author3"})
 
         expected_data = {
-            "authors": [{
+            "data": [{
                 "id": author.id,
                 "name": author.name,
             } for author in authors]
@@ -260,7 +260,7 @@ class TestApiClient(TestCase):
         response = self.client.post(
             '/api/post',
             json.dumps({
-                "posts": {
+                "data": {
                     "title": "title",
                     "links": {
                         "author": author.id
@@ -274,7 +274,7 @@ class TestApiClient(TestCase):
 
         post = Post.objects.get()
         expected_data = {
-            "posts": {
+            "data": {
                 "id": post.id,
                 "title": "title",
                 "links": {
@@ -287,12 +287,37 @@ class TestApiClient(TestCase):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
 
+    def test_create_model_validation_error(self):
+        author = mixer.blend('testapp.author')
+        response = self.client.post(
+            '/api/post',
+            json.dumps({
+                "data": {
+                    "links": {"author": author.id}
+                },
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "title": "Validation Error",
+                "data": {'title': ['This field is required.']},
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")
         response = self.client.put(
             '/api/author/{}'.format(author.id),
             json.dumps({
-                "authors": {
+                "data": {
                     "id": author.id,
                     "name": "author",
                 },
@@ -306,7 +331,7 @@ class TestApiClient(TestCase):
         self.assertEqual(author.name, "author")
 
         expected_data = {
-            "authors": {
+            "data": {
                 "id": author.id,
                 "name": "author"
             }
@@ -319,7 +344,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/author/{}'.format(",".join([str(a.id) for a in authors])),
             json.dumps({
-                "authors": [{
+                "data": [{
                     "id": a.id,
                     "name": "author",
                 } for a in authors],
@@ -333,7 +358,7 @@ class TestApiClient(TestCase):
             self.assertEqual(author.name, "author")
 
         expected_data = {
-            "authors": [{
+            "data": [{
                 "id": a.id,
                 "name": "author",
             } for a in authors],
@@ -346,7 +371,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/author',
             {
-                "authors": {
+                "data": {
                     "name": "author"
                 },
             },
@@ -364,7 +389,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/user/{}'.format(other_user.id),
             json.dumps({
-                "users": {"id": other_user.id, "email": "email@example.com"},
+                "data": {"id": other_user.id, "email": "email@example.com"},
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -374,7 +399,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/user/{}'.format(self.user.id),
             json.dumps({
-                "users": {"id": other_user.id, "email": "email@example.com"},
+                "data": {"id": other_user.id, "email": "email@example.com"},
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -384,7 +409,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/user/{}'.format(other_user.id),
             json.dumps({
-                "users": {"id": self.user.id, "email": "email@example.com"},
+                "data": {"id": self.user.id, "email": "email@example.com"},
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -395,7 +420,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/user/{}'.format(self.user.id),
             json.dumps({
-                "users": {"id": self.user.id, "email": "email@example.com"},
+                "data": {"id": self.user.id, "email": "email@example.com"},
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -444,7 +469,7 @@ class TestApiClient(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         expected_data = {
-            "posts": [{
+            "data": [{
                 "id": post.id,
                 "title": post.title,
                 "links": {
@@ -490,7 +515,7 @@ class TestApiClient(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode("utf-8"))
         expected_data = {
-            "posts": [{
+            "data": [{
                 "id": post.id,
                 "title": post.title,
                 "links": {
@@ -545,7 +570,7 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         data = json.loads(response.content.decode("utf-8"))
-        self.assertIn("title_uppercased", data["postwithpictures"][0])
+        self.assertIn("title_uppercased", data["data"][0])
 
         response = self.client.get(
             '/api/post',
@@ -553,7 +578,7 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         data = json.loads(response.content.decode("utf-8"))
-        self.assertNotIn("title_uppercased", data["posts"][0])
+        self.assertNotIn("title_uppercased", data["data"][0])
 
     def test_get_exclude_fields(self):
         mixer.blend("testapp.postwithpicture")
@@ -563,7 +588,7 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         data = json.loads(response.content.decode("utf-8"))
-        self.assertNotIn("title", data["postwithpictures"][0])
+        self.assertNotIn("title", data["data"][0])
 
     def test_get_include_many_to_many(self):
         group = mixer.blend('testapp.group')
@@ -577,7 +602,7 @@ class TestApiClient(TestCase):
         )
         data = json.loads(response.content.decode("utf-8"))
         expected_data = {
-            "authors": [{
+            "data": [{
                 "id": author.id,
                 "name": author.name,
                 "links": {

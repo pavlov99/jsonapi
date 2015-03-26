@@ -209,11 +209,17 @@ class API(object):
 
     def handler_view_post(self, resource, **kwargs):
         data = resource.post(**kwargs)
+        if "errors" in data:
+            response = HttpResponse(
+                json.dumps(data, cls=DatetimeDecimalEncoder),
+                content_type=self.CONTENT_TYPE, status=400)
+            return response
+
         response = HttpResponse(
             json.dumps(data, cls=DatetimeDecimalEncoder),
             content_type=self.CONTENT_TYPE, status=201)
 
-        items = data[resource.Meta.name_plural]
+        items = data["data"]
         items = items if isinstance(items, list) else [items]
 
         response["Location"] = "{}/{}".format(
