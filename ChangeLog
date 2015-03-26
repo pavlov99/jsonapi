@@ -1,5 +1,11 @@
 2015-03-26  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
+	* Version 0.8.2, add atomic transactions support for post and put. If
+	model raises error during form.save(), other models commited before
+	would be rolled back.
+
+2015-03-26  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
 	* Version 0.8.1, remove Django 1.5 support. Currently Django
 	1.6 and Django 1.7 are available. Version 1.5 is considered outdated.
 	Prepare for atomic transactions integration.
