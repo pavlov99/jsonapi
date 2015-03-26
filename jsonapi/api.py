@@ -234,6 +234,12 @@ class API(object):
 
         try:
             data = resource.put(**kwargs)
+            if "errors" in data:
+                response = HttpResponse(
+                    json.dumps(data, cls=DatetimeDecimalEncoder),
+                    content_type=self.CONTENT_TYPE, status=400)
+                return response
+
             response = HttpResponse(
                 json.dumps(data, cls=DatetimeDecimalEncoder),
                 content_type=self.CONTENT_TYPE, status=200)
