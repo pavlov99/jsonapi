@@ -340,7 +340,6 @@ class Resource(Serializer, Authenticator):
             items = [items]
 
         forms = []
-        data = []
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
@@ -358,23 +357,25 @@ class Resource(Serializer, Authenticator):
                 }
                 return response
 
-            try:
-                instance = form.save()
-            except Exception as e:
-                response = {
-                    "errors": [{
-                        "status": 400,
-                        "title": "Instance save error",
-                        "data": {
-                            "type": e.__class__.__name__,
-                            "args": e.args,
-                            "message": str(e)
-                        }
-                    }]
-                }
-                return response
-            else:
-                data.append(cls.dump_document(instance))
+        data = []
+        try:
+            with transaction.atomic():
+                for form in forms:
+                    instance = form.save()
+                    data.append(cls.dump_document(instance))
+        except Exception as e:
+            response = {
+                "errors": [{
+                    "status": 400,
+                    "title": "Instance save error",
+                    "data": {
+                        "type": e.__class__.__name__,
+                        "args": e.args,
+                        "message": str(e)
+                    }
+                }]
+            }
+            return response
 
         if not is_collection:
             data = data[0]
@@ -428,7 +429,25 @@ class Resource(Serializer, Authenticator):
                 }
                 return response
 
-        data = [cls.dump_document(f.save()) for f in forms]
+        data = []
+        try:
+            with transaction.atomic():
+                for form in forms:
+                    instance = form.save()
+                    data.append(cls.dump_document(instance))
+        except Exception as e:
+            response = {
+                "errors": [{
+                    "status": 400,
+                    "title": "Instance save error",
+                    "data": {
+                        "type": e.__class__.__name__,
+                        "args": e.args,
+                        "message": str(e)
+                    }
+                }]
+            }
+            return response
 
         if not is_collection:
             data = data[0]

@@ -217,7 +217,7 @@ class TestApiClient(TestCase):
         self.assertEqual(Author.objects.count(), 0)
         # TODO: try to decrease number of queries
         # NOTE: send resource collection
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(5):
             response = self.client.post(
                 '/api/author',
                 json.dumps({
@@ -376,7 +376,6 @@ class TestApiClient(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(Post.objects.count(), 0)
 
         expected_data = {
             "errors": [{
@@ -537,6 +536,44 @@ class TestApiClient(TestCase):
 
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
+
+    def test_update_models_save_error_atomic(self):
+        """ Ensure models are not created if one of them raises exception."""
+        authors = mixer.cycle(2).blend('testapp.author', name="name")
+        response = self.client.put(
+            '/api/author/{}'.format(",".join([str(a.id) for a in authors])),
+            json.dumps({
+                "data": [{
+                    "id": authors[0].id,
+                    "name": "allowed name",
+                }, {
+                    "id": authors[1].id,
+                    "name": "forbidden name",
+                }],
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "title": "Instance save error",
+                "data": {
+                    "type": "ValueError",
+                    "args": ["Name forbidden name is not allowed"],
+                    "message": 'Name forbidden name is not allowed'
+                },
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Author.objects.count(), 2)
+        self.assertEqual(
+            set(Author.objects.values_list("name", flat=True)), {'name'})
 
     def test_delete_model(self):
         author = mixer.blend("testapp.author")
