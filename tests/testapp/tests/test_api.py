@@ -312,6 +312,29 @@ class TestApiClient(TestCase):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
 
+        response = self.client.post(
+            '/api/post',
+            json.dumps({
+                "data": {
+                    "title": "New Post"
+                },
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "title": "Validation Error",
+                "data": {'author': ['This field is required.']},
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")
         response = self.client.put(
