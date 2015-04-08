@@ -42,14 +42,20 @@ Exampele of resource declaration is shown below:
 
 Available Meta parameters:
 
-=================== ================= ===================== =================================
-Name                Type              Default               Usage
-=================== ================= ===================== =================================
-model               str               None. Need to specify '<appname>.<modelname>'
-allowed_methods     tuple             ('GET')               tuple of capitalized HTTP methods
-authenticators      list              []                    [Resource.AUTHENTICATORS.SESSION]
-fieldnames_include  list              []                    list of field names
-fieldnames_exclude  list              []                    list of field names
-page_size           int               None                  integer if need pagination
-form                django.forms.Form Default ModelForm     form to use
-=================== ================= ===================== =================================
++--------------------+---------------------------+-----------------------+-----------------------------------+
+| Name               | Type                      | Default               | Usage                             |
++--------------------+---------------------------+-----------------------+-----------------------------------+
+| model              | str                       | None. Need to specify | '<appname>.<modelname>'           |
++--------------------+---------------------------+-----------------------+-----------------------------------+
+| allowed_methods    | tuple                     | ('GET')               | tuple of capitalized HTTP methods |
++--------------------+---------------------------+-----------------------+-----------------------------------+
+| authenticators     | list                      | []                    | [Resource.AUTHENTICATORS.SESSION] |
++--------------------+---------------------------+-----------------------+-----------------------------------+
+| fieldnames_include | list                      | []                    | list of field names               |
++--------------------+---------------------------+-----------------------+-----------------------------------+
+| fieldnames_exclude | list                      | []                    | list of field names               |
++--------------------+---------------------------+-----------------------+-----------------------------------+
+| page_size          | int                       | None                  | integer if need pagination        |
++--------------------+---------------------------+-----------------------+-----------------------------------+
+| form               | django.forms.Form Default | ModelForm             | form to use                       |
++--------------------+---------------------------+-----------------------+-----------------------------------+

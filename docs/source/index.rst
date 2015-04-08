@@ -89,11 +89,3 @@ curl -v -H "Content-Type: application/vnd.api+json" 127.0.0.1:8000/api/author
 Test Application Models
 =======================
 .. image:: models.png
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
