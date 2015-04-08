@@ -32,8 +32,8 @@ Properties:
 """
 from . import six
 from django.core.paginator import Paginator
-from django.db import models, transaction
-from django.forms import ModelForm
+from django.db import models, transaction, IntegrityError
+from django.forms import ModelForm, ValidationError
 import inspect
 import json
 import logging
@@ -44,7 +44,11 @@ from .serializers import Serializer
 from .auth import Authenticator
 from .request_parser import RequestParser
 from .model_inspector import ModelInspector
-from .exceptions import JSONAPIError
+from .exceptions import (
+    JSONAPIError,
+    JSONAPIIntegrityError,
+    JSONAPIFormSaveError,
+)
 from . import statuses
 
 __all__ = 'Resource',
@@ -370,16 +374,26 @@ class Resource(Serializer, Authenticator):
         return (items, is_collection)
 
     @classmethod
-    def post_put(cls, request=None, **kwargs):
+    def clean_resources(cls, resources, request=None, **kwargs):
+        return resources
+
+    @classmethod
+    def _post_put(cls, request=None, **kwargs):
         """ General method for post and put requests."""
         items, is_collection = cls.extract_resource_items(request)
+
+        try:
+            items = cls.clean_resources(items, request=request, **kwargs)
+        except ValidationError as e:
+            raise JSONAPIResourceValidationError()
 
         if request.method == "PUT":
             ids_set = set([int(_id) for _id in kwargs['ids']])
             item_ids_set = {item["id"] for item in items}
             if ids_set != item_ids_set:
                 msg = "ids set in url and request body are not matched"
-                raise JSONAPIError(statuses.HTTP_400_BAD_REQUEST, msg)
+                raise JSONAPIError(
+                    status=statuses.HTTP_400_BAD_REQUEST, title=msg)
 
             user = cls.authenticate(request)
             queryset = cls.get_queryset(user=user, **kwargs)
@@ -390,7 +404,8 @@ class Resource(Serializer, Authenticator):
                 msg = "You do not have access to objects {}".format(
                     list(ids_set - set(objects_map.keys()))
                 )
-                raise JSONAPIError(statuses.HTTP_403_FORBIDDEN, msg)
+                raise JSONAPIError(
+                    status=statuses.HTTP_403_FORBIDDEN, title=msg, code=32001)
 
         forms = []
         for item in items:
@@ -423,7 +438,10 @@ class Resource(Serializer, Authenticator):
                 for form in forms:
                     instance = form.save()
                     data.append(cls.dump_document(instance))
+        except IntegrityError:
+            raise JSONAPIIntegrityError()
         except Exception as e:
+            raise JSONAPIFormSaveError()
             response = {
                 "errors": [{
                     "status": 400,
@@ -444,11 +462,11 @@ class Resource(Serializer, Authenticator):
 
     @classmethod
     def post(cls, request=None, **kwargs):
-        return cls.post_put(request=request, **kwargs)
+        return cls._post_put(request=request, **kwargs)
 
     @classmethod
     def put(cls, request=None, **kwargs):
-        return cls.post_put(request=request, **kwargs)
+        return cls._post_put(request=request, **kwargs)
 
     @classmethod
     def delete(cls, request=None, **kwargs):

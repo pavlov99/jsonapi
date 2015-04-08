@@ -246,7 +246,7 @@ class API(object):
             return response
         except JSONAPIError as e:
             return HttpResponse(
-                e.message, content_type=self.CONTENT_TYPE, status=e.status_code)
+                e.title, content_type=self.CONTENT_TYPE, status=e.status)
 
     def handler_view_delete(self, resource, **kwargs):
         if 'ids' not in kwargs:
