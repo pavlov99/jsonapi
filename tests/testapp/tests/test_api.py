@@ -383,7 +383,6 @@ class TestApiClient(TestCase):
                 "title": "Instance save error",
                 "data": {
                     "type": "ValueError",
-                    "args": ["Name forbidden name is not allowed"],
                     "message": 'Name forbidden name is not allowed'
                 },
             }]
@@ -563,7 +562,6 @@ class TestApiClient(TestCase):
                 "title": "Instance save error",
                 "data": {
                     "type": "ValueError",
-                    "args": ["Name forbidden name is not allowed"],
                     "message": 'Name forbidden name is not allowed'
                 },
             }]

@@ -350,8 +350,15 @@ class Resource(Serializer, Authenticator):
         return response
 
     @classmethod
-    def post_put(cls, request=None, **kwargs):
-        """ General method for post and put requests."""
+    def extract_resource_items(cls, request):
+        """ Extract resources from django request.
+
+        :param: request django.HttpRequest
+        :return: (items, is_collection)
+        is_collection is True if items is list, False if object
+        items is list of items
+
+        """
         jdata = request.body.decode('utf8')
         data = json.loads(jdata)
         items = data["data"]
@@ -359,6 +366,13 @@ class Resource(Serializer, Authenticator):
 
         if not is_collection:
             items = [items]
+
+        return (items, is_collection)
+
+    @classmethod
+    def post_put(cls, request=None, **kwargs):
+        """ General method for post and put requests."""
+        items, is_collection = cls.extract_resource_items(request)
 
         if request.method == "PUT":
             ids_set = set([int(_id) for _id in kwargs['ids']])
@@ -416,7 +430,6 @@ class Resource(Serializer, Authenticator):
                     "title": "Instance save error",
                     "data": {
                         "type": e.__class__.__name__,
-                        "args": e.args,
                         "message": str(e)
                     }
                 }]
@@ -428,6 +441,14 @@ class Resource(Serializer, Authenticator):
 
         response = dict(data=data)
         return response
+
+    @classmethod
+    def post(cls, request=None, **kwargs):
+        return cls.post_put(request=request, **kwargs)
+
+    @classmethod
+    def put(cls, request=None, **kwargs):
+        return cls.post_put(request=request, **kwargs)
 
     @classmethod
     def delete(cls, request=None, **kwargs):
