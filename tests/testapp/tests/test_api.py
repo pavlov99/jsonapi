@@ -4,7 +4,6 @@ from jsonapi.api import API
 from jsonapi.resource import Resource
 from mixer.backend.django import mixer
 from testfixtures import compare
-from mock import patch
 import json
 import unittest
 
