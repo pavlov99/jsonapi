@@ -1,3 +1,7 @@
+2015-04-08  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Add Partial form support for PUT request
+
 2015-03-26  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
 	* Version 0.8.2, add atomic transactions support for post and put. If
