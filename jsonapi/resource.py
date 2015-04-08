@@ -226,22 +226,42 @@ class Resource(Serializer, Authenticator):
         return queryset
 
     @classmethod
-    def get_form(cls, fields=None):
-        """ Create Partial Form based on given fields.
+    def get_form(cls):
+        """ Create Partial Form based on given fields."""
+        if cls.Meta.form:
+            return cls.Meta.form
 
-        :param list fields: list of field names.
-
-        """
-        meta_attributes = {"model": cls.Meta.model}
-        meta_attributes["fields"] = '__all__'
-
-        if fields is not None:
-            meta_attributes["fields"] = fields
-
+        meta_attributes = {"model": cls.Meta.model, "fields": '__all__'}
         Form = type('Form', (ModelForm,), {
             "Meta": type('Meta', (object,), meta_attributes)
         })
         return Form
+
+    @classmethod
+    def get_partial_form(cls, Form, fields):
+        """ Get partial form based on original Form and fields set.
+
+        :param Form: django.forms.ModelForm
+        :param list fields: list of field names.
+
+        """
+        if not fields:
+            return Form
+
+        meta_attributes = dict(fields=fields)
+
+        # NOTE: if Form was created automatically, it's Meta is inherited from
+        # object already, double inheritance raises error. If form is general
+        # ModelForm created by user, it's Meta is not inherited from object and
+        # PartialForm creation raises error.
+        meta_bases = (Form.Meta,)
+        if not issubclass(Form.Meta, object):
+            meta_bases += (object,)
+
+        PartialForm = type('PartialForm', (Form,), {
+            "Meta": type('Meta', meta_bases, meta_attributes)
+        })
+        return PartialForm
 
     @classmethod
     def _get_include_structure(cls, include=None):
@@ -343,7 +363,7 @@ class Resource(Serializer, Authenticator):
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
-            Form = cls.Meta.form or cls.get_form()
+            Form = cls.get_form()
             form = Form(item)
             forms.append(form)
 
@@ -414,7 +434,7 @@ class Resource(Serializer, Authenticator):
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
-            Form = cls.Meta.form or cls.get_form(item.keys())
+            Form = cls.get_partial_form(cls.get_form(), item.keys())
             instance = objects_map[item["id"]]
             form = Form(item, instance=instance)
             forms.append(form)
