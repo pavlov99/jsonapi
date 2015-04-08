@@ -350,7 +350,8 @@ class Resource(Serializer, Authenticator):
         return response
 
     @classmethod
-    def post(cls, request=None, **kwargs):
+    def post_put(cls, request=None, **kwargs):
+        """ General method for post and put requests."""
         jdata = request.body.decode('utf8')
         data = json.loads(jdata)
         items = data["data"]
@@ -359,84 +360,37 @@ class Resource(Serializer, Authenticator):
         if not is_collection:
             items = [items]
 
-        forms = []
-        for item in items:
-            if 'links' in item:
-                item.update(item.pop('links'))
-            Form = cls.get_form()
-            form = Form(item)
-            forms.append(form)
+        if request.method == "PUT":
+            ids_set = set([int(_id) for _id in kwargs['ids']])
+            item_ids_set = {item["id"] for item in items}
+            if ids_set != item_ids_set:
+                msg = "ids set in url and request body are not matched"
+                raise JSONAPIError(statuses.HTTP_400_BAD_REQUEST, msg)
 
-            if not form.is_valid():
-                response = {
-                    "errors": [{
-                        "status": 400,
-                        "title": "Validation error",
-                        "data": form.errors
-                    }]
-                }
-                return response
+            user = cls.authenticate(request)
+            queryset = cls.get_queryset(user=user, **kwargs)
+            queryset = cls.update_put_queryset(queryset, **kwargs)
+            objects_map = queryset.in_bulk(kwargs["ids"])
 
-        data = []
-        try:
-            with transaction.atomic():
-                for form in forms:
-                    instance = form.save()
-                    data.append(cls.dump_document(instance))
-        except Exception as e:
-            response = {
-                "errors": [{
-                    "status": 400,
-                    "title": "Instance save error",
-                    "data": {
-                        "type": e.__class__.__name__,
-                        "args": e.args,
-                        "message": str(e)
-                    }
-                }]
-            }
-            return response
-
-        if not is_collection:
-            data = data[0]
-
-        response = dict(data=data)
-        return response
-
-    @classmethod
-    def put(cls, request=None, **kwargs):
-        jdata = request.body.decode('utf8')
-        data = json.loads(jdata)
-        items = data["data"]
-        is_collection = isinstance(items, list)
-
-        if not is_collection:
-            items = [items]
-
-        ids_set = set([int(_id) for _id in kwargs['ids']])
-        item_ids_set = {item["id"] for item in items}
-        if ids_set != item_ids_set:
-            msg = "ids set in url and request body are not matched"
-            raise JSONAPIError(statuses.HTTP_400_BAD_REQUEST, msg)
-
-        user = cls.authenticate(request)
-        queryset = cls.get_queryset(user=user, **kwargs)
-        queryset = cls.update_put_queryset(queryset, **kwargs)
-        objects_map = queryset.in_bulk(kwargs["ids"])
-
-        if len(objects_map) < len(kwargs["ids"]):
-            msg = "You do not have access to objects {}".format(
-                list(ids_set - set(objects_map.keys()))
-            )
-            raise JSONAPIError(statuses.HTTP_403_FORBIDDEN, msg)
+            if len(objects_map) < len(kwargs["ids"]):
+                msg = "You do not have access to objects {}".format(
+                    list(ids_set - set(objects_map.keys()))
+                )
+                raise JSONAPIError(statuses.HTTP_403_FORBIDDEN, msg)
 
         forms = []
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
-            Form = cls.get_partial_form(cls.get_form(), item.keys())
-            instance = objects_map[item["id"]]
-            form = Form(item, instance=instance)
+
+            if request.method == "POST":
+                Form = cls.get_form()
+                form = Form(item)
+            elif request.method == "PUT":
+                Form = cls.get_partial_form(cls.get_form(), item.keys())
+                instance = objects_map[item["id"]]
+                form = Form(item, instance=instance)
+
             forms.append(form)
 
             if not form.is_valid():

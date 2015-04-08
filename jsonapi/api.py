@@ -208,7 +208,7 @@ class API(object):
         return HttpResponse(items, content_type=self.CONTENT_TYPE)
 
     def handler_view_post(self, resource, **kwargs):
-        data = resource.post(**kwargs)
+        data = resource.post_put(**kwargs)
         if "errors" in data:
             response = HttpResponse(
                 json.dumps(data, cls=DatetimeDecimalEncoder),
@@ -233,7 +233,7 @@ class API(object):
             return HttpResponse("Request SHOULD have resource ids", status=400)
 
         try:
-            data = resource.put(**kwargs)
+            data = resource.post_put(**kwargs)
             if "errors" in data:
                 response = HttpResponse(
                     json.dumps(data, cls=DatetimeDecimalEncoder),
