@@ -8,7 +8,7 @@ from mock import patch
 import json
 import unittest
 
-from ..models import Author, Post
+from ..models import Author, Post, PostWithPicture
 from ..urls import api
 
 User = get_user_model()
@@ -574,6 +574,24 @@ class TestApiClient(TestCase):
         self.assertEqual(Author.objects.count(), 2)
         self.assertEqual(
             set(Author.objects.values_list("name", flat=True)), {'name'})
+
+    def test_update_partial(self):
+        post = mixer.blend('testapp.postwithpicture', title="title")
+        response = self.client.put(
+            '/api/postwithpicture/{}'.format(post.id),
+            json.dumps({
+                "data": [{
+                    "id": post.id,
+                    "title": "new title",
+                }],
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        post = PostWithPicture.objects.get()
+        self.assertEqual(post.title, "new title")
 
     def test_delete_model(self):
         author = mixer.blend("testapp.author")

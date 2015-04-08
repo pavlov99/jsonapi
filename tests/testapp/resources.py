@@ -2,6 +2,8 @@ from django.conf import settings
 from jsonapi.resource import Resource
 from jsonapi.api import API
 
+from .forms import PostWithPictureForm
+
 api = API()
 
 
@@ -35,8 +37,10 @@ class AuthorResource(Resource):
 class PostWithPictureResource(Resource):
     class Meta:
         model = 'testapp.PostWithPicture'
+        allowed_methods = 'GET', 'PUT'
         fieldnames_include = 'title_uppercased',
         fieldnames_exclude = 'title',
+        form = PostWithPictureForm
 
 
 @api.register
