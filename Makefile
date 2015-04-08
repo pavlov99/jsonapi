@@ -5,7 +5,8 @@ DJANGO_ADMIN=$(shell which django-admin.py)
 SETTINGS_TEST=tests.testapp.settings.test
 SETTINGS_DEV=tests.testapp.settings.dev
 PARAMS_DEV=--settings=$(SETTINGS_DEV) --pythonpath=$(CURDIR)
-SPHINXBUILD=sphinx-build
+BIN_DOCS=$(CURDIR)/docs/.env/bin
+SPHINXBUILD=$(BIN_DOCS)/sphinx-build
 
 all: $(ENV)
 	@echo "Virtualenv is installed"

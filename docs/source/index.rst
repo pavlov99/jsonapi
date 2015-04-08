@@ -9,8 +9,7 @@ Welcome to json:api's documentation!
 .. toctree::
    :maxdepth: 3
 
-   modules.rst
-   pages/resource.rst
+   resource.rst
 
 Installation
 ============
