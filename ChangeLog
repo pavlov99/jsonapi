@@ -1,3 +1,12 @@
+2015-04-09  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Add resource clean method. It is excecuted after request
+	deserialization and before model create/update methods. It allows to
+	validate request. Useful if validation requires user access
+	(permission check). If validation does not require user, it is better
+	to use standard Django forms falidation.
+	* Add application exception classes.
+
 2015-04-08  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
 	* Add Partial form support for PUT request
