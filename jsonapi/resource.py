@@ -32,8 +32,8 @@ Properties:
 """
 from . import six
 from django.core.paginator import Paginator
-from django.db import models, transaction
-from django.forms import ModelForm
+from django.db import models, transaction, IntegrityError
+from django.forms import ModelForm, ValidationError
 import inspect
 import json
 import logging
@@ -44,8 +44,14 @@ from .serializers import Serializer
 from .auth import Authenticator
 from .request_parser import RequestParser
 from .model_inspector import ModelInspector
-from .exceptions import JSONAPIError
-from . import statuses
+from .exceptions import (
+    JSONAPIError,
+    JSONAPIForbiddenError,
+    JSONAPIFormSaveError,
+    JSONAPIFormValidationError,
+    JSONAPIIntegrityError,
+    JSONAPIResourceValidationError,
+)
 
 __all__ = 'Resource',
 
@@ -350,7 +356,15 @@ class Resource(Serializer, Authenticator):
         return response
 
     @classmethod
-    def post(cls, request=None, **kwargs):
+    def extract_resource_items(cls, request):
+        """ Extract resources from django request.
+
+        :param: request django.HttpRequest
+        :return: (items, is_collection)
+        is_collection is True if items is list, False if object
+        items is list of items
+
+        """
         jdata = request.body.decode('utf8')
         data = json.loads(jdata)
         items = data["data"]
@@ -359,23 +373,86 @@ class Resource(Serializer, Authenticator):
         if not is_collection:
             items = [items]
 
+        return (items, is_collection)
+
+    @classmethod
+    def clean_resources(cls, resources, request=None, **kwargs):
+        """ Clean resources before models management.
+
+        If models management requires resources, such as database calls or
+        external services communication, one may possible to clean resources
+        before it.
+        It is also possible to validate user permissions to do operation. Use
+        form validation if validation does not require user access and Resource
+        validation (this method) if it requires to access user object.
+
+        Parameters
+        ----------
+        resources : list
+            List of dictionaries - serialized objects.
+
+        Returns
+        -------
+        resources : list
+            List of cleaned resources
+
+        Raises
+        ------
+        django.forms.ValidationError in case of validation errors
+
+        """
+        return resources
+
+    @classmethod
+    def _post_put(cls, request=None, **kwargs):
+        """ General method for post and put requests."""
+        items, is_collection = cls.extract_resource_items(request)
+
+        try:
+            items = cls.clean_resources(items, request=request, **kwargs)
+        except ValidationError as e:
+            raise JSONAPIResourceValidationError(detail=e.message)
+
+        if request.method == "PUT":
+            ids_set = set([int(_id) for _id in kwargs['ids']])
+            item_ids_set = {item["id"] for item in items}
+            if ids_set != item_ids_set:
+                msg = "ids set in url and request body are not matched"
+                raise JSONAPIError(detail=msg)
+
+            user = cls.authenticate(request)
+            queryset = cls.get_queryset(user=user, **kwargs)
+            queryset = cls.update_put_queryset(queryset, **kwargs)
+            objects_map = queryset.in_bulk(kwargs["ids"])
+
+            if len(objects_map) < len(kwargs["ids"]):
+                msg = "You do not have access to objects {}".format(
+                    list(ids_set - set(objects_map.keys()))
+                )
+                raise JSONAPIForbiddenError(detail=msg)
+
         forms = []
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
-            Form = cls.get_form()
-            form = Form(item)
+
+            if request.method == "POST":
+                Form = cls.get_form()
+                form = Form(item)
+            elif request.method == "PUT":
+                Form = cls.get_partial_form(cls.get_form(), item.keys())
+                instance = objects_map[item["id"]]
+                form = Form(item, instance=instance)
+
             forms.append(form)
 
+        for index, form in enumerate(forms):
             if not form.is_valid():
-                response = {
-                    "errors": [{
-                        "status": 400,
-                        "title": "Validation error",
-                        "data": form.errors
-                    }]
-                }
-                return response
+                raise JSONAPIFormValidationError(
+                    links=["/data/{}".format(index)],
+                    paths=["/{}".format(attr) for attr in form.errors],
+                    data=form.errors
+                )
 
         data = []
         try:
@@ -383,19 +460,10 @@ class Resource(Serializer, Authenticator):
                 for form in forms:
                     instance = form.save()
                     data.append(cls.dump_document(instance))
+        except IntegrityError as e:
+            raise JSONAPIIntegrityError(detail=str(e))
         except Exception as e:
-            response = {
-                "errors": [{
-                    "status": 400,
-                    "title": "Instance save error",
-                    "data": {
-                        "type": e.__class__.__name__,
-                        "args": e.args,
-                        "message": str(e)
-                    }
-                }]
-            }
-            return response
+            raise JSONAPIFormSaveError(detail=str(e))
 
         if not is_collection:
             data = data[0]
@@ -404,76 +472,12 @@ class Resource(Serializer, Authenticator):
         return response
 
     @classmethod
+    def post(cls, request=None, **kwargs):
+        return cls._post_put(request=request, **kwargs)
+
+    @classmethod
     def put(cls, request=None, **kwargs):
-        jdata = request.body.decode('utf8')
-        data = json.loads(jdata)
-        items = data["data"]
-        is_collection = isinstance(items, list)
-
-        if not is_collection:
-            items = [items]
-
-        ids_set = set([int(_id) for _id in kwargs['ids']])
-        item_ids_set = {item["id"] for item in items}
-        if ids_set != item_ids_set:
-            msg = "ids set in url and request body are not matched"
-            raise JSONAPIError(statuses.HTTP_400_BAD_REQUEST, msg)
-
-        user = cls.authenticate(request)
-        queryset = cls.get_queryset(user=user, **kwargs)
-        queryset = cls.update_put_queryset(queryset, **kwargs)
-        objects_map = queryset.in_bulk(kwargs["ids"])
-
-        if len(objects_map) < len(kwargs["ids"]):
-            msg = "You do not have access to objects {}".format(
-                list(ids_set - set(objects_map.keys()))
-            )
-            raise JSONAPIError(statuses.HTTP_403_FORBIDDEN, msg)
-
-        forms = []
-        for item in items:
-            if 'links' in item:
-                item.update(item.pop('links'))
-            Form = cls.get_partial_form(cls.get_form(), item.keys())
-            instance = objects_map[item["id"]]
-            form = Form(item, instance=instance)
-            forms.append(form)
-
-            if not form.is_valid():
-                response = {
-                    "errors": [{
-                        "status": 400,
-                        "title": "Validation error",
-                        "data": form.errors
-                    }]
-                }
-                return response
-
-        data = []
-        try:
-            with transaction.atomic():
-                for form in forms:
-                    instance = form.save()
-                    data.append(cls.dump_document(instance))
-        except Exception as e:
-            response = {
-                "errors": [{
-                    "status": 400,
-                    "title": "Instance save error",
-                    "data": {
-                        "type": e.__class__.__name__,
-                        "args": e.args,
-                        "message": str(e)
-                    }
-                }]
-            }
-            return response
-
-        if not is_collection:
-            data = data[0]
-
-        response = dict(data=data)
-        return response
+        return cls._post_put(request=request, **kwargs)
 
     @classmethod
     def delete(cls, request=None, **kwargs):

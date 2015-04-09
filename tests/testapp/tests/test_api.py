@@ -4,7 +4,6 @@ from jsonapi.api import API
 from jsonapi.resource import Resource
 from mixer.backend.django import mixer
 from testfixtures import compare
-from mock import patch
 import json
 import unittest
 
@@ -300,7 +299,11 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation error",
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/0'],
+                "paths": ['/title'],
                 "data": {'title': ['This field is required.']},
             }]
         }
@@ -323,7 +326,11 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation error",
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/0'],
+                "paths": ['/author'],
                 "data": {'author': ['This field is required.']},
             }]
         }
@@ -350,7 +357,11 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation error",
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/1'],
+                "paths": ['/name'],
                 "data": {'name': ['Ensure this value has at most 100 ' +
                                   'characters (it has 180).']}
             }]
@@ -380,12 +391,35 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Instance save error",
+                "code": 32102,
+                "title": "Model form save error",
+                "detail": "Name forbidden name is not allowed",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Author.objects.count(), 0)
+
+    def test_create_model_resource_clean_error(self):
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
                 "data": {
-                    "type": "ValueError",
-                    "args": ["Name forbidden name is not allowed"],
-                    "message": 'Name forbidden name is not allowed'
+                    "name": "not clean name"
                 },
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32100,
+                "title": "Resource validation error",
+                "detail": "Author name should not be 'not clean name'",
             }]
         }
 
@@ -528,7 +562,11 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation error",
+                "code": 32101,
+                "detail": "",
+                "links": ['/data/0'],
+                "paths": ['/name'],
+                "title": "Model form validation error",
                 "data": {'name': ['Ensure this value has at most 100 ' +
                                   'characters (it has 101).']},
             }]
@@ -560,12 +598,9 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Instance save error",
-                "data": {
-                    "type": "ValueError",
-                    "args": ["Name forbidden name is not allowed"],
-                    "message": 'Name forbidden name is not allowed'
-                },
+                "code": 32102,
+                "title": "Model form save error",
+                "detail": "Name forbidden name is not allowed",
             }]
         }
 

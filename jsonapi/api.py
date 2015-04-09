@@ -232,21 +232,17 @@ class API(object):
         if 'ids' not in kwargs:
             return HttpResponse("Request SHOULD have resource ids", status=400)
 
-        try:
-            data = resource.put(**kwargs)
-            if "errors" in data:
-                response = HttpResponse(
-                    json.dumps(data, cls=DatetimeDecimalEncoder),
-                    content_type=self.CONTENT_TYPE, status=400)
-                return response
-
+        data = resource.put(**kwargs)
+        if "errors" in data:
             response = HttpResponse(
                 json.dumps(data, cls=DatetimeDecimalEncoder),
-                content_type=self.CONTENT_TYPE, status=200)
+                content_type=self.CONTENT_TYPE, status=400)
             return response
-        except JSONAPIError as e:
-            return HttpResponse(
-                e.message, content_type=self.CONTENT_TYPE, status=e.status_code)
+
+        response = HttpResponse(
+            json.dumps(data, cls=DatetimeDecimalEncoder),
+            content_type=self.CONTENT_TYPE, status=200)
+        return response
 
     def handler_view_delete(self, resource, **kwargs):
         if 'ids' not in kwargs:
@@ -282,11 +278,16 @@ class API(object):
         if ids is not None:
             kwargs['ids'] = ids.split(",")
 
-        if request.method == "GET":
-            return self.handler_view_get(resource, **kwargs)
-        elif request.method == "POST":
-            return self.handler_view_post(resource, **kwargs)
-        elif request.method == "PUT":
-            return self.handler_view_put(resource, **kwargs)
-        elif request.method == "DELETE":
-            return self.handler_view_delete(resource, **kwargs)
+        try:
+            if request.method == "GET":
+                return self.handler_view_get(resource, **kwargs)
+            elif request.method == "POST":
+                return self.handler_view_post(resource, **kwargs)
+            elif request.method == "PUT":
+                return self.handler_view_put(resource, **kwargs)
+            elif request.method == "DELETE":
+                return self.handler_view_delete(resource, **kwargs)
+        except JSONAPIError as e:
+            return HttpResponse(
+                json.dumps({"errors": [e.data]}, cls=DatetimeDecimalEncoder),
+                content_type=self.CONTENT_TYPE, status=e.status)
