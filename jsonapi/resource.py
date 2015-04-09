@@ -482,6 +482,10 @@ class Resource(Serializer, Authenticator):
     @classmethod
     def delete(cls, request=None, **kwargs):
         user = cls.authenticate(request)
-        queryset = cls.get_queryset(user=user, **kwargs)
-        queryset.filter(id__in=kwargs['ids']).delete()
+        queryset = cls.get_queryset(user=user, **kwargs)\
+            .filter(id__in=kwargs['ids'])
+
+        if len(kwargs['ids']) > queryset.count():
+            raise JSONAPIForbiddenError()
+        queryset.delete()
         return ""

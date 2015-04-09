@@ -659,6 +659,25 @@ class TestApiClient(TestCase):
             response.content.decode("utf-8"),
             "Request SHOULD have resource ids")
 
+    def test_delete_now_own_models(self):
+        user = mixer.blend(User)
+        response = self.client.delete(
+            '/api/user/{}'.format(user.id),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 403)
+        expected_data = {
+            "errors": [{
+                'code': 32001,
+                'detail': '',
+                'status': 403,
+                'title': 'Resource forbidden error',
+            }]
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        compare(data, expected_data)
+
     def test_get_top_level_links(self):
         post = mixer.blend("testapp.post")
         response = self.client.get(
