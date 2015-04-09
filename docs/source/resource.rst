@@ -74,6 +74,20 @@ GET/POST/PUT/DELETE method kwargs
 Exceptions
 ----------
 
+.. note:: These exceptions are application specific. Than means that they are
+   raised inside resource get/post/put/delete methods handlers but not in api.
+   They are handled in request handler and serialized into correct response
+   document with "errors" attribute on the top level.
+
+Error standard http://jsonapi.org/format/#errors says that every member of error
+object could be optional, but suggest to use some. JSONAPI defines common
+exceptions and allows user to raise own ones. It uses code, status, title and
+detail members for every exception. Sometimed members links, paths and data (not
+suggested by document) could be added.
+
+.. warning:: Exceptions are still in development. Codes of existing exceptions
+   would not be changed, but titles could.
+
 +-------+--------+-----------------------------+--------------------------------+
 | Code  | Status | Title                       | Class                          |
 +-------+--------+-----------------------------+--------------------------------+
