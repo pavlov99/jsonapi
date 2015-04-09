@@ -17,7 +17,7 @@ class UserResource(Resource):
         model = settings.AUTH_USER_MODEL
         authenticators = [Resource.AUTHENTICATORS.SESSION]
         fieldnames_exclude = 'password',
-        allowed_methods = 'GET', 'PUT'
+        allowed_methods = 'GET', 'PUT', 'DELETE'
 
 
 @api.register

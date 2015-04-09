@@ -6,6 +6,7 @@
 	(permission check). If validation does not require user, it is better
 	to use standard Django forms falidation.
 	* Add application exception classes.
+	* Raise forbidden error on not own objects delete.
 
 2015-04-08  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
