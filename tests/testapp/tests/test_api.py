@@ -379,11 +379,9 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Instance save error",
-                "data": {
-                    "type": "ValueError",
-                    "message": 'Name forbidden name is not allowed'
-                },
+                "code": 32102,
+                "title": "Model form save error",
+                "detail": "Name forbidden name is not allowed",
             }]
         }
 
@@ -558,11 +556,9 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Instance save error",
-                "data": {
-                    "type": "ValueError",
-                    "message": 'Name forbidden name is not allowed'
-                },
+                "code": 32102,
+                "title": "Model form save error",
+                "detail": "Name forbidden name is not allowed",
             }]
         }
 
