@@ -1,6 +1,7 @@
+from django import forms
 from django.conf import settings
-from jsonapi.resource import Resource
 from jsonapi.api import API
+from jsonapi.resource import Resource
 
 from .forms import PostWithPictureForm
 
@@ -31,6 +32,15 @@ class AuthorResource(Resource):
     class Meta:
         model = 'testapp.Author'
         allowed_methods = 'GET', 'POST', 'PUT', 'DELETE'
+
+    @classmethod
+    def clean_resources(cls, resources, request=None, **kwargs):
+        if request.method == "POST":
+            for resource in resources:
+                if resource["name"] == "not clean name":
+                    raise forms.ValidationError(
+                        "Author name should not be 'not clean name'")
+        return resources
 
 
 @api.register

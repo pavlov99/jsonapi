@@ -411,7 +411,7 @@ class Resource(Serializer, Authenticator):
         try:
             items = cls.clean_resources(items, request=request, **kwargs)
         except ValidationError as e:
-            raise JSONAPIResourceValidationError(detail=str(e))
+            raise JSONAPIResourceValidationError(detail=e.message)
 
         if request.method == "PUT":
             ids_set = set([int(_id) for _id in kwargs['ids']])

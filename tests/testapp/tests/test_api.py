@@ -401,6 +401,32 @@ class TestApiClient(TestCase):
         self.assertEqual(data, expected_data)
         self.assertEqual(Author.objects.count(), 0)
 
+    def test_create_model_resource_clean_error(self):
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
+                "data": {
+                    "name": "not clean name"
+                },
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32100,
+                "title": "Resource validation error",
+                "detail": "Author name should not be 'not clean name'",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Author.objects.count(), 0)
+
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")
         response = self.client.put(
