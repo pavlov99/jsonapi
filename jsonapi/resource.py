@@ -46,10 +46,12 @@ from .request_parser import RequestParser
 from .model_inspector import ModelInspector
 from .exceptions import (
     JSONAPIError,
-    JSONAPIIntegrityError,
+    JSONAPIForbiddenError,
     JSONAPIFormSaveError,
+    JSONAPIFormValidationError,
+    JSONAPIIntegrityError,
+    JSONAPIResourceValidationError,
 )
-from . import statuses
 
 __all__ = 'Resource',
 
@@ -375,6 +377,30 @@ class Resource(Serializer, Authenticator):
 
     @classmethod
     def clean_resources(cls, resources, request=None, **kwargs):
+        """ Clean resources before models management.
+
+        If models management requires resources, such as database calls or
+        external services communication, one may possible to clean resources
+        before it.
+        It is also possible to validate user permissions to do operation. Use
+        form validation if validation does not require user access and Resource
+        validation (this method) if it requires to access user object.
+
+        Parameters
+        ----------
+        resources : list
+            List of dictionaries - serialized objects.
+
+        Returns
+        -------
+        resources : list
+            List of cleaned resources
+
+        Raises
+        ------
+        django.forms.ValidationError in case of validation errors
+
+        """
         return resources
 
     @classmethod
@@ -385,15 +411,14 @@ class Resource(Serializer, Authenticator):
         try:
             items = cls.clean_resources(items, request=request, **kwargs)
         except ValidationError as e:
-            raise JSONAPIResourceValidationError()
+            raise JSONAPIResourceValidationError(detail=str(e))
 
         if request.method == "PUT":
             ids_set = set([int(_id) for _id in kwargs['ids']])
             item_ids_set = {item["id"] for item in items}
             if ids_set != item_ids_set:
                 msg = "ids set in url and request body are not matched"
-                raise JSONAPIError(
-                    status=statuses.HTTP_400_BAD_REQUEST, title=msg)
+                raise JSONAPIError(detail=msg)
 
             user = cls.authenticate(request)
             queryset = cls.get_queryset(user=user, **kwargs)
@@ -404,8 +429,7 @@ class Resource(Serializer, Authenticator):
                 msg = "You do not have access to objects {}".format(
                     list(ids_set - set(objects_map.keys()))
                 )
-                raise JSONAPIError(
-                    status=statuses.HTTP_403_FORBIDDEN, title=msg, code=32001)
+                raise JSONAPIForbiddenError(detail=msg)
 
         forms = []
         for item in items:
@@ -422,15 +446,13 @@ class Resource(Serializer, Authenticator):
 
             forms.append(form)
 
+        for index, form in enumerate(forms):
             if not form.is_valid():
-                response = {
-                    "errors": [{
-                        "status": 400,
-                        "title": "Validation error",
-                        "data": form.errors
-                    }]
-                }
-                return response
+                raise JSONAPIFormValidationError(
+                    links=["/data/{}".format(index)],
+                    paths=["/{}".format(attr) for attr in form.errors],
+                    data=form.errors
+                )
 
         data = []
         try:
@@ -438,21 +460,10 @@ class Resource(Serializer, Authenticator):
                 for form in forms:
                     instance = form.save()
                     data.append(cls.dump_document(instance))
-        except IntegrityError:
-            raise JSONAPIIntegrityError()
+        except IntegrityError as e:
+            raise JSONAPIIntegrityError(detail=str(e))
         except Exception as e:
-            raise JSONAPIFormSaveError()
-            response = {
-                "errors": [{
-                    "status": 400,
-                    "title": "Instance save error",
-                    "data": {
-                        "type": e.__class__.__name__,
-                        "message": str(e)
-                    }
-                }]
-            }
-            return response
+            raise JSONAPIFormSaveError(detail=str(e))
 
         if not is_collection:
             data = data[0]

@@ -27,14 +27,19 @@ class JSONAPIError(Exception):
         "detail",
         "links",
         "paths",
+        "data",
     ]
 
     REQUIRED_ATTRIBUTES = ["code", "title"]
+    CODE = 32000
+    STATUS = statuses.HTTP_400_BAD_REQUEST
+    TITLE = "General JSONAPI Error"
 
     def __init__(self, **kwargs):
-        kwargs["code"] = getattr(self, 'CODE', kwargs["code"])
-        kwargs["title"] = getattr(self, 'TITLE', kwargs["title"])
-        kwargs["status"] = getattr(self, 'STATUS', kwargs["status"])
+        kwargs["code"] = self.CODE
+        kwargs["title"] = self.TITLE
+        kwargs["status"] = self.STATUS
+        kwargs["detail"] = kwargs.get("detail", "")
 
         for required_attribut in self.REQUIRED_ATTRIBUTES:
             if required_attribut not in kwargs:
@@ -52,13 +57,27 @@ class JSONAPIError(Exception):
     def __str__(self):
         return json.dumps(self.data)
 
+    def __getattr__(self, key):
+        if key == "data":
+            return self.data
+        else:
+            return self.data[key]
+
+
+class JSONAPIForbiddenError(JSONAPIError):
+    """ Resource Access of Manipulation forbidden."""
+
+    STATUS = statuses.HTTP_403_FORBIDDEN
+    CODE = 32001
+    TITLE = "Resource forbidden error"
+
 
 class JSONAPIResourceValidationError(JSONAPIError):
     """ Error raised during resource validation."""
 
     STATUS = statuses.HTTP_400_BAD_REQUEST
     CODE = 32100
-    TITLE = "Resource Validation Error"
+    TITLE = "Resource validation error"
 
 
 class JSONAPIFormValidationError(JSONAPIError):
@@ -66,7 +85,7 @@ class JSONAPIFormValidationError(JSONAPIError):
 
     STATUS = statuses.HTTP_400_BAD_REQUEST
     CODE = 32101
-    TITLE = "Model Form Validation Error"
+    TITLE = "Model form validation error"
 
 
 class JSONAPIFormSaveError(JSONAPIError):
@@ -74,12 +93,12 @@ class JSONAPIFormSaveError(JSONAPIError):
 
     STATUS = statuses.HTTP_400_BAD_REQUEST
     CODE = 32102
-    TITLE = "Model Form Validation Error"
+    TITLE = "Model form save error"
 
 
 class JSONAPIIntegrityError(JSONAPIError):
-    """ Database error on form save."""
+    """ Database integrity error on form save."""
 
     STATUS = statuses.HTTP_400_BAD_REQUEST
     CODE = 32103
-    TITLE = "Database Ialidation Error"
+    TITLE = "Database integrity error"
