@@ -27,6 +27,7 @@ class JSONAPIError(Exception):
         "detail",
         "links",
         "paths",
+        "data",
     ]
 
     REQUIRED_ATTRIBUTES = ["code", "title"]

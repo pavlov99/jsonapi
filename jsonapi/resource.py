@@ -48,6 +48,7 @@ from .exceptions import (
     JSONAPIError,
     JSONAPIForbiddenError,
     JSONAPIFormSaveError,
+    JSONAPIFormValidationError,
     JSONAPIIntegrityError,
     JSONAPIResourceValidationError,
 )
@@ -445,15 +446,13 @@ class Resource(Serializer, Authenticator):
 
             forms.append(form)
 
+        for index, form in enumerate(forms):
             if not form.is_valid():
-                response = {
-                    "errors": [{
-                        "status": 400,
-                        "title": "Validation error",
-                        "data": form.errors
-                    }]
-                }
-                return response
+                raise JSONAPIFormValidationError(
+                    links=["/data/{}".format(index)],
+                    paths=["/{}".format(attr) for attr in form.errors],
+                    data=form.errors
+                )
 
         data = []
         try:

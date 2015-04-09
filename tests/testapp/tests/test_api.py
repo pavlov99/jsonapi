@@ -299,7 +299,11 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation error",
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/0'],
+                "paths": ['/title'],
                 "data": {'title': ['This field is required.']},
             }]
         }
@@ -322,7 +326,11 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation error",
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/0'],
+                "paths": ['/author'],
                 "data": {'author': ['This field is required.']},
             }]
         }
@@ -349,7 +357,11 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation error",
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/1'],
+                "paths": ['/name'],
                 "data": {'name': ['Ensure this value has at most 100 ' +
                                   'characters (it has 180).']}
             }]
@@ -524,7 +536,11 @@ class TestApiClient(TestCase):
         expected_data = {
             "errors": [{
                 "status": 400,
-                "title": "Validation error",
+                "code": 32101,
+                "detail": "",
+                "links": ['/data/0'],
+                "paths": ['/name'],
+                "title": "Model form validation error",
                 "data": {'name': ['Ensure this value has at most 100 ' +
                                   'characters (it has 101).']},
             }]
