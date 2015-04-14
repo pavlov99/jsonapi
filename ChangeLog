@@ -1,3 +1,8 @@
+2015-04-14  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Handle parse error and invalid params exceptions during post/put
+	requests. Return 400 code instead of 500.
+
 2015-04-09  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
 	* Add resource clean method. It is excecuted after request

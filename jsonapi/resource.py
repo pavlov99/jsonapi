@@ -50,6 +50,8 @@ from .exceptions import (
     JSONAPIFormSaveError,
     JSONAPIFormValidationError,
     JSONAPIIntegrityError,
+    JSONAPIInvalidRequestDataMissingError,
+    JSONAPIParseError,
     JSONAPIResourceValidationError,
 )
 
@@ -366,8 +368,15 @@ class Resource(Serializer, Authenticator):
 
         """
         jdata = request.body.decode('utf8')
-        data = json.loads(jdata)
-        items = data["data"]
+        try:
+            data = json.loads(jdata)
+        except ValueError:
+            raise JSONAPIParseError(detail=jdata)
+
+        try:
+            items = data["data"]
+        except KeyError:
+            raise JSONAPIInvalidRequestDataMissingError()
         is_collection = isinstance(items, list)
 
         if not is_collection:

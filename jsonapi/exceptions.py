@@ -72,6 +72,30 @@ class JSONAPIForbiddenError(JSONAPIError):
     TITLE = "Resource forbidden error"
 
 
+class JSONAPIParseError(JSONAPIError):
+    """ Error raised during request parsing."""
+
+    STATUS = statuses.HTTP_400_BAD_REQUEST
+    CODE = 32002
+    TITLE = "Document parse error"
+
+
+class JSONAPIInvalidRequestError(JSONAPIError):
+    """ Error raised during requested document cleanup."""
+
+    STATUS = statuses.HTTP_400_BAD_REQUEST
+    CODE = 32003
+    TITLE = "Invalid request"
+
+
+class JSONAPIInvalidRequestDataMissingError(JSONAPIError):
+    """ Requested document does not have data key."""
+
+    STATUS = statuses.HTTP_400_BAD_REQUEST
+    CODE = 32004
+    TITLE = "Invalid request data missing"
+
+
 class JSONAPIResourceValidationError(JSONAPIError):
     """ Error raised during resource validation."""
 
