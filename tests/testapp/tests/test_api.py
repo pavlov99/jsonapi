@@ -427,6 +427,50 @@ class TestApiClient(TestCase):
         self.assertEqual(data, expected_data)
         self.assertEqual(Author.objects.count(), 0)
 
+    def test_create_model_parse_error(self):
+        response = self.client.post(
+            '/api/author',
+            'name=author',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32002,
+                "title": "Document parse error",
+                "detail": "name=author",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_create_model_invalid_request(self):
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
+                "name": "author"
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32004,
+                "title": "Invalid request data missing",
+                "detail": "",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")
         response = self.client.put(
@@ -627,6 +671,52 @@ class TestApiClient(TestCase):
         self.assertEqual(response.status_code, 200)
         post = PostWithPicture.objects.get()
         self.assertEqual(post.title, "new title")
+
+    def test_update_model_parse_error(self):
+        author = mixer.blend("testapp.author", name="")
+        response = self.client.put(
+            '/api/author/{}'.format(author.id),
+            'name=author',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32002,
+                "title": "Document parse error",
+                "detail": "name=author",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_update_model_invalid_request(self):
+        author = mixer.blend("testapp.author", name="")
+        response = self.client.put(
+            '/api/author/{}'.format(author.id),
+            json.dumps({
+                "name": "author"
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32004,
+                "title": "Invalid request data missing",
+                "detail": "",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
 
     def test_delete_model(self):
         author = mixer.blend("testapp.author")

@@ -88,18 +88,24 @@ suggested by document) could be added.
 .. warning:: Exceptions are still in development. Codes of existing exceptions
    would not be changed, but titles could.
 
-+-------+--------+-----------------------------+--------------------------------+
-| Code  | Status | Title                       | Class                          |
-+-------+--------+-----------------------------+--------------------------------+
-| 32000 | 400    | General JSONAPI Error       | JSONAPIError                   |
-+-------+--------+-----------------------------+--------------------------------+
-| 32001 | 403    | Resource Forbidden Error    | JSONAPIForbiddenError          |
-+-------+--------+-----------------------------+--------------------------------+
-| 32100 | 400    | Resource Validation Error   | JSONAPIResourceValidationError |
-+-------+--------+-----------------------------+--------------------------------+
-| 32101 | 400    | Model Form Validation Error | JSONAPIFormValidationError     |
-+-------+--------+-----------------------------+--------------------------------+
-| 32102 | 400    | Model Form Save Error       | JSONAPIFormSaveError           |
-+-------+--------+-----------------------------+--------------------------------+
-| 32103 | 400    | Database Integrity Error    | JSONAPIIntegrityError          |
-+-------+--------+-----------------------------+--------------------------------+
++-------+--------+------------------------------+---------------------------------------+
+| Code  | Status | Title                        | Class                                 |
++-------+--------+------------------------------+---------------------------------------+
+| 32000 | 400    | General JSONAPI Error        | JSONAPIError                          |
++-------+--------+------------------------------+---------------------------------------+
+| 32001 | 403    | Resource Forbidden Error     | JSONAPIForbiddenError                 |
++-------+--------+------------------------------+---------------------------------------+
+| 32002 | 400    | Document parse error         | JSONAPIParseError                     |
++-------+--------+------------------------------+---------------------------------------+
+| 32003 | 400    | Invalid request              | JSONAPIInvalidRequestError            |
++-------+--------+------------------------------+---------------------------------------+
+| 32004 | 400    | Invalid request data missing | JSONAPIInvalidRequestDataMissingError |
++-------+--------+------------------------------+---------------------------------------+
+| 32100 | 400    | Resource Validation Error    | JSONAPIResourceValidationError        |
++-------+--------+------------------------------+---------------------------------------+
+| 32101 | 400    | Model Form Validation Error  | JSONAPIFormValidationError            |
++-------+--------+------------------------------+---------------------------------------+
+| 32102 | 400    | Model Form Save Error        | JSONAPIFormSaveError                  |
++-------+--------+------------------------------+---------------------------------------+
+| 32103 | 400    | Database Integrity Error     | JSONAPIIntegrityError                 |
++-------+--------+------------------------------+---------------------------------------+
