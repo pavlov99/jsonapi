@@ -261,6 +261,7 @@ class API(object):
         :return django.http.HttpResponse
 
         """
+        logger.info("{} {}".format(request.method, request.path))
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
 
