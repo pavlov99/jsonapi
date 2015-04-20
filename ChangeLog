@@ -1,3 +1,7 @@
+2015-04-20  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Add request logger.
+
 2015-04-14  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
 	* Handle parse error and invalid params exceptions during post/put
