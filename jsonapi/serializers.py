@@ -123,6 +123,13 @@ class Serializer(object):
         # Include to-one fields. It does not require database calls
         for field in instance._meta.fields:
             fieldname = "{}_id".format(field.name)
+            # NOTE: check field is not related to parent model to exclude
+            # <class>_ptr fields. OneToOne relationship field.rel.multiple =
+            # False. Here make sure relationship is to parent model.
+            if field.rel and not field.rel.multiple \
+                    and isinstance(instance, field.rel.to):
+                continue
+
             if field.rel and fieldname not in cls.Meta.fieldnames_exclude:
                 document["links"] = document.get("links") or {}
                 document["links"][field.name] = getattr(instance, fieldname)
