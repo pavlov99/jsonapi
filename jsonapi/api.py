@@ -22,12 +22,15 @@ Responsible for routing and resource registration.
     )
 
 """
+import json
+import logging
+import time
 from django.http import HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import render
-import logging
-import json
+
 from .exceptions import JSONAPIError
 from .serializers import DatetimeDecimalEncoder
+from .signals import signal_request, signal_response
 
 logger = logging.getLogger(__name__)
 
@@ -209,11 +212,17 @@ class API(object):
 
     def handler_view_post(self, resource, **kwargs):
         data = resource.post(**kwargs)
+        if "errors" in data:
+            response = HttpResponse(
+                json.dumps(data, cls=DatetimeDecimalEncoder),
+                content_type=self.CONTENT_TYPE, status=400)
+            return response
+
         response = HttpResponse(
             json.dumps(data, cls=DatetimeDecimalEncoder),
             content_type=self.CONTENT_TYPE, status=201)
 
-        items = data[resource.Meta.name_plural]
+        items = data["data"]
         items = items if isinstance(items, list) else [items]
 
         response["Location"] = "{}/{}".format(
@@ -226,15 +235,17 @@ class API(object):
         if 'ids' not in kwargs:
             return HttpResponse("Request SHOULD have resource ids", status=400)
 
-        try:
-            data = resource.put(**kwargs)
+        data = resource.put(**kwargs)
+        if "errors" in data:
             response = HttpResponse(
                 json.dumps(data, cls=DatetimeDecimalEncoder),
-                content_type=self.CONTENT_TYPE, status=200)
+                content_type=self.CONTENT_TYPE, status=400)
             return response
-        except JSONAPIError as e:
-            return HttpResponse(
-                e.message, content_type=self.CONTENT_TYPE, status=e.status_code)
+
+        response = HttpResponse(
+            json.dumps(data, cls=DatetimeDecimalEncoder),
+            content_type=self.CONTENT_TYPE, status=200)
+        return response
 
     def handler_view_delete(self, resource, **kwargs):
         if 'ids' not in kwargs:
@@ -253,28 +264,47 @@ class API(object):
         :return django.http.HttpResponse
 
         """
+        signal_request.send(sender=self, request=request)
+        time_start = time.time()
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
 
         allowed_http_methods = resource.Meta.allowed_methods
         if request.method not in allowed_http_methods:
-            return HttpResponseNotAllowed(
+            response = HttpResponseNotAllowed(
                 permitted_methods=allowed_http_methods)
+            signal_response.send(
+                sender=self, request=request, response=response,
+                duration=time.time() - time_start)
+            return response
 
         if resource.Meta.authenticators:
             user = resource.authenticate(request)
             if user is None or not user.is_authenticated():
-                return HttpResponse("Not Authenticated", status=401)
+                response = HttpResponse("Not Authenticated", status=401)
+                signal_response.send(
+                    sender=self, request=request, response=response,
+                    duration=time.time() - time_start)
+                return response
 
         kwargs = dict(request=request)
         if ids is not None:
             kwargs['ids'] = ids.split(",")
 
-        if request.method == "GET":
-            return self.handler_view_get(resource, **kwargs)
-        elif request.method == "POST":
-            return self.handler_view_post(resource, **kwargs)
-        elif request.method == "PUT":
-            return self.handler_view_put(resource, **kwargs)
-        elif request.method == "DELETE":
-            return self.handler_view_delete(resource, **kwargs)
+        try:
+            if request.method == "GET":
+                response = self.handler_view_get(resource, **kwargs)
+            elif request.method == "POST":
+                response = self.handler_view_post(resource, **kwargs)
+            elif request.method == "PUT":
+                response = self.handler_view_put(resource, **kwargs)
+            elif request.method == "DELETE":
+                response = self.handler_view_delete(resource, **kwargs)
+        except JSONAPIError as e:
+            response = HttpResponse(
+                json.dumps({"errors": [e.data]}, cls=DatetimeDecimalEncoder),
+                content_type=self.CONTENT_TYPE, status=e.status)
+
+        signal_response.send(sender=self, request=request, response=response,
+                             duration=time.time() - time_start)
+        return response

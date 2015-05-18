@@ -99,18 +99,18 @@ class Serializer(object):
         document = {}
         # Include own fields
         for fieldname in fields_own:
-            value = getattr(instance, fieldname)
             field_serializer = getattr(
                 cls, "dump_document_{}".format(fieldname), None)
 
             if field_serializer is not None:
                 value = field_serializer(instance)
             else:
+                value = getattr(instance, fieldname)
                 try:
                     field = instance._meta.get_field(fieldname)
                 except models.fields.FieldDoesNotExist:
-                    # Field is property
-                    value = getattr(instance, fieldname)
+                    # Field is property, value already calculated
+                    pass
                 else:
                     if isinstance(field, models.fields.files.FileField):
                         # TODO: Serializer depends on API here.
@@ -123,6 +123,13 @@ class Serializer(object):
         # Include to-one fields. It does not require database calls
         for field in instance._meta.fields:
             fieldname = "{}_id".format(field.name)
+            # NOTE: check field is not related to parent model to exclude
+            # <class>_ptr fields. OneToOne relationship field.rel.multiple =
+            # False. Here make sure relationship is to parent model.
+            if field.rel and not field.rel.multiple \
+                    and isinstance(instance, field.rel.to):
+                continue
+
             if field.rel and fieldname not in cls.Meta.fieldnames_exclude:
                 document["links"] = document.get("links") or {}
                 document["links"][field.name] = getattr(instance, fieldname)
@@ -154,7 +161,7 @@ class Serializer(object):
                 fields_to_many.add(f)
 
         data = {
-            resource.Meta.name_plural: [
+            "data": [
                 cls.dump_document(
                     m,
                     fields_own=fields_own,

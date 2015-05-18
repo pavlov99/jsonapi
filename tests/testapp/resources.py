@@ -1,6 +1,9 @@
+from django import forms
 from django.conf import settings
-from jsonapi.resource import Resource
 from jsonapi.api import API
+from jsonapi.resource import Resource
+
+from .forms import PostWithPictureForm
 
 api = API()
 
@@ -14,7 +17,7 @@ class UserResource(Resource):
         model = settings.AUTH_USER_MODEL
         authenticators = [Resource.AUTHENTICATORS.SESSION]
         fieldnames_exclude = 'password',
-        allowed_methods = 'GET', 'PUT'
+        allowed_methods = 'GET', 'PUT', 'DELETE'
 
 
 @api.register
@@ -30,13 +33,28 @@ class AuthorResource(Resource):
         model = 'testapp.Author'
         allowed_methods = 'GET', 'POST', 'PUT', 'DELETE'
 
+    @classmethod
+    def clean_resources(cls, resources, request=None, **kwargs):
+        if request.method == "POST":
+            for resource in resources:
+                if resource["name"] == "not clean name":
+                    raise forms.ValidationError(
+                        "Author name should not be 'not clean name'")
+        return resources
+
 
 @api.register
 class PostWithPictureResource(Resource):
     class Meta:
         model = 'testapp.PostWithPicture'
-        fieldnames_include = 'title_uppercased',
+        allowed_methods = 'GET', 'PUT'
+        fieldnames_include = 'title_uppercased', 'dummy'
         fieldnames_exclude = 'title',
+        form = PostWithPictureForm
+
+    @staticmethod
+    def dump_document_dummy(obj):
+        return "dummy"
 
 
 @api.register
