@@ -198,7 +198,7 @@ class API(object):
         context = {
             "resources": sorted(self.resource_map.items())
         }
-        return render(request, "index.html", context)
+        return render(request, "jsonapi/index.html", context)
 
     def handler_view_get(self, resource, **kwargs):
         items = json.dumps(
