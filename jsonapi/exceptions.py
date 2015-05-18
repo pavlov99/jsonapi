@@ -93,7 +93,7 @@ class JSONAPIInvalidRequestDataMissingError(JSONAPIError):
 
     STATUS = statuses.HTTP_400_BAD_REQUEST
     CODE = 32004
-    TITLE = "Invalid request data missing"
+    TITLE = "Invalid request document data key missing"
 
 
 class JSONAPIResourceValidationError(JSONAPIError):

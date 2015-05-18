@@ -485,7 +485,7 @@ class TestApiClient(TestCase):
             "errors": [{
                 "status": 400,
                 "code": 32004,
-                "title": "Invalid request data missing",
+                "title": "Invalid request document data key missing",
                 "detail": "",
             }]
         }
@@ -732,7 +732,7 @@ class TestApiClient(TestCase):
             "errors": [{
                 "status": 400,
                 "code": 32004,
-                "title": "Invalid request data missing",
+                "title": "Invalid request document data key missing",
                 "detail": "",
             }]
         }
@@ -745,9 +745,11 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/postwithpicture/{}'.format(post.id),
             json.dumps({
-                "id": post.id,
-                "title": "new post",
-                "dummy": "dummy",  # dummy resource field
+                "data": [{
+                    "id": post.id,
+                    "title": "new post",
+                    "dummy": "dummy",  # dummy resource field
+                }]
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
