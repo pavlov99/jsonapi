@@ -22,12 +22,15 @@ Responsible for routing and resource registration.
     )
 
 """
+import json
+import logging
+import time
 from django.http import HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import render
-import logging
-import json
+
 from .exceptions import JSONAPIError
 from .serializers import DatetimeDecimalEncoder
+from .signals import signal_request, signal_response
 
 logger = logging.getLogger(__name__)
 
@@ -261,19 +264,28 @@ class API(object):
         :return django.http.HttpResponse
 
         """
-        logger.info("{} {}".format(request.method, request.path))
+        signal_request.send(sender=self, request=request)
+        time_start = time.time()
         self.update_urls(request, resource_name=resource_name, ids=ids)
         resource = self.resource_map[resource_name]
 
         allowed_http_methods = resource.Meta.allowed_methods
         if request.method not in allowed_http_methods:
-            return HttpResponseNotAllowed(
+            response = HttpResponseNotAllowed(
                 permitted_methods=allowed_http_methods)
+            signal_response.send(
+                sender=self, request=request, response=response,
+                duration=time.time() - time_start)
+            return response
 
         if resource.Meta.authenticators:
             user = resource.authenticate(request)
             if user is None or not user.is_authenticated():
-                return HttpResponse("Not Authenticated", status=401)
+                response = HttpResponse("Not Authenticated", status=401)
+                signal_response.send(
+                    sender=self, request=request, response=response,
+                    duration=time.time() - time_start)
+                return response
 
         kwargs = dict(request=request)
         if ids is not None:
@@ -281,14 +293,18 @@ class API(object):
 
         try:
             if request.method == "GET":
-                return self.handler_view_get(resource, **kwargs)
+                response = self.handler_view_get(resource, **kwargs)
             elif request.method == "POST":
-                return self.handler_view_post(resource, **kwargs)
+                response = self.handler_view_post(resource, **kwargs)
             elif request.method == "PUT":
-                return self.handler_view_put(resource, **kwargs)
+                response = self.handler_view_put(resource, **kwargs)
             elif request.method == "DELETE":
-                return self.handler_view_delete(resource, **kwargs)
+                response = self.handler_view_delete(resource, **kwargs)
         except JSONAPIError as e:
-            return HttpResponse(
+            response = HttpResponse(
                 json.dumps({"errors": [e.data]}, cls=DatetimeDecimalEncoder),
                 content_type=self.CONTENT_TYPE, status=e.status)
+
+        signal_response.send(sender=self, request=request, response=response,
+                             duration=time.time() - time_start)
+        return response
