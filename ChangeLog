@@ -3,6 +3,8 @@
 	* Allow serialization of fields not defined in model, but in resource.
 	* Exclude resource fieldnames_include from form during POST/PUT. Set
 	those attributes manually if model has such setters.
+	* 0.9.0 add Django 1.8 support. Tests are passed, there are some
+	deprecation warnings.
 
 2015-04-20  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
