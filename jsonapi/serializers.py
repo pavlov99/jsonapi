@@ -99,18 +99,18 @@ class Serializer(object):
         document = {}
         # Include own fields
         for fieldname in fields_own:
-            value = getattr(instance, fieldname)
             field_serializer = getattr(
                 cls, "dump_document_{}".format(fieldname), None)
 
             if field_serializer is not None:
                 value = field_serializer(instance)
             else:
+                value = getattr(instance, fieldname)
                 try:
                     field = instance._meta.get_field(fieldname)
                 except models.fields.FieldDoesNotExist:
-                    # Field is property
-                    value = getattr(instance, fieldname)
+                    # Field is property, value already calculated
+                    pass
                 else:
                     if isinstance(field, models.fields.files.FileField):
                         # TODO: Serializer depends on API here.
