@@ -924,7 +924,7 @@ class TestApiClient(TestCase):
                 'is_active': user.is_active,
                 'is_staff': user.is_staff,
                 'is_superuser': user.is_superuser,
-                'last_login': user.last_login.isoformat(),
+                'last_login': user.last_login and user.last_login.isoformat(),
                 'last_name': user.last_name,
                 'username': user.username,
             }],
