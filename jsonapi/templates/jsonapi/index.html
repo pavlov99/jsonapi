@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <title>API Documentation</title>
-  <link rel="stylesheet" href="{% static 'bootstrap.min.css' %}">
-  <link rel="stylesheet" href="{% static 'highlight.min.css' %}">
-  <link rel="stylesheet" href="{% static 'main.css' %}">
+  <link rel="stylesheet" href="{% static 'jsonapi/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'jsonapi/highlight.min.css' %}">
+  <link rel="stylesheet" href="{% static 'jsonapi/main.css' %}">
 
-  <script src="{% static 'highlight.min.js' %}"></script>
+  <script src="{% static 'jsonapi/highlight.min.js' %}"></script>
 </head>
 <body>
   <div class="container">
@@ -33,7 +33,7 @@
       </aside>
       <div id="content">
         <h1>Getting Started</h1>
-        Generated date: {% now 'c' %}
+        Generated date: {% now 'r' %}
 
         <h1>Resources</h1>
         {% for resource_name, resource in resources %}
@@ -45,7 +45,7 @@
           <table class="table table-bordered">
             <tr>
               <td>Location</td>
-              <td>{{ resource.Meta.api.api_url }}/{{ resource_name }}</td>
+              <td><a href="{{ resource.Meta.api.api_url }}/{{ resource_name }}">{{ resource.Meta.api.api_url }}/{{ resource_name }}</a></td>
             </tr>
             <tr>
               <td>Document Location</td>

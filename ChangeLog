@@ -1,0 +1,49 @@
+2015-05-18  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Allow serialization of fields not defined in model, but in resource.
+	* Exclude resource fieldnames_include from form during POST/PUT. Set
+	those attributes manually if model has such setters.
+	* 0.9.0 add Django 1.8 support. Tests are passed, there are some
+	deprecation warnings.
+	* 0.9.1 add signals for request and response. See examples in testapp.
+
+2015-04-20  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Add request logger.
+
+2015-04-14  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Handle parse error and invalid params exceptions during post/put
+	requests. Return 400 code instead of 500.
+
+2015-04-09  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Add resource clean method. It is excecuted after request
+	deserialization and before model create/update methods. It allows to
+	validate request. Useful if validation requires user access
+	(permission check). If validation does not require user, it is better
+	to use standard Django forms falidation.
+	* Add application exception classes.
+	* Raise forbidden error on not own objects delete.
+
+2015-04-08  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Add Partial form support for PUT request
+
+2015-03-26  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Version 0.8.2, add atomic transactions support for post and put. If
+	model raises error during form.save(), other models commited before
+	would be rolled back.
+
+2015-03-26  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Version 0.8.1, remove Django 1.5 support. Currently Django
+	1.6 and Django 1.7 are available. Version 1.5 is considered outdated.
+	Prepare for atomic transactions integration.
+
+2015-03-26  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Version 0.8.0, update document primary information key. Use 'data'
+	instead of Resource's plural name. It reflects standard change at
+	2015-03-16 (Release candidate 3).

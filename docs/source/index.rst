@@ -1,20 +1,17 @@
-.. jsonapi documentation master file, created by
-   sphinx-quickstart on Mon Jun  9 10:29:02 2014.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to json:api's documentation!
 ====================================
+
+.. warning:: This documentation is in development and not updated frequently.
+   Check tests and raise issue or question if you have any.
 
 .. toctree::
    :maxdepth: 3
 
-   modules.rst
-   pages/resource.rst
+   resource.rst
 
 Installation
 ============
-Requires: Django (1.5, 1.6, 1.7); python (2.7, 3.3).
+Requires: Django (1.6, 1.7); python (2.7, 3.3).
 
 .. code-block:: python
 
@@ -90,11 +87,3 @@ curl -v -H "Content-Type: application/vnd.api+json" 127.0.0.1:8000/api/author
 Test Application Models
 =======================
 .. image:: models.png
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

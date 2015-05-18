@@ -32,9 +32,8 @@ Properties:
 """
 from . import six
 from django.core.paginator import Paginator
-from django.db import models
-from django.forms import ModelForm
-import django
+from django.db import models, transaction, IntegrityError
+from django.forms import ModelForm, ValidationError
 import inspect
 import json
 import logging
@@ -45,8 +44,16 @@ from .serializers import Serializer
 from .auth import Authenticator
 from .request_parser import RequestParser
 from .model_inspector import ModelInspector
-from .exceptions import JSONAPIError
-from . import statuses
+from .exceptions import (
+    JSONAPIError,
+    JSONAPIForbiddenError,
+    JSONAPIFormSaveError,
+    JSONAPIFormValidationError,
+    JSONAPIIntegrityError,
+    JSONAPIInvalidRequestDataMissingError,
+    JSONAPIParseError,
+    JSONAPIResourceValidationError,
+)
 
 __all__ = 'Resource',
 
@@ -227,23 +234,42 @@ class Resource(Serializer, Authenticator):
         return queryset
 
     @classmethod
-    def get_form(cls, fields=None):
-        """ Create Partial Form based on given fields.
+    def get_form(cls):
+        """ Create Partial Form based on given fields."""
+        if cls.Meta.form:
+            return cls.Meta.form
 
-        :param list fields: list of field names.
-
-        """
-        meta_attributes = {"model": cls.Meta.model}
-        if django.VERSION[:2] >= (1, 6):
-            meta_attributes["fields"] = '__all__'
-
-        if fields is not None:
-            meta_attributes["fields"] = fields
-
+        meta_attributes = {"model": cls.Meta.model, "fields": '__all__'}
         Form = type('Form', (ModelForm,), {
             "Meta": type('Meta', (object,), meta_attributes)
         })
         return Form
+
+    @classmethod
+    def get_partial_form(cls, Form, fields):
+        """ Get partial form based on original Form and fields set.
+
+        :param Form: django.forms.ModelForm
+        :param list fields: list of field names.
+
+        """
+        if not fields:
+            return Form
+
+        meta_attributes = dict(fields=fields)
+
+        # NOTE: if Form was created automatically, it's Meta is inherited from
+        # object already, double inheritance raises error. If form is general
+        # ModelForm created by user, it's Meta is not inherited from object and
+        # PartialForm creation raises error.
+        meta_bases = (Form.Meta,)
+        if not issubclass(Form.Meta, object):
+            meta_bases += (object,)
+
+        PartialForm = type('PartialForm', (Form,), {
+            "Meta": type('Meta', meta_bases, meta_attributes)
+        })
+        return PartialForm
 
     @classmethod
     def _get_include_structure(cls, include=None):
@@ -332,78 +358,176 @@ class Resource(Serializer, Authenticator):
         return response
 
     @classmethod
-    def post(cls, request=None, **kwargs):
+    def extract_resource_items(cls, request):
+        """ Extract resources from django request.
+
+        :param: request django.HttpRequest
+        :return: (items, is_collection)
+        is_collection is True if items is list, False if object
+        items is list of items
+
+        """
         jdata = request.body.decode('utf8')
-        data = json.loads(jdata)
-        items = data[cls.Meta.name_plural]
+        try:
+            data = json.loads(jdata)
+        except ValueError:
+            raise JSONAPIParseError(detail=jdata)
+
+        try:
+            items = data["data"]
+        except KeyError:
+            raise JSONAPIInvalidRequestDataMissingError()
         is_collection = isinstance(items, list)
 
         if not is_collection:
             items = [items]
 
-        objects = []
+        return (items, is_collection)
+
+    @classmethod
+    def clean_resources(cls, resources, request=None, **kwargs):
+        """ Clean resources before models management.
+
+        If models management requires resources, such as database calls or
+        external services communication, one may possible to clean resources
+        before it.
+        It is also possible to validate user permissions to do operation. Use
+        form validation if validation does not require user access and Resource
+        validation (this method) if it requires to access user object.
+
+        Parameters
+        ----------
+        resources : list
+            List of dictionaries - serialized objects.
+
+        Returns
+        -------
+        resources : list
+            List of cleaned resources
+
+        Raises
+        ------
+        django.forms.ValidationError in case of validation errors
+
+        """
+        return resources
+
+    @classmethod
+    def _post_put(cls, request=None, **kwargs):
+        """ General method for post and put requests."""
+        items, is_collection = cls.extract_resource_items(request)
+
+        try:
+            items = cls.clean_resources(items, request=request, **kwargs)
+        except ValidationError as e:
+            raise JSONAPIResourceValidationError(detail=e.message)
+
+        if request.method == "PUT":
+            ids_set = set([int(_id) for _id in kwargs['ids']])
+            item_ids_set = {item["id"] for item in items}
+            if ids_set != item_ids_set:
+                msg = "ids set in url and request body are not matched"
+                raise JSONAPIError(detail=msg)
+
+            user = cls.authenticate(request)
+            queryset = cls.get_queryset(user=user, **kwargs)
+            queryset = cls.update_put_queryset(queryset, **kwargs)
+            objects_map = queryset.in_bulk(kwargs["ids"])
+
+            if len(objects_map) < len(kwargs["ids"]):
+                msg = "You do not have access to objects {}".format(
+                    list(ids_set - set(objects_map.keys()))
+                )
+                raise JSONAPIForbiddenError(detail=msg)
+
+        forms = []
+        attributes_include = []
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
-            Form = cls.Meta.form or cls.get_form(item.keys())
-            form = Form(item)
-            objects.append(form.save())
 
-        data = [cls.dump_document(o) for o in objects]
+            # Split resource data into original resource and attributes dict
+            # with keys from resource.Meta.fieldnames_include. Included fields
+            # could be of two types: 1) included in resource, but not model; 2)
+            # included in model (properties). In both cases fields could not be
+            # saved with form. Set those fields as attributes. In case 1)
+            # nothing would happed, because model does not have such attribute.
+            # In case 2) if model has setter for property, it would be set, if
+            # not, catch AttributeError and do nothing with it.
+
+            attribute_keys = set(item.keys()) & set(cls.Meta.fieldnames_include)
+            attributes_include.append({
+                k: v for k, v in item.items() if k in attribute_keys})
+
+            for key in attribute_keys:
+                del item[key]
+
+            # Prepare forms
+            if request.method == "POST":
+                Form = cls.get_form()
+                form = Form(item)
+            elif request.method == "PUT":
+                Form = cls.get_partial_form(cls.get_form(), item.keys())
+                instance = objects_map[item["id"]]
+                form = Form(item, instance=instance)
+
+            forms.append(form)
+
+        for index, form in enumerate(forms):
+            if not form.is_valid():
+                raise JSONAPIFormValidationError(
+                    links=["/data/{}".format(index)],
+                    paths=["/{}".format(attr) for attr in form.errors],
+                    data=form.errors
+                )
+
+        data = []
+        try:
+            with transaction.atomic():
+                for form, instance_attributes in zip(forms, attributes_include):
+                    instance = form.save()
+
+                    # Set instance attributes: resource attributes or model
+                    # properties with setters if exist.
+                    for key, value in instance_attributes.items():
+                        try:
+                            setattr(instance, key, value)
+                        except AttributeError:
+                            # Do nothing if model's property does not have
+                            # setter
+                            pass
+
+                    # save model only if there are attributes set.
+                    if instance_attributes:
+                        instance.save()
+
+                    data.append(cls.dump_document(instance))
+        except IntegrityError as e:
+            raise JSONAPIIntegrityError(detail=str(e))
+        except Exception as e:
+            raise JSONAPIFormSaveError(detail=str(e))
 
         if not is_collection:
             data = data[0]
 
-        response = {cls.Meta.name_plural: data}
+        response = dict(data=data)
         return response
 
     @classmethod
+    def post(cls, request=None, **kwargs):
+        return cls._post_put(request=request, **kwargs)
+
+    @classmethod
     def put(cls, request=None, **kwargs):
-        jdata = request.body.decode('utf8')
-        data = json.loads(jdata)
-        items = data[cls.Meta.name_plural]
-        is_collection = isinstance(items, list)
-
-        if not is_collection:
-            items = [items]
-
-        ids_set = set([int(_id) for _id in kwargs['ids']])
-        item_ids_set = {item["id"] for item in items}
-        if ids_set != item_ids_set:
-            msg = "ids set in url and request body are not matched"
-            raise JSONAPIError(statuses.HTTP_400_BAD_REQUEST, msg)
-
-        user = cls.authenticate(request)
-        queryset = cls.get_queryset(user=user, **kwargs)
-        queryset = cls.update_put_queryset(queryset, **kwargs)
-        objects_map = queryset.in_bulk(kwargs["ids"])
-
-        if len(objects_map) < len(kwargs["ids"]):
-            msg = "You do not have access to objects {}".format(
-                list(ids_set - set(objects_map.keys()))
-            )
-            raise JSONAPIError(statuses.HTTP_403_FORBIDDEN, msg)
-
-        objects = []
-        for item in items:
-            if 'links' in item:
-                item.update(item.pop('links'))
-            Form = cls.Meta.form or cls.get_form(item.keys())
-            instance = objects_map[item["id"]]
-            form = Form(item, instance=instance)
-            objects.append(form.save())
-
-        data = [cls.dump_document(o) for o in objects]
-
-        if not is_collection:
-            data = data[0]
-
-        response = {cls.Meta.name_plural: data}
-        return response
+        return cls._post_put(request=request, **kwargs)
 
     @classmethod
     def delete(cls, request=None, **kwargs):
         user = cls.authenticate(request)
-        queryset = cls.get_queryset(user=user, **kwargs)
-        queryset.filter(id__in=kwargs['ids']).delete()
+        queryset = cls.get_queryset(user=user, **kwargs)\
+            .filter(id__in=kwargs['ids'])
+
+        if len(kwargs['ids']) > queryset.count():
+            raise JSONAPIForbiddenError()
+        queryset.delete()
         return ""

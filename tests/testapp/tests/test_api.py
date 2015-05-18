@@ -4,11 +4,10 @@ from jsonapi.api import API
 from jsonapi.resource import Resource
 from mixer.backend.django import mixer
 from testfixtures import compare
-import django
 import json
 import unittest
 
-from ..models import Author, Post
+from ..models import Author, Post, PostWithPicture
 from ..urls import api
 
 User = get_user_model()
@@ -143,14 +142,10 @@ class TestApi(TestCase):
             str(response.content),
             "Content-Type SHOULD be application/vnd.api+json")
 
-    @unittest.skipIf(django.VERSION[:2] == (1, 5),
-                     "FIXME: For some reason does not work. Tested manually")
     def test_base_url(self):
         self.client.get('/api', content_type='application/vnd.api+json')
         self.assertEqual(api.base_url, "http://testserver")
 
-    @unittest.skipIf(django.VERSION[:2] == (1, 5),
-                     "FIXME: For some reason does not work. Tested manually")
     def test_api_url(self):
         self.client.get('/api', content_type='application/vnd.api+json')
         self.assertEqual(api.api_url, "http://testserver/api")
@@ -171,7 +166,7 @@ class TestApiClient(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf8'))
         data_expected = {
-            "authors": []
+            "data": []
         }
         self.assertEqual(data, data_expected)
 
@@ -183,7 +178,29 @@ class TestApiClient(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode('utf8'))
-        self.assertEqual(len(data["authors"]), 1)
+        self.assertEqual(len(data["data"]), 1)
+
+    def test_get_child_model(self):
+        post = mixer.blend("testapp.postwithpicture", title="post")
+        response = self.client.get(
+            '/api/postwithpicture/{}'.format(post.id),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        expected_data = {
+            "data": [{
+                "id": post.id,
+                "picture_url": post.picture_url,
+                "title_uppercased": post.title.upper(),
+                "dummy": "dummy",
+                "links": {
+                    "user": post.user and post.user.id,
+                    "author": post.author and post.author.id
+                }
+            }]
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        compare(data["data"], expected_data["data"])
 
     def test_create_model(self):
         self.assertEqual(Author.objects.count(), 0)
@@ -191,7 +208,7 @@ class TestApiClient(TestCase):
         response = self.client.post(
             '/api/author',
             json.dumps({
-                "authors": {
+                "data": {
                     "name": "author"
                 },
             }),
@@ -203,7 +220,7 @@ class TestApiClient(TestCase):
         author = Author.objects.get()
 
         expected_data = {
-            "authors": {
+            "data": {
                 "id": author.id,
                 "name": author.name,
             }
@@ -221,11 +238,11 @@ class TestApiClient(TestCase):
         self.assertEqual(Author.objects.count(), 0)
         # TODO: try to decrease number of queries
         # NOTE: send resource collection
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(5):
             response = self.client.post(
                 '/api/author',
                 json.dumps({
-                    "authors": [
+                    "data": [
                         {"name": "author1"},
                         {"name": "author2"},
                         {"name": "author3"},
@@ -241,7 +258,7 @@ class TestApiClient(TestCase):
         self.assertEqual(set(authors_names), {"author1", "author2", "author3"})
 
         expected_data = {
-            "authors": [{
+            "data": [{
                 "id": author.id,
                 "name": author.name,
             } for author in authors]
@@ -260,7 +277,7 @@ class TestApiClient(TestCase):
         response = self.client.post(
             '/api/post',
             json.dumps({
-                "posts": {
+                "data": {
                     "title": "title",
                     "links": {
                         "author": author.id
@@ -274,7 +291,7 @@ class TestApiClient(TestCase):
 
         post = Post.objects.get()
         expected_data = {
-            "posts": {
+            "data": {
                 "id": post.id,
                 "title": "title",
                 "links": {
@@ -287,12 +304,201 @@ class TestApiClient(TestCase):
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
 
+    def test_create_model_validation_error(self):
+        author = mixer.blend('testapp.author')
+        response = self.client.post(
+            '/api/post',
+            json.dumps({
+                "data": {
+                    "links": {"author": author.id}
+                },
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/0'],
+                "paths": ['/title'],
+                "data": {'title': ['This field is required.']},
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+        response = self.client.post(
+            '/api/post',
+            json.dumps({
+                "data": {
+                    "title": "New Post"
+                },
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/0'],
+                "paths": ['/author'],
+                "data": {'author': ['This field is required.']},
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_create_models_validation_error(self):
+        """ Ensure models are not created if one of them is not validated."""
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
+                "data": [{
+                    "name": "short name"
+                }, {
+                    "name": "long name" * 20
+                }],
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32101,
+                "title": "Model form validation error",
+                "detail": '',
+                "links": ['/data/1'],
+                "paths": ['/name'],
+                "data": {'name': ['Ensure this value has at most 100 ' +
+                                  'characters (it has 180).']}
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Post.objects.count(), 0)
+
+    def test_create_models_save_error_atomic(self):
+        """ Ensure models are not created if one of them raises exception."""
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
+                "data": [{
+                    "name": "short name"
+                }, {
+                    "name": "forbidden name"
+                }],
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32102,
+                "title": "Model form save error",
+                "detail": "Name forbidden name is not allowed",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Author.objects.count(), 0)
+
+    def test_create_model_resource_clean_error(self):
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
+                "data": {
+                    "name": "not clean name"
+                },
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32100,
+                "title": "Resource validation error",
+                "detail": "Author name should not be 'not clean name'",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Author.objects.count(), 0)
+
+    def test_create_model_parse_error(self):
+        response = self.client.post(
+            '/api/author',
+            'name=author',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32002,
+                "title": "Document parse error",
+                "detail": "name=author",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_create_model_invalid_request(self):
+        response = self.client.post(
+            '/api/author',
+            json.dumps({
+                "name": "author"
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32004,
+                "title": "Invalid request document data key missing",
+                "detail": "",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
     def test_update_model(self):
         author = mixer.blend("testapp.author", name="")
         response = self.client.put(
             '/api/author/{}'.format(author.id),
             json.dumps({
-                "authors": {
+                "data": {
                     "id": author.id,
                     "name": "author",
                 },
@@ -306,7 +512,7 @@ class TestApiClient(TestCase):
         self.assertEqual(author.name, "author")
 
         expected_data = {
-            "authors": {
+            "data": {
                 "id": author.id,
                 "name": "author"
             }
@@ -319,7 +525,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/author/{}'.format(",".join([str(a.id) for a in authors])),
             json.dumps({
-                "authors": [{
+                "data": [{
                     "id": a.id,
                     "name": "author",
                 } for a in authors],
@@ -333,7 +539,7 @@ class TestApiClient(TestCase):
             self.assertEqual(author.name, "author")
 
         expected_data = {
-            "authors": [{
+            "data": [{
                 "id": a.id,
                 "name": "author",
             } for a in authors],
@@ -346,7 +552,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/author',
             {
-                "authors": {
+                "data": {
                     "name": "author"
                 },
             },
@@ -364,7 +570,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/user/{}'.format(other_user.id),
             json.dumps({
-                "users": {"id": other_user.id, "email": "email@example.com"},
+                "data": {"id": other_user.id, "email": "email@example.com"},
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -374,7 +580,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/user/{}'.format(self.user.id),
             json.dumps({
-                "users": {"id": other_user.id, "email": "email@example.com"},
+                "data": {"id": other_user.id, "email": "email@example.com"},
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -384,7 +590,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/user/{}'.format(other_user.id),
             json.dumps({
-                "users": {"id": self.user.id, "email": "email@example.com"},
+                "data": {"id": self.user.id, "email": "email@example.com"},
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -395,7 +601,7 @@ class TestApiClient(TestCase):
         response = self.client.put(
             '/api/user/{}'.format(self.user.id),
             json.dumps({
-                "users": {"id": self.user.id, "email": "email@example.com"},
+                "data": {"id": self.user.id, "email": "email@example.com"},
             }),
             content_type='application/vnd.api+json',
             HTTP_ACCEPT='application/vnd.api+json'
@@ -403,6 +609,198 @@ class TestApiClient(TestCase):
         self.assertEqual(response.status_code, 200)
         user = User.objects.get(id=self.user.id)
         self.assertEqual(user.email, "email@example.com")
+
+    def test_update_model_validation_error(self):
+        author = mixer.blend('testapp.author')
+        response = self.client.put(
+            '/api/author/{}'.format(author.id),
+            json.dumps({
+                "data": {
+                    "id": author.id,
+                    "name": "a" * 101,
+                },
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32101,
+                "detail": "",
+                "links": ['/data/0'],
+                "paths": ['/name'],
+                "title": "Model form validation error",
+                "data": {'name': ['Ensure this value has at most 100 ' +
+                                  'characters (it has 101).']},
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_update_models_save_error_atomic(self):
+        """ Ensure models are not created if one of them raises exception."""
+        authors = mixer.cycle(2).blend('testapp.author', name="name")
+        response = self.client.put(
+            '/api/author/{}'.format(",".join([str(a.id) for a in authors])),
+            json.dumps({
+                "data": [{
+                    "id": authors[0].id,
+                    "name": "allowed name",
+                }, {
+                    "id": authors[1].id,
+                    "name": "forbidden name",
+                }],
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32102,
+                "title": "Model form save error",
+                "detail": "Name forbidden name is not allowed",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+        self.assertEqual(Author.objects.count(), 2)
+        self.assertEqual(
+            set(Author.objects.values_list("name", flat=True)), {'name'})
+
+    def test_update_partial(self):
+        post = mixer.blend('testapp.postwithpicture', title="title")
+        response = self.client.put(
+            '/api/postwithpicture/{}'.format(post.id),
+            json.dumps({
+                "data": [{
+                    "id": post.id,
+                    "title": "new title",
+                }],
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        post = PostWithPicture.objects.get()
+        self.assertEqual(post.title, "new title")
+
+    def test_update_model_parse_error(self):
+        author = mixer.blend("testapp.author", name="")
+        response = self.client.put(
+            '/api/author/{}'.format(author.id),
+            'name=author',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32002,
+                "title": "Document parse error",
+                "detail": "name=author",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_update_model_invalid_request(self):
+        author = mixer.blend("testapp.author", name="")
+        response = self.client.put(
+            '/api/author/{}'.format(author.id),
+            json.dumps({
+                "name": "author"
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        expected_data = {
+            "errors": [{
+                "status": 400,
+                "code": 32004,
+                "title": "Invalid request document data key missing",
+                "detail": "",
+            }]
+        }
+
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_update_model_exclude_properties_from_form(self):
+        """ Test post/put sets attributes from fieldnames_include.
+
+        NOTE: dummy is a resource attrubute, it does not exist in model. Value
+        is ignored and during result object serialization, it would be set again
+
+        NOTE: title_uppercased is a property of parent model which is included
+        in fieldnames_include of current resource. It has setter and is saved.
+
+        """
+        post = mixer.blend("testapp.postwithpicture", title="post")
+        response = self.client.put(
+            '/api/postwithpicture/{}'.format(post.id),
+            json.dumps({
+                "data": [{
+                    "id": post.id,
+                    "dummy": "dummy",  # dummy resource field
+                    "title_uppercased": "NEW POST",
+                }]
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        expected_data = {
+            "data": [{
+                "id": post.id,
+                "picture_url": post.picture_url,
+                "title_uppercased": "NEW POST",
+                "dummy": "dummy",
+                "links": {
+                    "user": post.user and post.user.id,
+                    "author": post.author and post.author.id
+                }
+            }]
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_update_model_property_setter_errors(self):
+        post = mixer.blend("testapp.postwithpicture", title="post")
+        response = self.client.put(
+            '/api/postwithpicture/{}'.format(post.id),
+            json.dumps({
+                "data": [{
+                    "id": post.id,
+                    "title_uppercased": "not uppercased title",
+                }]
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        expected_data = {
+            'errors': [{
+                'code': 32102,
+                'detail': 'Value of title_uppercased should be uppercased',
+                'status': 400,
+                'title': 'Model form save error'
+            }]
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
 
     def test_delete_model(self):
         author = mixer.blend("testapp.author")
@@ -435,6 +833,25 @@ class TestApiClient(TestCase):
             response.content.decode("utf-8"),
             "Request SHOULD have resource ids")
 
+    def test_delete_now_own_models(self):
+        user = mixer.blend(User)
+        response = self.client.delete(
+            '/api/user/{}'.format(user.id),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        self.assertEqual(response.status_code, 403)
+        expected_data = {
+            "errors": [{
+                'code': 32001,
+                'detail': '',
+                'status': 403,
+                'title': 'Resource forbidden error',
+            }]
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        compare(data, expected_data)
+
     def test_get_top_level_links(self):
         post = mixer.blend("testapp.post")
         response = self.client.get(
@@ -444,7 +861,7 @@ class TestApiClient(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         expected_data = {
-            "posts": [{
+            "data": [{
                 "id": post.id,
                 "title": post.title,
                 "links": {
@@ -490,7 +907,7 @@ class TestApiClient(TestCase):
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode("utf-8"))
         expected_data = {
-            "posts": [{
+            "data": [{
                 "id": post.id,
                 "title": post.title,
                 "links": {
@@ -507,7 +924,7 @@ class TestApiClient(TestCase):
                 'is_active': user.is_active,
                 'is_staff': user.is_staff,
                 'is_superuser': user.is_superuser,
-                'last_login': user.last_login.isoformat(),
+                'last_login': user.last_login and user.last_login.isoformat(),
                 'last_name': user.last_name,
                 'username': user.username,
             }],
@@ -545,7 +962,7 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         data = json.loads(response.content.decode("utf-8"))
-        self.assertIn("title_uppercased", data["postwithpictures"][0])
+        self.assertIn("title_uppercased", data["data"][0])
 
         response = self.client.get(
             '/api/post',
@@ -553,7 +970,7 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         data = json.loads(response.content.decode("utf-8"))
-        self.assertNotIn("title_uppercased", data["posts"][0])
+        self.assertNotIn("title_uppercased", data["data"][0])
 
     def test_get_exclude_fields(self):
         mixer.blend("testapp.postwithpicture")
@@ -563,7 +980,7 @@ class TestApiClient(TestCase):
             HTTP_ACCEPT='application/vnd.api+json'
         )
         data = json.loads(response.content.decode("utf-8"))
-        self.assertNotIn("title", data["postwithpictures"][0])
+        self.assertNotIn("title", data["data"][0])
 
     def test_get_include_many_to_many(self):
         group = mixer.blend('testapp.group')
@@ -577,7 +994,7 @@ class TestApiClient(TestCase):
         )
         data = json.loads(response.content.decode("utf-8"))
         expected_data = {
-            "authors": [{
+            "data": [{
                 "id": author.id,
                 "name": author.name,
                 "links": {
