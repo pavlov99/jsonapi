@@ -741,14 +741,23 @@ class TestApiClient(TestCase):
         self.assertEqual(data, expected_data)
 
     def test_update_model_exclude_properties_from_form(self):
+        """ Test post/put sets attributes from fieldnames_include.
+
+        NOTE: dummy is a resource attrubute, it does not exist in model. Value
+        is ignored and during result object serialization, it would be set again
+
+        NOTE: title_uppercased is a property of parent model which is included
+        in fieldnames_include of current resource. It has setter and is saved.
+
+        """
         post = mixer.blend("testapp.postwithpicture", title="post")
         response = self.client.put(
             '/api/postwithpicture/{}'.format(post.id),
             json.dumps({
                 "data": [{
                     "id": post.id,
-                    "title": "new post",
                     "dummy": "dummy",  # dummy resource field
+                    "title_uppercased": "NEW POST",
                 }]
             }),
             content_type='application/vnd.api+json',
@@ -764,6 +773,30 @@ class TestApiClient(TestCase):
                     "user": post.user and post.user.id,
                     "author": post.author and post.author.id
                 }
+            }]
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_update_model_property_setter_errors(self):
+        post = mixer.blend("testapp.postwithpicture", title="post")
+        response = self.client.put(
+            '/api/postwithpicture/{}'.format(post.id),
+            json.dumps({
+                "data": [{
+                    "id": post.id,
+                    "title_uppercased": "not uppercased title",
+                }]
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        expected_data = {
+            'errors': [{
+                'code': 32102,
+                'detail': 'Value of title_uppercased should be uppercased',
+                'status': 400,
+                'title': 'Model form save error'
             }]
         }
         data = json.loads(response.content.decode("utf-8"))
