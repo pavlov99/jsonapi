@@ -48,9 +48,13 @@ class PostWithPictureResource(Resource):
     class Meta:
         model = 'testapp.PostWithPicture'
         allowed_methods = 'GET', 'PUT'
-        fieldnames_include = 'title_uppercased',
+        fieldnames_include = 'title_uppercased', 'dummy'
         fieldnames_exclude = 'title',
         form = PostWithPictureForm
+
+    @staticmethod
+    def dump_document_dummy(obj):
+        return "dummy"
 
 
 @api.register

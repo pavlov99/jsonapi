@@ -180,6 +180,28 @@ class TestApiClient(TestCase):
         data = json.loads(response.content.decode('utf8'))
         self.assertEqual(len(data["data"]), 1)
 
+    def test_get_child_model(self):
+        post = mixer.blend("testapp.postwithpicture", title="post")
+        response = self.client.get(
+            '/api/postwithpicture/{}'.format(post.id),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        expected_data = {
+            "data": [{
+                "id": post.id,
+                "picture_url": post.picture_url,
+                "title_uppercased": post.title.upper(),
+                "dummy": "dummy",
+                "links": {
+                    "user": post.user and post.user.id,
+                    "author": post.author and post.author.id
+                }
+            }]
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        compare(data["data"], expected_data["data"])
+
     def test_create_model(self):
         self.assertEqual(Author.objects.count(), 0)
         # NOTE: send individual resource
@@ -463,7 +485,7 @@ class TestApiClient(TestCase):
             "errors": [{
                 "status": 400,
                 "code": 32004,
-                "title": "Invalid request data missing",
+                "title": "Invalid request document data key missing",
                 "detail": "",
             }]
         }
@@ -710,11 +732,73 @@ class TestApiClient(TestCase):
             "errors": [{
                 "status": 400,
                 "code": 32004,
-                "title": "Invalid request data missing",
+                "title": "Invalid request document data key missing",
                 "detail": "",
             }]
         }
 
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_update_model_exclude_properties_from_form(self):
+        """ Test post/put sets attributes from fieldnames_include.
+
+        NOTE: dummy is a resource attrubute, it does not exist in model. Value
+        is ignored and during result object serialization, it would be set again
+
+        NOTE: title_uppercased is a property of parent model which is included
+        in fieldnames_include of current resource. It has setter and is saved.
+
+        """
+        post = mixer.blend("testapp.postwithpicture", title="post")
+        response = self.client.put(
+            '/api/postwithpicture/{}'.format(post.id),
+            json.dumps({
+                "data": [{
+                    "id": post.id,
+                    "dummy": "dummy",  # dummy resource field
+                    "title_uppercased": "NEW POST",
+                }]
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        expected_data = {
+            "data": [{
+                "id": post.id,
+                "picture_url": post.picture_url,
+                "title_uppercased": "NEW POST",
+                "dummy": "dummy",
+                "links": {
+                    "user": post.user and post.user.id,
+                    "author": post.author and post.author.id
+                }
+            }]
+        }
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data, expected_data)
+
+    def test_update_model_property_setter_errors(self):
+        post = mixer.blend("testapp.postwithpicture", title="post")
+        response = self.client.put(
+            '/api/postwithpicture/{}'.format(post.id),
+            json.dumps({
+                "data": [{
+                    "id": post.id,
+                    "title_uppercased": "not uppercased title",
+                }]
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        expected_data = {
+            'errors': [{
+                'code': 32102,
+                'detail': 'Value of title_uppercased should be uppercased',
+                'status': 400,
+                'title': 'Model form save error'
+            }]
+        }
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
 

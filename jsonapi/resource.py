@@ -441,10 +441,28 @@ class Resource(Serializer, Authenticator):
                 raise JSONAPIForbiddenError(detail=msg)
 
         forms = []
+        attributes_include = []
         for item in items:
             if 'links' in item:
                 item.update(item.pop('links'))
 
+            # Split resource data into original resource and attributes dict
+            # with keys from resource.Meta.fieldnames_include. Included fields
+            # could be of two types: 1) included in resource, but not model; 2)
+            # included in model (properties). In both cases fields could not be
+            # saved with form. Set those fields as attributes. In case 1)
+            # nothing would happed, because model does not have such attribute.
+            # In case 2) if model has setter for property, it would be set, if
+            # not, catch AttributeError and do nothing with it.
+
+            attribute_keys = set(item.keys()) & set(cls.Meta.fieldnames_include)
+            attributes_include.append({
+                k: v for k, v in item.items() if k in attribute_keys})
+
+            for key in attribute_keys:
+                del item[key]
+
+            # Prepare forms
             if request.method == "POST":
                 Form = cls.get_form()
                 form = Form(item)
@@ -466,8 +484,23 @@ class Resource(Serializer, Authenticator):
         data = []
         try:
             with transaction.atomic():
-                for form in forms:
+                for form, instance_attributes in zip(forms, attributes_include):
                     instance = form.save()
+
+                    # Set instance attributes: resource attributes or model
+                    # properties with setters if exist.
+                    for key, value in instance_attributes.items():
+                        try:
+                            setattr(instance, key, value)
+                        except AttributeError:
+                            # Do nothing if model's property does not have
+                            # setter
+                            pass
+
+                    # save model only if there are attributes set.
+                    if instance_attributes:
+                        instance.save()
+
                     data.append(cls.dump_document(instance))
         except IntegrityError as e:
             raise JSONAPIIntegrityError(detail=str(e))

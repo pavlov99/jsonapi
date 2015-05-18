@@ -56,6 +56,12 @@ class Post(models.Model):
     def title_uppercased(self):
         return self.title.upper()
 
+    @title_uppercased.setter
+    def title_uppercased(self, value):
+        if value != value.upper():
+            raise ValueError("Value of title_uppercased should be uppercased")
+        self.title = value
+
 
 class PostWithPicture(Post):
     picture_url = models.URLField()
