@@ -256,8 +256,11 @@ class Resource(Serializer, Authenticator):
         if not fields:
             return Form
 
-        fields = list(set(fields) & set(Form.base_fields.keys()))
-        meta_attributes = dict(fields=fields)
+        if not set(fields) <= set(Form.base_fields.keys()):
+            # Set of requested fields is not subset of original form fields
+            # Django itself does not raise exception here.
+            fields = set(fields) & set(Form.base_fields.keys())
+        meta_attributes = dict(fields=list(fields))
 
         # NOTE: if Form was created automatically, it's Meta is inherited from
         # object already, double inheritance raises error. If form is general
