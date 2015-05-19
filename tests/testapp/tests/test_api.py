@@ -6,6 +6,7 @@ from mixer.backend.django import mixer
 from testfixtures import compare
 import json
 import unittest
+import datetime
 
 from ..models import Author, Post, PostWithPicture
 from ..urls import api
@@ -801,6 +802,27 @@ class TestApiClient(TestCase):
         }
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(data, expected_data)
+
+    def test_update_hidden_user_field_date_joined(self):
+        date_joined = self.user.date_joined
+        new_date_joined = date_joined - datetime.timedelta(days=1)
+        response = self.client.put(
+            '/api/user/{}'.format(self.user.id),
+            json.dumps({
+                "data": [{
+                    "id": self.user.id,
+                    "date_joined": new_date_joined.date().isoformat(),
+                }]
+            }),
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        user = User.objects.get(id=self.user.id)
+        self.assertEqual(user.date_joined, date_joined)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(data['data'][0]['date_joined'],
+                         user.date_joined.isoformat())
 
     def test_delete_model(self):
         author = mixer.blend("testapp.author")

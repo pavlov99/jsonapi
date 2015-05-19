@@ -3,7 +3,7 @@ from django.conf import settings
 from jsonapi.api import API
 from jsonapi.resource import Resource
 
-from .forms import PostWithPictureForm
+from .forms import UserForm, PostWithPictureForm
 
 api = API()
 
@@ -16,7 +16,8 @@ class UserResource(Resource):
     class Meta:
         model = settings.AUTH_USER_MODEL
         authenticators = [Resource.AUTHENTICATORS.SESSION]
-        fieldnames_exclude = 'password',
+        fieldnames_exclude = ['password']
+        form = UserForm
         allowed_methods = 'GET', 'PUT', 'DELETE'
 
 
