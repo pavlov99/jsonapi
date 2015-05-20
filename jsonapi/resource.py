@@ -295,7 +295,7 @@ class Resource(Serializer, Authenticator):
                 "model_info": model_inspector.models[current_model],
                 "resource": cls.Meta.api.model_resource_map[current_model],
                 "type": field_path[-1].related_resource_name,
-                "query": "__".join([f.query_name for f in field_path])
+                "query": "__".join([f.name for f in field_path])
             })
 
         return result
@@ -325,7 +325,16 @@ class Resource(Serializer, Authenticator):
 
         include = queryargs.get("include", [])
         include_structure = cls._get_include_structure(include)
-        # TODO: update queryset based on include parameters.
+
+        # Update queryset based on include parameters.
+        for include_resource in include_structure:
+            field = include_resource['field_path'][-1]
+            related_query_type = 'select_related' \
+                if field.category == field.CATEGORIES.TO_ONE \
+                else 'prefetch_related'
+
+            queryset = getattr(queryset, related_query_type)(
+                include_resource['query'])
 
         # Fields serialisation
         # NOTE: currently filter only own fields
