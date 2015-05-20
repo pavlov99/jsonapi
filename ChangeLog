@@ -1,3 +1,7 @@
+2015-05-20  Kirill Pavlov <kirill.pavlov@phystech.edu>
+
+	* Add prefetch_related/selet_related detection to include queries.
+
 2015-05-19  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
 	* Fix partial field injection during form creation
