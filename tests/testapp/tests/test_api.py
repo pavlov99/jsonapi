@@ -1059,3 +1059,24 @@ class TestApiClient(TestCase):
             "name": group.name,
         })
         compare(data, expected_data)
+
+    def test_get_include_many_many_db_queries(self):
+        comment = mixer.cycle(10).blend("testapp.comment")
+        # prefetch related join is done in python twice.
+        with self.assertNumQueries(3):
+            self.client.get(
+                '/api/author?include=posts,posts.comments',
+                content_type='application/vnd.api+json',
+                HTTP_ACCEPT='application/vnd.api+json'
+            )
+
+    def test_get_include_db_query(self):
+        comment = mixer.cycle(10).blend("testapp.comment")
+        # prefetch related join is done in python twice.
+        #TODO: add 'comments.author' relationship (->to-many->to-one).
+        with self.assertNumQueries(3):
+            self.client.get(
+                '/api/post?include=author,comments,author.comments',
+                content_type='application/vnd.api+json',
+                HTTP_ACCEPT='application/vnd.api+json'
+            )
