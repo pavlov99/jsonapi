@@ -921,11 +921,14 @@ class TestApiClient(TestCase):
         post1 = mixer.blend("testapp.post")
         post2 = mixer.blend("testapp.post", user__username="username")
         user = post2.user
-        response = self.client.get(
-            '/api/post?include=user',
-            content_type='application/vnd.api+json',
-            HTTP_ACCEPT='application/vnd.api+json'
-        )
+
+        # prefetch related join is done in python
+        with self.assertNumQueries(1):
+            response = self.client.get(
+                '/api/post?include=user',
+                content_type='application/vnd.api+json',
+                HTTP_ACCEPT='application/vnd.api+json'
+            )
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.content.decode("utf-8"))
         expected_data = {
@@ -960,11 +963,14 @@ class TestApiClient(TestCase):
 
     def test_get_include_many(self):
         comment = mixer.blend("testapp.comment")
-        response = self.client.get(
-            '/api/post?include=comments',
-            content_type='application/vnd.api+json',
-            HTTP_ACCEPT='application/vnd.api+json'
-        )
+
+        # prefetch related join is done in python
+        with self.assertNumQueries(2):
+            response = self.client.get(
+                '/api/post?include=comments',
+                content_type='application/vnd.api+json',
+                HTTP_ACCEPT='application/vnd.api+json'
+            )
         data = json.loads(response.content.decode("utf-8"))["linked"]
         expected_data = [{
             "type": "comments",
@@ -1009,11 +1015,15 @@ class TestApiClient(TestCase):
         authors = mixer.cycle(2).blend('testapp.author')
         memberships = mixer.cycle(2).blend('testapp.membership', group=group,
                                            author=(a for a in authors))
-        response = self.client.get(
-            '/api/author?include=memberships',
-            content_type='application/vnd.api+json',
-            HTTP_ACCEPT='application/vnd.api+json'
-        )
+
+        # prefetch related join is done in python
+        with self.assertNumQueries(2):
+            response = self.client.get(
+                '/api/author?include=memberships',
+                content_type='application/vnd.api+json',
+                HTTP_ACCEPT='application/vnd.api+json'
+            )
+
         data = json.loads(response.content.decode("utf-8"))
         expected_data = {
             "data": [{
@@ -1049,3 +1059,24 @@ class TestApiClient(TestCase):
             "name": group.name,
         })
         compare(data, expected_data)
+
+    def test_get_include_many_many_db_queries(self):
+        comment = mixer.cycle(10).blend("testapp.comment")
+        # prefetch related join is done in python twice.
+        with self.assertNumQueries(3):
+            self.client.get(
+                '/api/author?include=posts,posts.comments',
+                content_type='application/vnd.api+json',
+                HTTP_ACCEPT='application/vnd.api+json'
+            )
+
+    def test_get_include_db_query(self):
+        comment = mixer.cycle(10).blend("testapp.comment")
+        # prefetch related join is done in python twice.
+        #TODO: add 'comments.author' relationship (->to-many->to-one).
+        with self.assertNumQueries(3):
+            self.client.get(
+                '/api/post?include=author,comments,author.comments',
+                content_type='application/vnd.api+json',
+                HTTP_ACCEPT='application/vnd.api+json'
+            )
