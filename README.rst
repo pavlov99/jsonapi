@@ -53,3 +53,8 @@ Documentation
 Library: http://jsonapi.readthedocs.org/
 
 Api Specification: http://jsonapi.org/
+
+
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+   :alt: Join the chat at https://gitter.im/pavlov99/jsonapi
+   :target: https://gitter.im/pavlov99/jsonapi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
