@@ -344,6 +344,10 @@ class Resource(Serializer, Authenticator):
 
         queryset = queryset.filter(**cls.get_filters(queryargs.filter))
 
+        # Distinct
+        if queryargs.distinct:
+            queryset = queryset.distinct(*queryargs.distinct)
+
         # Sort
         if queryargs.sort:
             queryset = queryset.order_by(*queryargs.sort)

@@ -4,6 +4,7 @@ from collections import OrderedDict, namedtuple
 
 
 JSONAPIQueryDict = namedtuple('JSONAPIQueryDict', [
+    'distinct',
     'fields',
     'filter',
     'include',
@@ -23,7 +24,7 @@ class RequestParser(object):
         """ Parse querydict data.
 
         There are expected agruments:
-            fields, filter, include, page, sort
+            distinct, fields, filter, include, page, sort
 
         Parameters
         ----------
@@ -49,6 +50,7 @@ class RequestParser(object):
                 raise ValueError(msg)
 
         result = JSONAPIQueryDict(
+            distinct=cls.prepare_values(querydict.getlist('distinct')),
             fields=cls.parse_fields(querydict),
             filter=querydict.getlist('filter'),
             include=cls.prepare_values(querydict.getlist('include')),
