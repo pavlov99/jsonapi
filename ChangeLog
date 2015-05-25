@@ -1,3 +1,11 @@
+2015-05-25  kirill.pavlov@phystech.edu
+
+	* Fix sort functionality
+	* Refactor request parser
+	* Update filter queriset functionality, refactor typed filter
+	* Add custom filters support
+	* Add queryset distinct option
+
 2015-05-20  Kirill Pavlov <kirill.pavlov@phystech.edu>
 
 	* Add prefetch_related/selet_related detection to include queries.
