@@ -1123,3 +1123,13 @@ class TestApiClient(TestCase):
         )
         data = json.loads(response.content.decode("utf-8"))
         self.assertEqual(len(data['data']), 1)
+
+    def test_get_sort(self):
+        mixer.cycle(2).blend("testapp.comment")
+        response = self.client.get(
+            '/api/comment?sort=-id',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual([o['id'] for o in data['data']], [2, 1])

@@ -345,8 +345,8 @@ class Resource(Serializer, Authenticator):
         queryset = queryset.filter(**cls.get_filters(queryargs.filter))
 
         # Sort
-        if 'sort' in kwargs:
-            queryset = queryset.order_by(*kwargs['sort'])
+        if queryargs.sort:
+            queryset = queryset.order_by(*queryargs.sort)
 
         include = queryargs.include
         include_structure = cls._get_include_structure(include)
