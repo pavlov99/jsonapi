@@ -1115,5 +1115,11 @@ class TestApiClient(TestCase):
         self.assertEqual(data['data'][0]['id'], 2)
 
     def test_get_filter_queryset_custom_filter(self):
-        raise
-        pass
+        mixer.cycle(3).blend("testapp.comment")
+        response = self.client.get(
+            '/api/comment?filter=is_outdated=1',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(len(data['data']), 1)
