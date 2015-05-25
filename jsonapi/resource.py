@@ -214,6 +214,33 @@ class Resource(Serializer, Authenticator):
         return queryset
 
     @classmethod
+    def get_filters(cls, filters):
+        """ Filter given queryset.
+
+        .. note:: Method is used to define custom filters.
+
+        Parameters
+        ----------
+        filters : list
+            list of strings in form 'a=b' to apply to queryset
+
+        Returns
+        -------
+        dict
+            key is django filter expression, value is a filter value.
+
+        """
+        result = dict()
+
+        for f in filters:
+            if not isinstance(f, six.string_types):
+                msg = "Value {} is not supported for filtering".format(f)
+                raise ValueError(msg)
+            result.update(dict([f.split('=', 1)]))
+
+        return result
+
+    @classmethod
     def update_get_queryset(cls, queryset, **kwargs):
         """ Update permission queryset for GET operations."""
         return queryset
@@ -309,21 +336,19 @@ class Resource(Serializer, Authenticator):
         """
         user = cls.authenticate(request)
         queryset = cls.get_queryset(user=user, **kwargs)
-        queryargs = RequestParser.parse(
-            "&".join(["=".join(i) for i in request.GET.items()]))
+        queryargs = RequestParser.parse(request.GET)
 
         # Filters
-        filters = queryargs.get("filters", {})
-        if kwargs.get('ids'):
-            filters["id__in"] = kwargs.get('ids')
+        if 'ids' in kwargs:
+            queryset = queryset.filter(id__in=kwargs['ids'])
 
-        queryset = queryset.filter(**filters)
+        queryset = queryset.filter(**cls.get_filters(queryargs.filter))
 
         # Sort
         if 'sort' in kwargs:
             queryset = queryset.order_by(*kwargs['sort'])
 
-        include = queryargs.get("include", [])
+        include = queryargs.include
         include_structure = cls._get_include_structure(include)
 
         # Update queryset based on include parameters.
@@ -340,15 +365,15 @@ class Resource(Serializer, Authenticator):
         # NOTE: currently filter only own fields
         model_info = cls.Meta.model_info
         fields_own = model_info.fields_own
-        if queryargs['fields']:
-            fieldnames = queryargs['fields']
+        if queryargs.fields:
+            fieldnames = queryargs.fields
             fields_own = [f for f in fields_own if f.name in fieldnames]
 
-        objects = queryset
+        objects = queryset.all()
         meta = {}
         if cls.Meta.page_size is not None:
             paginator = Paginator(queryset, cls.Meta.page_size)
-            page = int(queryargs.get('page') or 1)
+            page = int(queryargs.page or 1)
             meta["count"] = paginator.count
             meta["num_pages"] = paginator.num_pages
             meta["page_size"] = cls.Meta.page_size

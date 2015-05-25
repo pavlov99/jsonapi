@@ -1061,7 +1061,7 @@ class TestApiClient(TestCase):
         compare(data, expected_data)
 
     def test_get_include_many_many_db_queries(self):
-        comment = mixer.cycle(10).blend("testapp.comment")
+        mixer.cycle(10).blend("testapp.comment")
         # prefetch related join is done in python twice.
         with self.assertNumQueries(3):
             self.client.get(
@@ -1071,12 +1071,49 @@ class TestApiClient(TestCase):
             )
 
     def test_get_include_db_query(self):
-        comment = mixer.cycle(10).blend("testapp.comment")
+        mixer.cycle(10).blend("testapp.comment")
         # prefetch related join is done in python twice.
-        #TODO: add 'comments.author' relationship (->to-many->to-one).
+        # TODO: add 'comments.author' relationship (->to-many->to-one).
         with self.assertNumQueries(3):
             self.client.get(
                 '/api/post?include=author,comments,author.comments',
                 content_type='application/vnd.api+json',
                 HTTP_ACCEPT='application/vnd.api+json'
             )
+
+    def test_get_filter_queryset(self):
+        mixer.cycle(3).blend("testapp.comment")
+        response = self.client.get(
+            '/api/comment?filter=id__gt=1',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(len(data['data']), 2)
+
+    def test_get_filter_queryset_duplicated_key(self):
+        mixer.cycle(3).blend("testapp.comment")
+        response = self.client.get(
+            '/api/comment?filter=id__gt=1&filter=id__lt=3',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(len(data['data']), 1)
+
+    def test_get_filter_queryset_two_fields(self):
+        comments = mixer.cycle(3).blend(
+            "testapp.comment",
+            author__name=(x for x in ['Alice', 'Bob', 'Bill']))
+        response = self.client.get(
+            '/api/comment?filter=id__lt=3&filter=author__name__startswith=B',
+            content_type='application/vnd.api+json',
+            HTTP_ACCEPT='application/vnd.api+json'
+        )
+        data = json.loads(response.content.decode("utf-8"))
+        self.assertEqual(len(data['data']), 1)
+        self.assertEqual(data['data'][0]['id'], 2)
+
+    def test_get_filter_queryset_custom_filter(self):
+        raise
+        pass
