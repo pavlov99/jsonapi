@@ -1,6 +1,4 @@
-.. image:: http://jsonapi.org/images/jsonapi@0.7x.png
-    :alt: json:api
-
+JSON-API
 ========
 
 .. image:: https://travis-ci.org/pavlov99/jsonapi.png
@@ -31,12 +29,27 @@
     :target: https://pypi.python.org/pypi/jsonapi/
     :alt: Development Status
 
+
+Django module with json-api standard support.
+It lets you easily add powerful api on top of your models and generate auto documentation.
+Module is focused on simple integration allowing developers to add features later on.
+Most of the functions would work out of the box.
+
+Compared to other solutions, this project does Django model introspection.
+It allows to automatically query database using select_related/prefetch_related options for related resources.
+No more configs, if you would like to include one resource into another, you are able to do that from client side.
+Your client knows, when it needs it. Server in this case would perform db queries in a most efficient way.
+
 Development
 ===========
 
 .. image:: https://badge.waffle.io/pavlov99/jsonapi.png?label=ready&title=Ready
     :target: https://waffle.io/pavlov99/jsonapi/
     :alt: Ready stories.
+
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+   :alt: Join the chat at https://gitter.im/pavlov99/jsonapi
+   :target: https://gitter.im/pavlov99/jsonapi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 
 
 Throughput Graph
@@ -53,8 +66,3 @@ Documentation
 Library: http://jsonapi.readthedocs.org/
 
 Api Specification: http://jsonapi.org/
-
-
-.. image:: https://badges.gitter.im/Join%20Chat.svg
-   :alt: Join the chat at https://gitter.im/pavlov99/jsonapi
-   :target: https://gitter.im/pavlov99/jsonapi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge

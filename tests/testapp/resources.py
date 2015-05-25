@@ -75,6 +75,15 @@ class CommentResource(Resource):
         model = 'testapp.Comment'
         page_size = 3
 
+    @classmethod
+    def get_filters(cls, filters):
+        result = super(CommentResource, CommentResource).get_filters(filters)
+        if 'is_outdated' in result:
+            value = result.pop('is_outdated')
+            if value:
+                result['id__lt'] = 2
+        return result
+
 
 @api.register
 class GroupResource(Resource):
