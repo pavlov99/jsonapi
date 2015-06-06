@@ -278,7 +278,9 @@ class API(object):
                 duration=time.time() - time_start)
             return response
 
-        if resource.Meta.authenticators:
+        if resource.Meta.authenticators and not (
+                request.method == "GET" and
+                resource.Meta.disable_get_authentication):
             user = resource.authenticate(request)
             if user is None or not user.is_authenticated():
                 response = HttpResponse("Not Authenticated", status=401)

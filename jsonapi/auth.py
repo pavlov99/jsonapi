@@ -54,6 +54,7 @@ class Authenticator(object):
 
     class Meta:
         authenticators = []
+        disable_get_authentication = None
 
     @classmethod
     def authenticate(cls, request):
