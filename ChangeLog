@@ -2,6 +2,9 @@
 
 	* Allow user to disable GET requests authentication and manage access
 	rights on the application level. 0.9.6 version.
+	* 0.9.7 If during post/put client submits many to many fields, they
+	are returned in links in response. If there are not changed
+	many-to-many fields they would not be returned.
 
 2015-05-25  kirill.pavlov@phystech.edu
 
