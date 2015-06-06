@@ -484,8 +484,11 @@ class Resource(Serializer, Authenticator):
 
         forms = []
         attributes_include = []
+        fieldnames_to_many = []
         for item in items:
             if 'links' in item:
+                fieldnames_to_many = [
+                    k for k, v in item['links'].items() if isinstance(v, list)]
                 item.update(item.pop('links'))
 
             # Split resource data into original resource and attributes dict
@@ -543,7 +546,13 @@ class Resource(Serializer, Authenticator):
                     if instance_attributes:
                         instance.save()
 
-                    data.append(cls.dump_document(instance))
+                    dumped_resource = cls.dump_document(instance)
+
+                    for fieldname_to_many in fieldnames_to_many:
+                        dumped_resource['links'][fieldname_to_many] = [
+                            x.id for x in form.cleaned_data[fieldname_to_many]]
+
+                    data.append(dumped_resource)
         except IntegrityError as e:
             raise JSONAPIIntegrityError(detail=str(e))
         except Exception as e:
