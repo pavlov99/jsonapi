@@ -1,3 +1,8 @@
+2015-06-06  kirill.pavlov@phystech.edu
+
+	* Allow user to disable GET requests authentication and manage access
+	rights on the application level. 0.9.6 version.
+
 2015-05-25  kirill.pavlov@phystech.edu
 
 	* Fix sort functionality
