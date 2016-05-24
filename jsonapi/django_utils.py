@@ -23,7 +23,12 @@ def get_model_by_name(model_name):
     if isinstance(model_name, six.string_types) and \
             len(model_name.split('.')) == 2:
         app_name, model_name = model_name.split('.')
-        model = models.get_model(app_name, model_name)
+
+        if django.VERSION[:2] < (1, 8):
+            model = models.get_model(app_name, model_name)
+        else:
+            from django.apps import apps
+            model = apps.get_model(app_name, model_name)
     else:
         raise ValueError("{0} is not a Django model".format(model_name))
 
@@ -66,3 +71,11 @@ def get_querydict(query):
         return dict(QueryDict(query).iterlists())
     else:
         return dict(QueryDict(query).lists())
+
+
+def get_models():
+    if django.VERSION[:2] < (1, 8):
+        return models.get_models()
+    else:
+        from django.apps import apps
+        return apps.get_models()

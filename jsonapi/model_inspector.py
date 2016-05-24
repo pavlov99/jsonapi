@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from .utils import Choices
-from .django_utils import get_model_name
+from .django_utils import get_model_name, get_models
 
 
 class ModelInfo(object):
@@ -73,7 +73,7 @@ class Field(object):
 
 
 def get_parent(model):
-    model_set = set(models.get_models())
+    model_set = set(get_models())
     for parent in reversed(model.mro()):
         if parent in model_set:
             return parent
@@ -95,7 +95,7 @@ class ModelInspector(object):
                 self._get_fields_self_many_to_many(model) +
                 self._get_fields_others_many_to_many(model),
                 is_user=(model is user_model or issubclass(model, user_model))
-            ) for model in models.get_models()
+            ) for model in get_models()
         }
 
         for model, model_info in self.models.items():
@@ -168,8 +168,8 @@ class ModelInspector(object):
     def _get_fields_others_foreign_key(cls, model):
         """ Get to-namy related field.
 
-        If related model has children, link current model only to related. Child
-        links make relationship complicated.
+        If related model has children, link current model only to related.
+        Child links make relationship complicated.
 
         """
         fields = [
@@ -179,7 +179,7 @@ class ModelInspector(object):
                 related_model=related_model,
                 django_field=field,
                 category=Field.CATEGORIES.TO_MANY
-            ) for related_model in models.get_models()
+            ) for related_model in get_models()
             if not related_model._meta.proxy
             for field in related_model._meta.fields
             if field.rel and field.rel.to is model._meta.concrete_model and
@@ -209,7 +209,7 @@ class ModelInspector(object):
                 related_model=related_model,
                 django_field=field,
                 category=Field.CATEGORIES.TO_MANY
-            ) for related_model in models.get_models()
+            ) for related_model in get_models()
             if related_model is not model
             for field in related_model._meta.many_to_many
             if field.rel.to is model._meta.concrete_model
