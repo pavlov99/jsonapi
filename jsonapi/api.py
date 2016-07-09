@@ -121,14 +121,14 @@ class API(object):
         from django.conf.urls import url
         urls = [
             url(r'^$', self.documentation),
-            url(r'^/map$', self.map_view),
+            url(r'^map$', self.map_view),
         ]
 
         for resource_name in self.resource_map:
             urls.extend([
-                url(r'/(?P<resource_name>{})$'.format(
+                url(r'(?P<resource_name>{})$'.format(
                     resource_name), self.handler_view),
-                url(r'/(?P<resource_name>{})/(?P<ids>[\w\-\,]+)$'.format(
+                url(r'(?P<resource_name>{})/(?P<ids>[\w\-\,]+)$'.format(
                     resource_name), self.handler_view),
             ])
 

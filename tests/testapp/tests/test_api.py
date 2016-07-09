@@ -4,9 +4,10 @@ from jsonapi.api import API
 from jsonapi.resource import Resource
 from mixer.backend.django import mixer
 from testfixtures import compare
+import datetime
+import django
 import json
 import unittest
-import datetime
 
 from ..models import Author, Post, PostWithPicture
 from ..urls import api
@@ -232,7 +233,11 @@ class TestApiClient(TestCase):
         self.assertEqual(data, expected_data)
         self.assertTrue(response.has_header("Location"))
 
-        location = "http://testserver/api/author/{}".format(author.id)
+        if django.VERSION[:2] < (1, 8):
+            location = "http://testserver/api/author/{}".format(author.id)
+        else:
+            location = "author/{}".format(author.id)
+
         self.assertEqual(response["Location"], location)
 
     def test_create_models(self):
@@ -269,7 +274,11 @@ class TestApiClient(TestCase):
         self.assertEqual(data, expected_data)
         self.assertTrue(response.has_header("Location"))
 
-        location = "http://testserver/api/author/1,2,3"
+        if django.VERSION[:2] < (1, 8):
+            location = "http://testserver/api/author/1,2,3"
+        else:
+            location = "author/1,2,3"
+
         self.assertEqual(response["Location"], location)
 
     def test_create_model_partial_generated_form(self):
@@ -745,7 +754,8 @@ class TestApiClient(TestCase):
         """ Test post/put sets attributes from fieldnames_include.
 
         NOTE: dummy is a resource attrubute, it does not exist in model. Value
-        is ignored and during result object serialization, it would be set again
+        is ignored and during result object serialization, it would be set
+        again
 
         NOTE: title_uppercased is a property of parent model which is included
         in fieldnames_include of current resource. It has setter and is saved.
@@ -1102,7 +1112,7 @@ class TestApiClient(TestCase):
         self.assertEqual(len(data['data']), 1)
 
     def test_get_filter_queryset_two_fields(self):
-        comments = mixer.cycle(3).blend(
+        mixer.cycle(3).blend(
             "testapp.comment",
             author__name=(x for x in ['Alice', 'Bob', 'Bill']))
         response = self.client.get(
