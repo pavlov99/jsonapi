@@ -66,3 +66,9 @@ Documentation
 Library: http://jsonapi.readthedocs.org/
 
 Api Specification: http://jsonapi.org/
+
+TODO
+====
+
+I'm going to migrate backend ORM to peewee soon. During development I would support Django all the time.
+Idea behind it is to unify framework, so it would be possible to use jsonapi with Tornado, Flask or Asyncio.
